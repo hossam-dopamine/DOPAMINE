@@ -10,9 +10,66 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Lucide Icons (Local Bundle) -->
     <script src="lucide.min.js"></script>
-    <link rel="stylesheet" href="style.css?v=9.0">
+    <link rel="stylesheet" href="style.css?v=11.0">
 </head>
 <body>
+    <!-- Login Overlay -->
+    <div id="login-overlay" class="login-overlay active">
+        <div class="bg-glow glow-1"></div>
+        <div class="bg-glow glow-2"></div>
+        <div class="login-container glass-panel">
+            <div class="login-header">
+                <i data-lucide="flame" style="width:48px;height:48px;color:var(--color-primary);filter:drop-shadow(0 0 12px rgba(255,90,0,0.5));"></i>
+                <h1 class="logo-text" style="font-size:28px;margin-top:12px;">DOPAMINE</h1>
+                <p style="color:var(--text-muted);font-size:14px;margin-top:4px;" data-i18n="login-subtitle">تسجيل الدخول للنظام</p>
+            </div>
+            <form id="login-form" style="margin-top:24px;">
+                <div class="form-group">
+                    <label for="login-username" data-i18n="login-username">اسم المستخدم</label>
+                    <input type="text" id="login-username" required autocomplete="username" placeholder="admin">
+                </div>
+                <div class="form-group">
+                    <label for="login-password" data-i18n="login-password">كلمة المرور</label>
+                    <input type="password" id="login-password" required autocomplete="current-password">
+                </div>
+                <div id="login-error" style="display:none;color:var(--color-rose);font-size:13px;margin-bottom:12px;text-align:center;" data-i18n="login-error">اسم المستخدم أو كلمة المرور غير صحيحة</div>
+                <button type="submit" class="btn btn-primary btn-block" id="login-btn">
+                    <i data-lucide="log-in"></i>
+                    <span data-i18n="login-btn">دخول</span>
+                </button>
+            </form>
+            <p style="color:var(--text-dim);font-size:12px;text-align:center;margin-top:20px;">DOPAMINE-SERVICE &copy; 2026</p>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div class="modal-overlay" id="change-password-modal">
+        <div class="glass-panel" style="max-width: 420px; width: 90vw; padding: 28px;">
+            <div class="modal-header">
+                <h2 data-i18n="change-password">تغيير كلمة المرور</h2>
+                <button class="btn btn-secondary btn-icon-only" id="close-change-password-modal"><i data-lucide="x"></i></button>
+            </div>
+            <form id="change-password-form">
+                <div class="form-group">
+                    <label for="current-password-input" data-i18n="current-password">كلمة المرور الحالية</label>
+                    <input type="password" id="current-password-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="new-password-input" data-i18n="new-password">كلمة المرور الجديدة</label>
+                    <input type="password" id="new-password-input" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password-input" data-i18n="confirm-password">تأكيد كلمة المرور</label>
+                    <input type="password" id="confirm-password-input" required minlength="6">
+                </div>
+                <div id="change-password-error" style="display:none;color:var(--color-rose);font-size:13px;margin-bottom:12px;"></div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary"><i data-lucide="check"></i> <span data-i18n="save-changes">حفظ</span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="app-container">
         <!-- Background decorative glows -->
         <div class="bg-glow glow-1"></div>
@@ -48,7 +105,15 @@
                 </div>
             </nav>
             
-            <div class="sidebar-footer">
+            <div class="sidebar-footer" style="display: flex; flex-direction: column; gap: 8px;">
+                <button id="change-password-btn" class="btn btn-secondary btn-block">
+                    <i data-lucide="key"></i>
+                    <span data-i18n="change-password">تغيير كلمة المرور</span>
+                </button>
+                <button id="logout-btn" class="btn btn-danger btn-block">
+                    <i data-lucide="log-out"></i>
+                    <span data-i18n="logout">تسجيل الخروج</span>
+                </button>
                 <button id="lang-toggle-btn" class="btn btn-secondary btn-icon-text">
                     <i data-lucide="languages"></i>
                     <span id="lang-btn-text">English</span>
@@ -434,6 +499,35 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Create Employee Account Section -->
+                    <div style="margin-top: 32px; border-top: 1px solid var(--border-color); padding-top: 24px;">
+                        <h3 style="margin-bottom: 16px; color: #fff; display: flex; align-items: center; gap: 8px;">
+                            <i data-lucide="user-check" style="color: var(--color-primary);"></i>
+                            <span data-i18n="employee-accounts">إنشاء حسابات للموظفين</span>
+                        </h3>
+                        <form id="create-account-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; align-items: end; background: rgba(0,0,0,0.25); padding: 18px; border-radius: 12px; border: 1px solid var(--border-color);">
+                            <div class="form-group" style="margin: 0;">
+                                <label for="account-employee-select" data-i18n="th-employee-name">الموظف</label>
+                                <select id="account-employee-select" class="select-sm" required style="width: 100%; height: 42px;">
+                                    <!-- Populated dynamically -->
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label for="account-username" data-i18n="login-username">اسم المستخدم</label>
+                                <input type="text" id="account-username" required placeholder="مثال: ahmed123" style="height: 42px;">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label for="account-password" data-i18n="login-password">كلمة المرور</label>
+                                <input type="password" id="account-password" required minlength="6" placeholder="******" style="height: 42px;">
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="height: 42px;">
+                                <i data-lucide="user-plus"></i>
+                                <span data-i18n="create-account">إنشاء الحساب</span>
+                            </button>
+                        </form>
+                        <div id="account-msg" style="display: none; margin-top: 10px; font-size: 13px; font-weight: 600;"></div>
+                    </div>
                 </div>
             </section>
 
@@ -682,7 +776,7 @@
     </div>
     
     <!-- App JavaScript Logic -->
-    <script src="app.js?v=9.0"></script>
+    <script src="app.js?v=11.0"></script>
 </body>
 </html>
 

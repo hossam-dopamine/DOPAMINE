@@ -128,6 +128,9 @@ const i18n = {
         "task-character-label": "اسم الشخصية (Character)",
         "task-vpn-label": "الـ VPN (Location)",
         "credentials-modal-title": "بيانات الحساب والـ VPN",
+        "confirm-delete-task": "هل أنت تأكد من حذف هذه المهمة؟",
+        "create-account": "إنشاء الحساب",
+        "employee-accounts": "إنشاء حسابات للموظفين",
         "copy": "نسخ",
         "copied": "تم النسخ!",
         "close": "إغلاق",
@@ -271,9 +274,63 @@ const i18n = {
         "select-image": "Select Image",
         "remove-image": "Remove",
         "tasks-list": "Tasks Record",
-        "edit-task-modal-title": "Edit Task Details"
+        "edit-task-modal-title": "Edit Task Details",
+        "login-subtitle": "Login to System",
+        "login-username": "Username",
+        "login-password": "Password",
+        "login-btn": "Login",
+        "login-error": "Invalid username or password",
+        "logout": "Logout",
+        "change-password": "Change Password",
+        "current-password": "Current Password",
+        "new-password": "New Password",
+        "confirm-password": "Confirm Password",
+        "password-changed": "Password changed successfully",
+        "confirm-delete-task": "Are you sure you want to delete this task?",
+        "create-account": "Create Account",
+        "employee-accounts": "Employee Accounts"
     }
 };
+
+// --- Authentication Module ---
+const AUTH_TOKEN_KEY = 'dopamine_auth_token';
+const AUTH_USER_KEY = 'dopamine_auth_user';
+
+function getAuthToken() {
+    return localStorage.getItem(AUTH_TOKEN_KEY);
+}
+
+function getAuthUser() {
+    try {
+        return JSON.parse(localStorage.getItem(AUTH_USER_KEY));
+    } catch { return null; }
+}
+
+function setAuth(token, user) {
+    localStorage.setItem(AUTH_TOKEN_KEY, token);
+    localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+}
+
+function clearAuth() {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(AUTH_USER_KEY);
+}
+
+function isAuthenticated() {
+    const token = getAuthToken();
+    if (!token) return false;
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        return payload.exp * 1000 > Date.now();
+    } catch { return false; }
+}
+
+function authHeaders() {
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + getAuthToken()
+    };
+}
 
 // --- Application State ---
 let state = {
@@ -363,54 +420,69 @@ function loadState() {
 }
 
 async function loadStateAsync() {
+    if (!isAuthenticated()) {
+        showLoginOverlay();
+        return;
+    }
     try {
-        const res = await fetch('/api/data');
+        const res = await fetch('/api/data', { headers: authHeaders() });
+        if (res.status === 401 || res.status === 403) {
+            clearAuth();
+            showLoginOverlay();
+            return;
+        }
         if (res.ok) {
             const result = await res.json();
-            if (result.success && result.data && validateAndSanitizeState(result.data)) {
-                // If server file data.json contains employees, use it!
-                if (result.data.employees && result.data.employees.length > 0) {
-                    state = result.data;
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-                    console.log('✅ Loaded data from local file data.json successfully!');
-                    return;
+            if (result.success && result.data) {
+                const user = getAuthUser();
+                if (user && user.role === 'employee') {
+                    state.employees = result.data.employees || [];
+                    state.exchangeRate = result.data.exchangeRate || 50;
+                    state.viewMode = 'employee';
+                    state.selectedEmployeeId = state.employees.length > 0 ? state.employees[0].id : null;
+                    state.isManagerUnlocked = false;
+                } else {
+                    if (validateAndSanitizeState(result.data)) {
+                        state = result.data;
+                    }
                 }
+                hideLoginOverlay();
+                updateUIVisuals();
+                applyRoleRestrictions();
+                console.log('✅ Loaded data from server successfully!');
+                return;
             }
         }
     } catch (e) {
-        console.log('ℹ️ Running in browser mode (fallback to localStorage)');
+        console.error('Error loading data:', e);
     }
-
-    // If data.json had 0 employees, check if localStorage has saved employees!
-    const savedLocal = localStorage.getItem(STORAGE_KEY);
-    if (savedLocal) {
-        try {
-            const parsedLocal = JSON.parse(savedLocal);
-            if (validateAndSanitizeState(parsedLocal) && parsedLocal.employees && parsedLocal.employees.length > 0) {
-                state = parsedLocal;
-                console.log('✅ Restored user data from browser localStorage to data.json!');
-                saveState(); // Instantly save localStorage data to data.json on disk!
-                return;
-            }
-        } catch (e) {
-            console.error("Error parsing local state", e);
-        }
-    }
-
-    loadState();
 }
 
-// Save state to local storage and sync to local file data.json
+// Save state to server
 function saveState() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if (!isAuthenticated()) {
+        showLoginOverlay();
+        return;
+    }
+    const user = getAuthUser();
+    if (user && user.role !== 'admin') return; // Only admin can save
 
     fetch('/api/data', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify(state)
-    }).then(r => r.json()).then(res => {
+    }).then(async r => {
+        if (r.status === 401 || r.status === 403) {
+            clearAuth();
+            showLoginOverlay();
+            alert(state.currentLanguage === 'ar' ? 'انتهت صلاحية الجلسة، يرجى تسجيل الدخول مجدداً' : 'Session expired, please log in again');
+            return;
+        }
+        const res = await r.json();
         if (res && res.success) {
             showStorageSyncBadge(true);
+        } else {
+            showStorageSyncBadge(false);
         }
     }).catch(() => {
         showStorageSyncBadge(false);
@@ -765,7 +837,10 @@ async function hashPassword(password) {
 function selectEmployee(id) {
     state.selectedEmployeeId = id;
     state.viewMode = 'employee';
-    state.isManagerUnlocked = false; // Reset unlock status on switching view Mode!
+    const user = getAuthUser();
+    if (!user || user.role !== 'admin') {
+        state.isManagerUnlocked = false;
+    }
     
     // Toggle UI panels
     document.getElementById('dashboard-placeholder').style.display = 'none';
@@ -783,7 +858,12 @@ function selectEmployee(id) {
 }
 
 function selectManagerPanel() {
-    // Show password modal instead of prompt
+    const user = getAuthUser();
+    if (user && user.role === 'admin') {
+        state.isManagerUnlocked = true;
+        enterManagerDashboard();
+        return;
+    }
     const modal = document.getElementById('password-modal');
     document.getElementById('password-form').reset();
     document.getElementById('password-error-msg').style.display = 'none';
@@ -908,6 +988,18 @@ function renderManagerPanel() {
         `;
         tableBody.appendChild(row);
     });
+
+    // Populate account creation employee select dropdown
+    const accountEmpSelect = document.getElementById('account-employee-select');
+    if (accountEmpSelect) {
+        accountEmpSelect.innerHTML = '<option value="">-- ' + (state.currentLanguage === 'ar' ? 'اختر الموظف' : 'Select Employee') + ' --</option>';
+        state.employees.forEach(emp => {
+            const opt = document.createElement('option');
+            opt.value = emp.id;
+            opt.textContent = `${emp.name} (${emp.role})`;
+            accountEmpSelect.appendChild(opt);
+        });
+    }
 }
 
 // --- Employee Payouts Detail Page Rendering ---
@@ -1375,8 +1467,247 @@ function importData(event) {
     event.target.value = '';
 }
 
+// --- Auth UI & Role Restrictions ---
+function showLoginOverlay() {
+    const overlay = document.getElementById('login-overlay');
+    if (overlay) overlay.classList.add('active');
+    const appContainer = document.querySelector('.app-container');
+    if (appContainer) appContainer.style.display = 'none';
+}
+
+function hideLoginOverlay() {
+    const overlay = document.getElementById('login-overlay');
+    if (overlay) overlay.classList.remove('active');
+    const appContainer = document.querySelector('.app-container');
+    if (appContainer) appContainer.style.display = '';
+}
+
+async function handleLogin(username, password) {
+    const errEl = document.getElementById('login-error');
+    if (errEl) errEl.style.display = 'none';
+
+    try {
+        const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (data.success) {
+            setAuth(data.token, data.user);
+            hideLoginOverlay();
+            await loadStateAsync();
+            updateUIVisuals();
+            return true;
+        } else {
+            if (errEl) {
+                errEl.textContent = data.error || (state.currentLanguage === 'ar' ? 'اسم المستخدم أو كلمة المرور غير صحيحة' : 'Invalid username or password');
+                errEl.style.display = 'block';
+            }
+            return false;
+        }
+    } catch (e) {
+        if (errEl) {
+            errEl.textContent = state.currentLanguage === 'ar' ? 'حدث خطأ أثناء الاتصال بالسيرفر' : 'Server connection error';
+            errEl.style.display = 'block';
+        }
+        return false;
+    }
+}
+
+function handleLogout() {
+    clearAuth();
+    state = {
+        currentLanguage: 'ar',
+        selectedEmployeeId: null,
+        viewMode: 'placeholder',
+        isManagerUnlocked: false,
+        exchangeRate: 50.00,
+        employees: []
+    };
+    showLoginOverlay();
+}
+
+function applyRoleRestrictions() {
+    const user = getAuthUser();
+    if (!user) return;
+
+    if (user.role === 'admin') {
+        state.isManagerUnlocked = true;
+
+        const addEmpBtn = document.getElementById('add-employee-btn');
+        if (addEmpBtn) addEmpBtn.style.display = '';
+
+        const managerBtn = document.getElementById('manager-btn');
+        if (managerBtn) managerBtn.style.display = '';
+
+        const editEmpBtn = document.getElementById('edit-employee-btn');
+        if (editEmpBtn) editEmpBtn.style.display = '';
+
+        const delEmpBtn = document.getElementById('delete-employee-btn');
+        if (delEmpBtn) delEmpBtn.style.display = '';
+
+        const clearDataBtn = document.getElementById('clear-data-btn');
+        if (clearDataBtn) clearDataBtn.style.display = '';
+
+        const importBtn = document.getElementById('import-btn');
+        if (importBtn) importBtn.style.display = '';
+
+        const addTaskForm = document.getElementById('add-task-form');
+        if (addTaskForm) addTaskForm.style.display = '';
+    } else if (user.role === 'employee') {
+        state.isManagerUnlocked = false;
+
+        const addEmpBtn = document.getElementById('add-employee-btn');
+        if (addEmpBtn) addEmpBtn.style.display = 'none';
+
+        const managerBtn = document.getElementById('manager-btn');
+        if (managerBtn) managerBtn.style.display = 'none';
+
+        const editEmpBtn = document.getElementById('edit-employee-btn');
+        if (editEmpBtn) editEmpBtn.style.display = 'none';
+
+        const delEmpBtn = document.getElementById('delete-employee-btn');
+        if (delEmpBtn) delEmpBtn.style.display = 'none';
+
+        const clearDataBtn = document.getElementById('clear-data-btn');
+        if (clearDataBtn) clearDataBtn.style.display = 'none';
+
+        const importBtn = document.getElementById('import-btn');
+        if (importBtn) importBtn.style.display = 'none';
+
+        const addTaskForm = document.getElementById('add-task-form');
+        if (addTaskForm) addTaskForm.style.display = 'none';
+    }
+}
+
 // --- Set Up Event Listeners ---
 document.addEventListener('DOMContentLoaded', async () => {
+    // Auth Event Handlers
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const u = document.getElementById('login-username').value.trim();
+            const p = document.getElementById('login-password').value;
+            await handleLogin(u, p);
+        });
+    }
+
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', handleLogout);
+    }
+
+    const changePassBtn = document.getElementById('change-password-btn');
+    const changePassModal = document.getElementById('change-password-modal');
+    const closeChangePassModal = document.getElementById('close-change-password-modal');
+    const changePassForm = document.getElementById('change-password-form');
+
+    if (changePassBtn && changePassModal) {
+        changePassBtn.addEventListener('click', () => {
+            changePassModal.classList.add('active');
+        });
+    }
+    if (closeChangePassModal && changePassModal) {
+        closeChangePassModal.addEventListener('click', () => {
+            changePassModal.classList.remove('active');
+        });
+    }
+    if (changePassForm) {
+        changePassForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const curr = document.getElementById('current-password-input').value;
+            const newP = document.getElementById('new-password-input').value;
+            const conf = document.getElementById('confirm-password-input').value;
+            const errEl = document.getElementById('change-password-error');
+
+            if (newP !== conf) {
+                if (errEl) {
+                    errEl.textContent = state.currentLanguage === 'ar' ? 'كلمات المرور غير متطابقة' : 'Passwords do not match';
+                    errEl.style.display = 'block';
+                }
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/auth/change-password', {
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify({ currentPassword: curr, newPassword: newP })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    changePassModal.classList.remove('active');
+                    changePassForm.reset();
+                    showToast('toast-data-saved');
+                } else {
+                    if (errEl) {
+                        errEl.textContent = data.error || 'Error changing password';
+                        errEl.style.display = 'block';
+                    }
+                }
+            } catch (err) {
+                if (errEl) {
+                    errEl.textContent = 'Server error';
+                    errEl.style.display = 'block';
+                }
+            }
+        });
+    }
+
+    const createAccountForm = document.getElementById('create-account-form');
+    if (createAccountForm) {
+        createAccountForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const employeeId = document.getElementById('account-employee-select').value;
+            const username = document.getElementById('account-username').value.trim();
+            const password = document.getElementById('account-password').value;
+            const msgEl = document.getElementById('account-msg');
+
+            if (!employeeId || !username || !password) return;
+
+            try {
+                const res = await fetch('/api/auth/create-employee-account', {
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify({ username, password, employeeId })
+                });
+                if (res.status === 401 || res.status === 403) {
+                    clearAuth();
+                    showLoginOverlay();
+                    if (msgEl) {
+                        msgEl.style.color = 'var(--color-rose)';
+                        msgEl.textContent = state.currentLanguage === 'ar' ? 'انتهت صلاحية الجلسة، يرجى تسجيل الدخول مجدداً' : 'Session expired, please log in again';
+                        msgEl.style.display = 'block';
+                    }
+                    return;
+                }
+                const data = await res.json();
+                if (data.success) {
+                    if (msgEl) {
+                        msgEl.style.color = 'var(--color-emerald)';
+                        msgEl.textContent = state.currentLanguage === 'ar' ? `✅ تم إنشاء حساب للموظف (${username}) بنجاح!` : `✅ Account (${username}) created successfully!`;
+                        msgEl.style.display = 'block';
+                    }
+                    createAccountForm.reset();
+                } else {
+                    if (msgEl) {
+                        msgEl.style.color = 'var(--color-rose)';
+                        msgEl.textContent = '❌ ' + (data.error || 'Error creating account');
+                        msgEl.style.display = 'block';
+                    }
+                }
+            } catch (err) {
+                if (msgEl) {
+                    msgEl.style.color = 'var(--color-rose)';
+                    msgEl.textContent = '❌ Server Error';
+                    msgEl.style.display = 'block';
+                }
+            }
+        });
+    }
+
     // 1. Initial State Setup
     await loadStateAsync();
     
