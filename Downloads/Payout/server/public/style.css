@@ -1479,4 +1479,32 @@ html[dir="rtl"] .employee-sort-actions {
     animation: loginFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Animated Flame Loader for Login Button */
+@keyframes flamePulse {
+    0% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 4px rgba(255, 90, 0, 0.6));
+        opacity: 0.85;
+    }
+    50% {
+        transform: scale(1.2);
+        filter: drop-shadow(0 0 16px rgba(255, 90, 0, 1)) drop-shadow(0 0 24px rgba(255, 140, 0, 0.8));
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 4px rgba(255, 90, 0, 0.6));
+        opacity: 0.85;
+    }
+}
+
+.flame-loader-icon {
+    width: 22px;
+    height: 22px;
+    display: inline-block;
+    vertical-align: middle;
+    color: var(--color-primary);
+    animation: flamePulse 1s ease-in-out infinite;
+}
+
 

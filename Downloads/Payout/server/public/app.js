@@ -1581,6 +1581,16 @@ async function handleLogin(username, password) {
     const errEl = document.getElementById('login-error');
     if (errEl) errEl.style.display = 'none';
 
+    const loginBtn = document.getElementById('login-btn');
+    const originalBtnHTML = loginBtn ? loginBtn.innerHTML : '';
+
+    if (loginBtn) {
+        loginBtn.disabled = true;
+        const flameSVG = `<svg class="flame-loader-icon" viewBox="0 0 24 24" fill="none" stroke="#ff5a00" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>`;
+        const text = state.currentLanguage === 'ar' ? 'جاري تسجيل الدخول...' : 'Verifying...';
+        loginBtn.innerHTML = `<span style="display: flex; align-items: center; justify-content: center; gap: 8px;">${flameSVG} <span>${text}</span></span>`;
+    }
+
     try {
         const res = await fetch('/api/auth/login', {
             method: 'POST',
@@ -1608,6 +1618,12 @@ async function handleLogin(username, password) {
             errEl.style.display = 'block';
         }
         return false;
+    } finally {
+        if (loginBtn) {
+            loginBtn.disabled = false;
+            loginBtn.innerHTML = originalBtnHTML;
+            if (window.lucide) window.lucide.createIcons();
+        }
     }
 }
 
