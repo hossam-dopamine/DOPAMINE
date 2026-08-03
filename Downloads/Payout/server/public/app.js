@@ -837,7 +837,10 @@ async function hashPassword(password) {
 function selectEmployee(id) {
     state.selectedEmployeeId = id;
     state.viewMode = 'employee';
-    state.isManagerUnlocked = false; // Reset unlock status on switching view Mode!
+    const user = getAuthUser();
+    if (!user || user.role !== 'admin') {
+        state.isManagerUnlocked = false;
+    }
     
     // Toggle UI panels
     document.getElementById('dashboard-placeholder').style.display = 'none';
@@ -855,7 +858,12 @@ function selectEmployee(id) {
 }
 
 function selectManagerPanel() {
-    // Show password modal instead of prompt
+    const user = getAuthUser();
+    if (user && user.role === 'admin') {
+        state.isManagerUnlocked = true;
+        enterManagerDashboard();
+        return;
+    }
     const modal = document.getElementById('password-modal');
     document.getElementById('password-form').reset();
     document.getElementById('password-error-msg').style.display = 'none';
@@ -1524,7 +1532,32 @@ function applyRoleRestrictions() {
     const user = getAuthUser();
     if (!user) return;
 
-    if (user.role === 'employee') {
+    if (user.role === 'admin') {
+        state.isManagerUnlocked = true;
+
+        const addEmpBtn = document.getElementById('add-employee-btn');
+        if (addEmpBtn) addEmpBtn.style.display = '';
+
+        const managerBtn = document.getElementById('manager-btn');
+        if (managerBtn) managerBtn.style.display = '';
+
+        const editEmpBtn = document.getElementById('edit-employee-btn');
+        if (editEmpBtn) editEmpBtn.style.display = '';
+
+        const delEmpBtn = document.getElementById('delete-employee-btn');
+        if (delEmpBtn) delEmpBtn.style.display = '';
+
+        const clearDataBtn = document.getElementById('clear-data-btn');
+        if (clearDataBtn) clearDataBtn.style.display = '';
+
+        const importBtn = document.getElementById('import-btn');
+        if (importBtn) importBtn.style.display = '';
+
+        const addTaskForm = document.getElementById('add-task-form');
+        if (addTaskForm) addTaskForm.style.display = '';
+    } else if (user.role === 'employee') {
+        state.isManagerUnlocked = false;
+
         const addEmpBtn = document.getElementById('add-employee-btn');
         if (addEmpBtn) addEmpBtn.style.display = 'none';
 
@@ -1545,12 +1578,6 @@ function applyRoleRestrictions() {
 
         const addTaskForm = document.getElementById('add-task-form');
         if (addTaskForm) addTaskForm.style.display = 'none';
-    } else {
-        const addEmpBtn = document.getElementById('add-employee-btn');
-        if (addEmpBtn) addEmpBtn.style.display = '';
-
-        const managerBtn = document.getElementById('manager-btn');
-        if (managerBtn) managerBtn.style.display = '';
     }
 }
 
