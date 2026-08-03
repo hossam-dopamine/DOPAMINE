@@ -1076,7 +1076,6 @@ async function fetchAndRenderEmployeeAccounts() {
 }
 
 window.deleteEmployeeAccount = async function(username) {
-    if (!confirm(state.currentLanguage === 'ar' ? `هل أنت تأكد من حذف حساب (${username})؟` : `Delete account (${username})?`)) return;
     try {
         const res = await fetch(`/api/auth/delete-account/${encodeURIComponent(username)}`, {
             method: 'DELETE',
@@ -1896,11 +1895,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 4. Delete Employee Action
     document.getElementById('delete-employee-btn').addEventListener('click', () => {
         if (!state.selectedEmployeeId) return;
-        
-        const confirmMsg = i18n[state.currentLanguage]['confirm-delete-employee'];
-        if (!confirm(confirmMsg)) return;
 
-        state.employees = state.employees.filter(e => e.id !== state.selectedEmployeeId);
+        state.employees = state.employees.filter(e => String(e.id) !== String(state.selectedEmployeeId));
         state.selectedEmployeeId = null;
         state.viewMode = 'placeholder';
 
