@@ -9,6 +9,9 @@ const dataRoutes = require('./routes/data');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust reverse proxy (Render.com)
+app.set('trust proxy', 1);
+
 // Connect to MongoDB
 connectDB();
 
