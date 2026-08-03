@@ -17,6 +17,11 @@ const generateToken = (user) => {
 // POST /login
 router.post('/login', authLimiter, async (req, res) => {
   try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ success: false, error: 'اسم المستخدم وكلمة المرور مطلوبان' });
+    }
+
     const cleanUsername = String(username).toLowerCase().trim();
 
     // Auto-bootstrap initial admin user if database is empty
