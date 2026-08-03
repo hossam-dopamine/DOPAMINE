@@ -460,7 +460,10 @@ async function loadStateAsync() {
 
 // Save state to server
 function saveState() {
-    if (!isAuthenticated()) return;
+    if (!isAuthenticated()) {
+        showLoginOverlay();
+        return;
+    }
     const user = getAuthUser();
     if (user && user.role !== 'admin') return; // Only admin can save
 
@@ -468,9 +471,18 @@ function saveState() {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify(state)
-    }).then(r => r.json()).then(res => {
+    }).then(async r => {
+        if (r.status === 401 || r.status === 403) {
+            clearAuth();
+            showLoginOverlay();
+            alert(state.currentLanguage === 'ar' ? 'انتهت صلاحية الجلسة، يرجى تسجيل الدخول مجدداً' : 'Session expired, please log in again');
+            return;
+        }
+        const res = await r.json();
         if (res && res.success) {
             showStorageSyncBadge(true);
+        } else {
+            showStorageSyncBadge(false);
         }
     }).catch(() => {
         showStorageSyncBadge(false);
@@ -1634,6 +1646,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                     headers: authHeaders(),
                     body: JSON.stringify({ username, password, employeeId })
                 });
+                if (res.status === 401 || res.status === 403) {
+                    clearAuth();
+                    showLoginOverlay();
+                    if (msgEl) {
+                        msgEl.style.color = 'var(--color-rose)';
+                        msgEl.textContent = state.currentLanguage === 'ar' ? 'انتهت صلاحية الجلسة، يرجى تسجيل الدخول مجدداً' : 'Session expired, please log in again';
+                        msgEl.style.display = 'block';
+                    }
+                    return;
+                }
                 const data = await res.json();
                 if (data.success) {
                     if (msgEl) {
