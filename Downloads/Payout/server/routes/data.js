@@ -102,12 +102,13 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
     
     const appData = await getAppData();
     appData.employees = encryptedEmployees;
+    appData.markModified('employees');
     
     if (exchangeRate !== undefined) {
       appData.exchangeRate = exchangeRate;
     }
     
-    appData.lastUpdatedBy = req.user.username;
+    appData.lastUpdatedBy = req.user ? req.user.username : 'admin';
     appData.lastUpdatedAt = new Date();
     
     await appData.save();

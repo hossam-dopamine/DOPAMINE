@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Lucide Icons (Local Bundle) -->
     <script src="lucide.min.js"></script>
-    <link rel="stylesheet" href="style.css?v=14.0">
+    <link rel="stylesheet" href="style.css?v=15.0">
 </head>
 <body>
     <!-- Login Overlay -->
@@ -527,6 +527,26 @@
                             </button>
                         </form>
                         <div id="account-msg" style="display: none; margin-top: 10px; font-size: 13px; font-weight: 600;"></div>
+
+                        <!-- Table of Created Accounts -->
+                        <div id="accounts-table-container" style="margin-top: 24px; display: none;">
+                            <h4 style="margin-bottom: 12px; color: var(--text-muted); font-size: 14px;">قائمة حسابات الموظفين المنشأة</h4>
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>الموظف</th>
+                                            <th>اسم المستخدم (Username)</th>
+                                            <th>تاريخ الإنشاء</th>
+                                            <th>إجراءات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="employee-accounts-table-body">
+                                        <!-- Populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -776,7 +796,7 @@
     </div>
     
     <!-- App JavaScript Logic -->
-    <script src="app.js?v=14.0"></script>
+    <script src="app.js?v=15.0"></script>
 </body>
 </html>
 

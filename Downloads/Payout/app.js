@@ -1023,7 +1023,70 @@ function renderManagerPanel() {
             accountEmpSelect.appendChild(opt);
         });
     }
+
+    // Fetch and render created employee login accounts list
+    fetchAndRenderEmployeeAccounts();
 }
+
+async function fetchAndRenderEmployeeAccounts() {
+    const container = document.getElementById('accounts-table-container');
+    const tableBody = document.getElementById('employee-accounts-table-body');
+    if (!container || !tableBody) return;
+
+    try {
+        const res = await fetch('/api/auth/employee-accounts', { headers: authHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.success && Array.isArray(data.accounts)) {
+            if (data.accounts.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+            container.style.display = 'block';
+            tableBody.innerHTML = '';
+            data.accounts.forEach(acc => {
+                const emp = state.employees.find(e => e.id === acc.employeeId);
+                const empName = emp ? emp.name : (acc.employeeId || 'غير محدد');
+                const dateStr = acc.createdAt ? new Date(acc.createdAt).toLocaleDateString(state.currentLanguage === 'ar' ? 'ar-EG' : 'en-US') : '-';
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-weight: 700; color: #fff;">${escapeHTML(empName)}</td>
+                    <td style="font-family: monospace; color: var(--color-primary); font-weight: 600;">${escapeHTML(acc.username)}</td>
+                    <td style="font-size: 12px; color: var(--text-muted);">${dateStr}</td>
+                    <td>
+                        <button class="btn btn-danger btn-icon-only btn-sm" onclick="deleteEmployeeAccount('${escapeHTML(acc.username)}')" title="حذف الحساب">
+                            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+            if (window.lucide) window.lucide.createIcons();
+        }
+    } catch (e) {
+        console.error('Error fetching employee accounts:', e);
+    }
+}
+
+window.deleteEmployeeAccount = async function(username) {
+    if (!confirm(state.currentLanguage === 'ar' ? `هل أنت تأكد من حذف حساب (${username})؟` : `Delete account (${username})?`)) return;
+    try {
+        const res = await fetch(`/api/auth/delete-account/${encodeURIComponent(username)}`, {
+            method: 'DELETE',
+            headers: authHeaders()
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('toast-employee-deleted');
+            fetchAndRenderEmployeeAccounts();
+        } else {
+            alert(data.error || 'Error deleting account');
+        }
+    } catch (e) {
+        alert('Server error');
+    }
+};
 
 // --- Employee Payouts Detail Page Rendering ---
 function renderEmployeeDetail(id) {
@@ -1721,6 +1784,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         msgEl.style.display = 'block';
                     }
                     createAccountForm.reset();
+                    fetchAndRenderEmployeeAccounts();
                 } else {
                     if (msgEl) {
                         msgEl.style.color = 'var(--color-rose)';
