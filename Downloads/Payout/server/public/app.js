@@ -1131,6 +1131,22 @@ function renderEmployeeDetail(id) {
                 ? `<button class="btn btn-secondary btn-icon-only btn-sm" onclick="showTaskCredentials('${emp.id}', '${task.id}')" title="${state.currentLanguage === 'ar' ? 'عرض بيانات الحساب والـ VPN' : 'View Account Credentials & VPN'}"><i data-lucide="key" style="width: 14px; height: 14px; color: var(--color-primary);"></i></button>`
                 : '';
 
+            const currentUser = getAuthUser();
+            const isAdminUser = currentUser && currentUser.role === 'admin';
+
+            const statusBadgeHTML = isAdminUser
+                ? `<span class="status-badge ${task.status}" style="cursor: pointer;" onclick="toggleTaskStatus('${emp.id}', '${task.id}')">${statusText}</span>`
+                : `<span class="status-badge ${task.status}">${statusText}</span>`;
+
+            const adminActionBtns = isAdminUser ? `
+                <button class="btn btn-secondary btn-icon-only btn-sm" onclick="editTask('${emp.id}', '${task.id}')" title="Edit Task">
+                    <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i>
+                </button>
+                <button class="btn btn-danger btn-icon-only btn-sm" onclick="deleteTask('${emp.id}', '${task.id}')" title="Delete Task">
+                    <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                </button>
+            ` : '';
+
             row.innerHTML = `
                 <td style="font-weight: 700;">${escapeHTML(task.taskNumber)}</td>
                 <td>
@@ -1150,20 +1166,11 @@ function renderEmployeeDetail(id) {
                     ${!isWithdrawal && task.deductionRate !== emp.defaultDeductionRate ? ' <i data-lucide="info" style="width: 12px; height: 12px; vertical-align: middle; color: var(--color-amber);" title="Custom rate applied"></i>' : ''}
                 </td>
                 <td>${netDisplay}</td>
-                <td>
-                    <span class="status-badge ${task.status}" style="cursor: pointer;" onclick="toggleTaskStatus('${emp.id}', '${task.id}')">
-                        ${statusText}
-                    </span>
-                </td>
+                <td>${statusBadgeHTML}</td>
                 <td>
                     <div style="display: flex; gap: 6px; align-items: center;">
                         ${credsButtonHTML}
-                        <button class="btn btn-secondary btn-icon-only btn-sm" onclick="editTask('${emp.id}', '${task.id}')" title="Edit Task">
-                            <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i>
-                        </button>
-                        <button class="btn btn-danger btn-icon-only btn-sm" onclick="deleteTask('${emp.id}', '${task.id}')" title="Delete Task">
-                            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
-                        </button>
+                        ${adminActionBtns}
                     </div>
                 </td>
             `;
