@@ -22,14 +22,29 @@ router.post('/login', authLimiter, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Username and password are required' });
     }
 
-    const user = await User.findOne({ username });
+    // Auto-bootstrap initial admin user if database is empty
+    const userCount = await User.countDocuments();
+    if (userCount === 0) {
+      const defaultAdminName = (process.env.ADMIN_USERNAME || 'admin').toLowerCase().trim();
+      const defaultAdminPass = process.env.ADMIN_PASSWORD || 'admin123';
+      const passwordHash = await User.hashPassword(defaultAdminPass);
+      await User.create({
+        username: defaultAdminName,
+        passwordHash: passwordHash,
+        role: 'admin'
+      });
+      console.log(`✅ Auto-created initial admin user: ${defaultAdminName}`);
+    }
+
+    const cleanUsername = String(username).toLowerCase().trim();
+    const user = await User.findOne({ username: cleanUsername });
     if (!user) {
-      return res.status(401).json({ success: false, error: 'Invalid credentials' });
+      return res.status(401).json({ success: false, error: 'اسم المستخدم أو كلمة المرور غير صحيحة' });
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({ success: false, error: 'Invalid credentials' });
+      return res.status(401).json({ success: false, error: 'اسم المستخدم أو كلمة المرور غير صحيحة' });
     }
 
     const token = generateToken(user);
@@ -45,7 +60,7 @@ router.post('/login', authLimiter, async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
   }
 });
 

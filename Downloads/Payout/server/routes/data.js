@@ -6,10 +6,38 @@ const { encryptTaskFields, decryptTaskFields } = require('../utils/encryption');
 
 const router = express.Router();
 
+const fs = require('fs');
+const path = require('path');
+
 const getAppData = async () => {
   let data = await AppData.findOne();
-  if (!data) {
-    data = new AppData({ employees: [], exchangeRate: 0 });
+  if (!data || !Array.isArray(data.employees) || data.employees.length === 0) {
+    const dataPath = path.join(__dirname, '..', '..', 'data.json');
+    let initialEmployees = [];
+    let initialRate = 50;
+
+    if (fs.existsSync(dataPath)) {
+      try {
+        const raw = fs.readFileSync(dataPath, 'utf8');
+        const parsed = JSON.parse(raw);
+        if (parsed && Array.isArray(parsed.employees)) {
+          initialEmployees = parsed.employees.map(emp => ({
+            ...emp,
+            tasks: (emp.tasks || []).map(task => encryptTaskFields(task))
+          }));
+          initialRate = parsed.exchangeRate || 50;
+        }
+      } catch (e) {
+        console.error('Error reading data.json:', e);
+      }
+    }
+
+    if (!data) {
+      data = new AppData({ employees: initialEmployees, exchangeRate: initialRate });
+    } else if (initialEmployees.length > 0) {
+      data.employees = initialEmployees;
+      data.exchangeRate = initialRate;
+    }
     await data.save();
   }
   return data;
