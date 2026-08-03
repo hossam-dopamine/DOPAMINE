@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: dopamine-service
+    env: node
+    buildCommand: npm install && mkdir -p public && echo "Please build frontend and place in public directory" > public/index.html
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: ENCRYPTION_KEY
+        sync: false
+      - key: ADMIN_USERNAME
+        value: admin

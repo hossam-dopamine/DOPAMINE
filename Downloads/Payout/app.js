@@ -1,0 +1,2072 @@
+/* ==========================================================================
+   JAVASCRIPT CORE - TASK PAYOUT MANAGER
+   Features: Bilingual (AR/EN), CRUD, CSV Export/Import, LocalStorage, Printing
+   ========================================================================== */
+
+// --- Translation Dictionary ---
+const i18n = {
+    ar: {
+        "app-title": "DOPAMINE-SERVICE",
+        "add-employee": "إضافة موظف جديد",
+        "employees-list": "قائمة الموظفين",
+        "search-employee-placeholder": "ابحث عن موظف...",
+        "welcome-msg": "لوحة التحكم والمستحقات",
+        "export": "تصدير البيانات",
+        "import": "استيراد البيانات",
+        "clear-data": "مسح البيانات",
+        "total-employees": "إجمالي الموظفين",
+        "total-tasks": "المهام المكتملة",
+        "total-gross-egp": "الإجمالي بالجنيه (قبل الخصم)",
+        "total-gross-usd": "الإجمالي بالدولار (قبل الخصم)",
+        "total-deductions-egp": "خصومات ج.م",
+        "total-deductions-usd": "خصومات دولار",
+        "total-net-egp": "صافي المستحقات (ج.م)",
+        "total-net-usd": "صافي المستحقات (دولار)",
+        "deduction-rate": "نسبة الخصم الافتراضية:",
+        "edit-profile": "تعديل الملف",
+        "delete-profile": "حذف الموظف",
+        "add-new-task": "إضافة مهمة جديدة",
+        "task-number": "رقم التاسك/المهمة",
+        "task-title": "اسم/وصف المهمة",
+        "payout-gross": "القيمة قبل الخصم",
+        "custom-deduction": "نسبة الخصم (%)",
+        "deduction-help": "اتركه فارغاً لاستخدام النسبة الافتراضية للموظف",
+        "task-status": "حالة المهمة",
+        "status-pending": "قيد التنفيذ",
+        "status-completed": "مكتملة",
+        "status-paid": "تم الدفع",
+        "add-task": "تسجيل المهمة",
+        "print-report": "طباعة تقرير",
+        "all-tasks": "كل المهام",
+        "th-task-num": "رقم التاسك",
+        "th-task-title": "المهمة",
+        "th-gross": "قبل الخصم",
+        "th-deduction": "نسبة الخصم",
+        "th-net": "الصافي",
+        "th-status": "الحالة",
+        "th-actions": "إجراءات",
+        "no-tasks": "لا توجد مهام مسجلة لهذا الموظف بعد.",
+        "placeholder-title": "مرحباً بك في نظام حسابات المهام",
+        "placeholder-desc": "يرجى اختيار موظف من القائمة الجانبية لعرض مهامه، أو إضافة موظف جديد للبدء.",
+        "modal-add-employee-title": "إضافة موظف جديد",
+        "modal-edit-employee-title": "تعديل بيانات الموظف",
+        "employee-name-label": "اسم الموظف",
+        "employee-role-label": "المسمى الوظيفي",
+        "employee-deduction-label": "نسبة الخصم الافتراضية (%)",
+        "employee-deduction-help": "النسبة التي سيتم خصمها تلقائياً من قيمة كل مهمة ما لم يحدد خلاف ذلك",
+        "cancel": "إلغاء",
+        "save": "حفظ",
+        
+        // Dynamic Toasts & Alerts
+        "confirm-clear": "هل أنت متأكد من مسح جميع البيانات؟ لا يمكن التراجع عن هذه الخطوة!",
+        "confirm-delete-employee": "هل أنت متأكد من حذف هذا الموظف وجميع المهام المرتبطة به؟",
+        "confirm-delete-task": "هل أنت متأكد من حذف هذه المهمة؟",
+        "toast-employee-added": "تمت إضافة الموظف بنجاح!",
+        "toast-employee-updated": "تم تحديث بيانات الموظف بنجاح!",
+        "toast-employee-deleted": "تم حذف الموظف بنجاح!",
+        "toast-task-added": "تمت إضافة المهمة وحساب المستحقات بنجاح!",
+        "toast-task-deleted": "تم حذف المهمة وتحديث الحسابات بنجاح!",
+        "toast-status-updated": "تمت تحديث حالة المهمة بنجاح!",
+        "toast-data-cleared": "تم مسح جميع البيانات بنجاح!",
+        "toast-data-exported": "تم تصدير البيانات بنجاح!",
+        "toast-data-imported": "تم استيراد البيانات بنجاح!",
+        "toast-import-fail": "فشل استيراد الملف، يرجى التأكد من اختيار ملف JSON صحيح.",
+        "payout-currency": "ج.م.",
+        "rate-label": "سعر الصرف:",
+        "toast-rate-synced": "تم مزامنة سعر الصرف بنجاح!",
+        "toast-rate-sync-fail": "فشل جلب سعر الصرف. يرجى تعديله يدوياً.",
+        "all-months": "كل الشهور",
+        "task-month-label": "شهر المهمة",
+        "month-jan": "يناير",
+        "month-feb": "فبراير",
+        "month-mar": "مارس",
+        "month-apr": "أبريل",
+        "month-may": "مايو",
+        "month-jun": "يونيو",
+        "month-jul": "يوليو",
+        "month-aug": "أغسطس",
+        "month-sep": "سبتمبر",
+        "month-oct": "أكتوبر",
+        "month-nov": "نوفمبر",
+        "month-dec": "ديسمبر",
+        "manager-title": "المدير (الحسابات العامة)",
+        "manager-dashboard-title": "لوحة تحكم المدير العام",
+        "manager-dashboard-desc": "عرض مستحقات جميع الموظفين وإجمالي الحسابات العامة.",
+        "print-global-report": "طباعة التقرير الشامل",
+        "employees-summary": "ملخص حسابات الموظفين",
+        "th-employee-name": "الموظف",
+        "th-employee-role": "المسمى الوظيفي",
+        "th-completed-tasks": "المهام المكتملة",
+        "th-manager-gross-egp": "إجمالي ج.م",
+        "th-manager-gross-usd": "إجمالي USD",
+        "th-manager-net-egp": "صافي ج.م",
+        "th-manager-net-usd": "صافي USD",
+        "prompt-password": "أدخل كلمة المرور لدخول لوحة تحكم المدير:",
+        "toast-invalid-password": "كلمة مرور خاطئة!",
+        "password-modal-title": "دخول لوحة المدير",
+        "employee-payment-method-label": "طريقة الدفع الافتراضية",
+        "employee-payment-details-label": "تفاصيل الدفع (رقم الهاتف / العنوان)",
+        "payment-instapay": "انستا باي (InstaPay)",
+        "payment-vodafone": "فودافون كاش (Vodafone Cash)",
+        "payment-cash": "نقدي (Cash)",
+        "payment-method-text": "طريقة الدفع:",
+        "total-gross-merged": "إجمالي قبل الخصم",
+        "total-deductions-merged": "خصم نسبة الموقع",
+        "total-paid-merged": "إجمالي المدفوع",
+        "total-due-merged": "الصافي المستحق الحالي",
+        "tasks-unit": "مهمة مكتملة",
+        "fixed-deduction-label": "الخصم الثابت",
+        "task-type-label": "نوع العملية",
+        "type-task": "مهمة جديدة (مستحقات)",
+        "type-withdrawal": "عملية سحب (مسحوبات)",
+        "task-type-withdrawal": "عملية سحب",
+        "export-csv": "تصدير CSV",
+        "toast-csv-exported": "تم تصدير كشف الحساب كملف CSV بنجاح!",
+        "credentials-section-title": "بيانات الحساب والـ VPN (اختياري)",
+        "task-email-label": "البريد الإلكتروني (Email)",
+        "task-password-label": "كلمة المرور (Password)",
+        "task-character-label": "اسم الشخصية (Character)",
+        "task-vpn-label": "الـ VPN (Location)",
+        "credentials-modal-title": "بيانات الحساب والـ VPN",
+        "copy": "نسخ",
+        "copied": "تم النسخ!",
+        "close": "إغلاق",
+        "delay-deduction-label": "خصم التأخير",
+        "advance-loan-label": "السلفة",
+        "employee-avatar-label": "صورة الموظف",
+        "select-image": "اختر صورة",
+        "remove-image": "حذف",
+        "tasks-list": "سجل المهام",
+        "edit-task-modal-title": "تعديل بيانات المهمة"
+    },
+    en: {
+        "app-title": "DOPAMINE-SERVICE",
+        "add-employee": "Add Employee",
+        "employees-list": "Employees List",
+        "search-employee-placeholder": "Search employee...",
+        "welcome-msg": "Dashboard & Payouts",
+        "export": "Export Data",
+        "import": "Import Data",
+        "clear-data": "Clear Data",
+        "total-employees": "Total Employees",
+        "total-tasks": "Completed Tasks",
+        "total-gross-egp": "Gross Payout (EGP)",
+        "total-gross-usd": "Gross Payout (USD)",
+        "total-deductions-egp": "Total Deductions (EGP)",
+        "total-deductions-usd": "Total Deductions (USD)",
+        "total-net-egp": "Net Payout (EGP)",
+        "total-net-usd": "Net Payout (USD)",
+        "deduction-rate": "Default Deduction Rate:",
+        "edit-profile": "Edit Profile",
+        "delete-profile": "Delete Employee",
+        "add-new-task": "Add New Task",
+        "task-number": "Task Number",
+        "task-title": "Task Name/Description",
+        "payout-gross": "Gross Amount",
+        "custom-deduction": "Deduction Rate (%)",
+        "deduction-help": "Leave blank to use employee default rate",
+        "task-status": "Task Status",
+        "status-pending": "Pending",
+        "status-completed": "Completed",
+        "status-paid": "Paid",
+        "add-task": "Register Task",
+        "print-report": "Print Report",
+        "all-tasks": "All Tasks",
+        "th-task-num": "Task #",
+        "th-task-title": "Task",
+        "th-gross": "Gross",
+        "th-deduction": "Deduction %",
+        "th-net": "Net",
+        "th-status": "Status",
+        "th-actions": "Actions",
+        "no-tasks": "No tasks registered for this employee yet.",
+        "placeholder-title": "Welcome to Task Payout Manager",
+        "placeholder-desc": "Please select an employee from the sidebar to view tasks, or add a new employee to start.",
+        "modal-add-employee-title": "Add New Employee",
+        "modal-edit-employee-title": "Edit Employee Details",
+        "employee-name-label": "Employee Name",
+        "employee-role-label": "Job Title",
+        "employee-deduction-label": "Default Deduction (%)",
+        "employee-deduction-help": "Deduction percentage applied automatically to each task unless specified otherwise",
+        "cancel": "Cancel",
+        "save": "Save",
+        
+        // Dynamic Toasts & Alerts
+        "confirm-clear": "Are you sure you want to clear all data? This action cannot be undone!",
+        "confirm-delete-employee": "Are you sure you want to delete this employee and all their associated tasks?",
+        "confirm-delete-task": "Are you sure you want to delete this task?",
+        "toast-employee-added": "Employee added successfully!",
+        "toast-employee-updated": "Employee details updated successfully!",
+        "toast-employee-deleted": "Employee deleted successfully!",
+        "toast-task-added": "Task added and payouts computed successfully!",
+        "toast-task-deleted": "Task deleted and payouts updated successfully!",
+        "toast-status-updated": "Task status updated successfully!",
+        "toast-data-cleared": "All data cleared successfully!",
+        "toast-data-exported": "Data exported successfully!",
+        "toast-data-imported": "Data imported successfully!",
+        "toast-import-fail": "Import failed. Please ensure the file is a valid JSON backup.",
+        "payout-currency": "EGP",
+        "rate-label": "Exchange Rate:",
+        "toast-rate-synced": "Exchange rate synced successfully!",
+        "toast-rate-sync-fail": "Failed to fetch exchange rate. Please set it manually.",
+        "all-months": "All Months",
+        "task-month-label": "Task Month",
+        "month-jan": "January",
+        "month-feb": "February",
+        "month-mar": "March",
+        "month-apr": "April",
+        "month-may": "May",
+        "month-jun": "June",
+        "month-jul": "July",
+        "month-aug": "August",
+        "month-sep": "September",
+        "month-oct": "October",
+        "month-nov": "November",
+        "month-dec": "December",
+        "manager-title": "Manager (Global Accounts)",
+        "manager-dashboard-title": "General Manager Dashboard",
+        "manager-dashboard-desc": "View payouts for all employees and global account summaries.",
+        "print-global-report": "Print Global Report",
+        "employees-summary": "Employees Payout Summary",
+        "th-employee-name": "Employee",
+        "th-employee-role": "Job Title",
+        "th-completed-tasks": "Completed Tasks",
+        "th-manager-gross-egp": "Gross EGP",
+        "th-manager-gross-usd": "Gross USD",
+        "th-manager-net-egp": "Net EGP",
+        "th-manager-net-usd": "Net USD",
+        "prompt-password": "Enter password to access Manager Dashboard:",
+        "toast-invalid-password": "Invalid Password!",
+        "password-modal-title": "Manager Dashboard Login",
+        "employee-payment-method-label": "Default Payment Method",
+        "employee-payment-details-label": "Payment Details (Phone / Address)",
+        "payment-instapay": "InstaPay",
+        "payment-vodafone": "Vodafone Cash",
+        "payment-cash": "Cash",
+        "payment-method-text": "Payment Method:",
+        "total-gross-merged": "Total Gross",
+        "total-deductions-merged": "Total Deductions & Loans",
+        "total-paid-merged": "Total Paid",
+        "total-due-merged": "Current Net Due",
+        "tasks-unit": "completed tasks",
+        "fixed-deduction-label": "Fixed Deduction",
+        "task-type-label": "Operation Type",
+        "type-task": "New Task (Earnings)",
+        "type-withdrawal": "Withdrawal (Transaction)",
+        "task-type-withdrawal": "Withdrawal",
+        "export-csv": "Export CSV",
+        "toast-csv-exported": "Employee statement exported to CSV successfully!",
+        "credentials-section-title": "Account Credentials & VPN (Optional)",
+        "task-email-label": "Email Address",
+        "task-password-label": "Password",
+        "task-character-label": "Character Name",
+        "task-vpn-label": "VPN Location",
+        "credentials-modal-title": "Account Credentials & VPN",
+        "copy": "Copy",
+        "copied": "Copied!",
+        "close": "Close",
+        "delay-deduction-label": "Delay Deduction",
+        "advance-loan-label": "Advance / Loan",
+        "employee-avatar-label": "Employee Photo",
+        "select-image": "Select Image",
+        "remove-image": "Remove",
+        "tasks-list": "Tasks Record",
+        "edit-task-modal-title": "Edit Task Details"
+    }
+};
+
+// --- Application State ---
+let state = {
+    currentLanguage: 'ar',
+    selectedEmployeeId: null,
+    viewMode: 'placeholder', // 'placeholder', 'employee', 'manager'
+    isManagerUnlocked: false,
+    exchangeRate: 50.00, // Default exchange rate
+    employees: []
+};
+
+// LocalStorage Keys
+const STORAGE_KEY = 'task_payout_manager_state';
+
+// --- Security: HTML Escape Utility (XSS Protection) ---
+function escapeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+// --- Data Structure Validation Helper ---
+function validateAndSanitizeState(obj) {
+    if (!obj || typeof obj !== 'object') return false;
+    if (!Array.isArray(obj.employees)) return false;
+    
+    obj.employees.forEach((emp, eIdx) => {
+        if (!emp.id) emp.id = 'emp_' + Date.now() + '_' + eIdx;
+        if (!emp.name) emp.name = 'موظف';
+        if (!emp.role) emp.role = 'عضو';
+        if (typeof emp.defaultDeductionRate !== 'number') emp.defaultDeductionRate = 10;
+        if (!Array.isArray(emp.tasks)) emp.tasks = [];
+        emp.tasks.forEach((task, tIdx) => {
+            if (!task.id) task.id = 'task_' + Date.now() + '_' + tIdx;
+            if (!task.taskNumber) task.taskNumber = '#000';
+            if (!task.title) task.title = 'مهمة';
+            if (typeof task.gross !== 'number') task.gross = parseFloat(task.gross) || 0;
+            if (!task.currency) task.currency = 'USD';
+            if (typeof task.deductionRate !== 'number') task.deductionRate = emp.defaultDeductionRate;
+            if (!task.status) task.status = 'pending';
+        });
+    });
+    if (!obj.exchangeRate || typeof obj.exchangeRate !== 'number') obj.exchangeRate = 50.00;
+    if (!obj.currentLanguage) obj.currentLanguage = 'ar';
+    return true;
+}
+
+// Load state from local storage or server data.json
+function loadState() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            if (validateAndSanitizeState(parsed)) {
+                state = parsed;
+            }
+        } catch (e) {
+            console.error("Error parsing saved state", e);
+        }
+    } else {
+        // Load initial elegant demo data
+        state.employees = [
+            {
+                id: 'emp_' + Date.now() + '_1',
+                name: 'أحمد محمود',
+                role: 'مطور واجهات أول',
+                defaultDeductionRate: 10,
+                tasks: [
+                    {
+                        id: 'task_' + Date.now() + '_1',
+                        taskNumber: '#1024',
+                        title: 'تصميم لوحة التحكم الرئيسية وتنسيق الألوان',
+                        gross: 1200,
+                        currency: 'USD',
+                        deductionRate: 10,
+                        status: 'paid',
+                        createdAt: new Date().toISOString()
+                    }
+                ]
+            }
+        ];
+    }
+}
+
+async function loadStateAsync() {
+    try {
+        const res = await fetch('/api/data');
+        if (res.ok) {
+            const result = await res.json();
+            if (result.success && result.data && validateAndSanitizeState(result.data)) {
+                // If server file data.json contains employees, use it!
+                if (result.data.employees && result.data.employees.length > 0) {
+                    state = result.data;
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                    console.log('✅ Loaded data from local file data.json successfully!');
+                    return;
+                }
+            }
+        }
+    } catch (e) {
+        console.log('ℹ️ Running in browser mode (fallback to localStorage)');
+    }
+
+    // If data.json had 0 employees, check if localStorage has saved employees!
+    const savedLocal = localStorage.getItem(STORAGE_KEY);
+    if (savedLocal) {
+        try {
+            const parsedLocal = JSON.parse(savedLocal);
+            if (validateAndSanitizeState(parsedLocal) && parsedLocal.employees && parsedLocal.employees.length > 0) {
+                state = parsedLocal;
+                console.log('✅ Restored user data from browser localStorage to data.json!');
+                saveState(); // Instantly save localStorage data to data.json on disk!
+                return;
+            }
+        } catch (e) {
+            console.error("Error parsing local state", e);
+        }
+    }
+
+    loadState();
+}
+
+// Save state to local storage and sync to local file data.json
+function saveState() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+
+    fetch('/api/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(state)
+    }).then(r => r.json()).then(res => {
+        if (res && res.success) {
+            showStorageSyncBadge(true);
+        }
+    }).catch(() => {
+        showStorageSyncBadge(false);
+    });
+}
+
+function showStorageSyncBadge(isFileSaved) {
+    let badge = document.getElementById('disk-sync-indicator');
+    if (!badge) {
+        badge = document.createElement('div');
+        badge.id = 'disk-sync-indicator';
+        badge.style.cssText = 'position: fixed; bottom: 16px; left: 16px; font-size: 11px; font-weight: 600; padding: 6px 14px; border-radius: 20px; z-index: 999; backdrop-filter: blur(10px); transition: opacity 0.4s ease; opacity: 0; pointer-events: none;';
+        document.body.appendChild(badge);
+    }
+    if (isFileSaved) {
+        badge.style.background = 'rgba(16, 185, 129, 0.2)';
+        badge.style.border = '1px solid rgba(16, 185, 129, 0.4)';
+        badge.style.color = '#10b981';
+        badge.innerHTML = '💾 ' + (state.currentLanguage === 'ar' ? 'تم الحفظ تلقائياً في ملف data.json' : 'Saved to data.json');
+    } else {
+        badge.style.background = 'rgba(255, 153, 0, 0.15)';
+        badge.style.border = '1px solid rgba(255, 153, 0, 0.3)';
+        badge.style.color = '#ff9900';
+        badge.innerHTML = '⚡ ' + (state.currentLanguage === 'ar' ? 'تم الحفظ محلياً في المتصفح' : 'Saved to Browser');
+    }
+    badge.style.opacity = '1';
+    setTimeout(() => {
+        if (badge) badge.style.opacity = '0';
+    }, 2500);
+}
+
+// --- Dynamic Toast System ---
+function showToast(key) {
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toast-message');
+    const message = i18n[state.currentLanguage][key] || key;
+    
+    toastMessage.textContent = message;
+    toast.classList.add('show');
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+// --- Translation Engine ---
+function updateUIVisuals() {
+    const lang = state.currentLanguage;
+    
+    // Set HTML lang & dir attribute
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    
+    // Set appropriate font stack on body by reloading standard classes
+    if (lang === 'ar') {
+        document.getElementById('lang-btn-text').textContent = "English";
+    } else {
+        document.getElementById('lang-btn-text').textContent = "العربية";
+    }
+
+    // Dynamic translate elements containing data-i18n attribute
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (i18n[lang][key]) {
+            el.textContent = i18n[lang][key];
+        }
+    });
+
+    // Dynamic translate placeholders
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (i18n[lang][key]) {
+            el.placeholder = i18n[lang][key];
+        }
+    });
+
+    const searchInput = document.getElementById('task-search-input');
+    if (searchInput) {
+        searchInput.placeholder = lang === 'ar' ? 'ابحث عن مهمة...' : 'Search tasks...';
+    }
+
+    // Format current date
+    const dateEl = document.getElementById('current-date-el');
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    dateEl.textContent = new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', options);
+
+    // Refresh general calculations
+    calculateDashboardStats();
+    
+    // Refresh lists
+    renderEmployeesList();
+    if (state.viewMode === 'employee' && state.selectedEmployeeId) {
+        renderEmployeeDetail(state.selectedEmployeeId);
+    } else if (state.viewMode === 'manager') {
+        renderManagerPanel();
+        document.getElementById('manager-btn').classList.add('active');
+    } else {
+        document.getElementById('employee-detail-section').style.display = 'none';
+        document.getElementById('manager-panel-section').style.display = 'none';
+        document.getElementById('dashboard-placeholder').style.display = 'flex';
+        document.getElementById('manager-btn').classList.remove('active');
+    }
+    
+    // Refresh Icons
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+}
+
+// --- Calculation Helper Functions ---
+function calculateTaskNet(gross, deductionRate, delayDeduction = 0, advance = 0, fixedDeduction = 0) {
+    const effectiveGross = gross - fixedDeduction;
+    const siteDeduction = effectiveGross * (deductionRate / 100);
+    return Math.max(0, effectiveGross - siteDeduction - delayDeduction - advance);
+}
+
+function formatCurrency(amount, currency = 'EGP') {
+    const lang = state.currentLanguage;
+    const dispCurrency = currency === 'EGP' ? (lang === 'ar' ? 'ج.م.' : 'EGP') : (lang === 'ar' ? 'دولار' : 'USD');
+    return `${amount.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${dispCurrency}`;
+}
+
+async function fetchExchangeRate(isManual = false) {
+    try {
+        const response = await fetch('https://open.er-api.com/v6/latest/USD');
+        if (!response.ok) throw new Error('API Error');
+        const data = await response.json();
+        if (data && data.rates && data.rates.EGP) {
+            state.exchangeRate = parseFloat(data.rates.EGP.toFixed(2));
+            document.getElementById('usd-to-egp-rate').value = state.exchangeRate;
+            saveState();
+            calculateDashboardStats();
+            if (state.viewMode === 'employee' && state.selectedEmployeeId) {
+                renderEmployeeDetail(state.selectedEmployeeId);
+            } else if (state.viewMode === 'manager') {
+                renderManagerPanel();
+            }
+            if (isManual) {
+                showToast('toast-rate-synced');
+            }
+        } else {
+            throw new Error('Rates not found');
+        }
+    } catch (err) {
+        console.error("Failed to sync exchange rate:", err);
+        if (isManual) {
+            showToast('toast-rate-sync-fail');
+        }
+    }
+}
+
+// Calculate Global/Employee Statistics
+function calculateDashboardStats() {
+    let totalGrossEGP = 0;
+    let totalGrossUSD = 0;
+    let totalDeductionsEGP = 0;
+    let totalDeductionsUSD = 0;
+    let totalPaidEGP = 0;
+    let totalPaidUSD = 0;
+    let totalDueEGP = 0;
+    let totalDueUSD = 0;
+    let completedTasksCount = 0;
+
+    // Get dashboard month filter value
+    const dbMonthFilter = document.getElementById('dashboard-filter-month');
+    const selectedMonth = dbMonthFilter ? dbMonthFilter.value : 'all';
+
+    // Filter calculations by viewMode
+    let targetEmployees = [];
+    if (state.viewMode === 'employee' && state.selectedEmployeeId) {
+        const emp = state.employees.find(e => e.id === state.selectedEmployeeId);
+        if (emp) targetEmployees = [emp];
+    } else if (state.viewMode === 'manager') {
+        targetEmployees = state.employees;
+    }
+
+    targetEmployees.forEach(emp => {
+        let earnings_completed_egp = 0;
+        let earnings_completed_usd = 0;
+        let earnings_paid_egp = 0;
+        let earnings_paid_usd = 0;
+
+        let withdrawals_completed_egp = 0;
+        let withdrawals_completed_usd = 0;
+        let withdrawals_paid_egp = 0;
+        let withdrawals_paid_usd = 0;
+
+        emp.tasks.forEach(task => {
+            // Apply month filter
+            if (selectedMonth !== 'all' && task.month !== selectedMonth) {
+                return;
+            }
+
+            const isWithdrawal = task.type === 'withdrawal';
+            const currency = task.currency || 'EGP';
+            const rate = task.exchangeRate || state.exchangeRate;
+
+            if (isWithdrawal) {
+                if (task.status === 'completed') {
+                    if (currency === 'EGP') {
+                        withdrawals_completed_egp += task.gross;
+                        withdrawals_completed_usd += task.gross / rate;
+                    } else {
+                        withdrawals_completed_usd += task.gross;
+                        withdrawals_completed_egp += task.gross * rate;
+                    }
+                } else if (task.status === 'paid') {
+                    if (currency === 'EGP') {
+                        withdrawals_paid_egp += task.gross;
+                        withdrawals_paid_usd += task.gross / rate;
+                    } else {
+                        withdrawals_paid_usd += task.gross;
+                        withdrawals_paid_egp += task.gross * rate;
+                    }
+                }
+            } else { // Regular task
+                if (task.status === 'completed' || task.status === 'paid') {
+                    completedTasksCount++;
+
+                    const delay = task.delayDeduction || 0;
+                    const adv = task.advance || 0;
+                    const fixed = task.fixedDeduction || 0;
+                    const taskNet = calculateTaskNet(task.gross, task.deductionRate, delay, adv, fixed);
+                    const grossMinusFixed = task.gross - fixed;
+                    const taskDeduction = grossMinusFixed * (task.deductionRate / 100);
+
+                    if (currency === 'EGP') {
+                        totalGrossEGP += grossMinusFixed;
+                        totalGrossUSD += grossMinusFixed / rate;
+                        totalDeductionsEGP += taskDeduction;
+                        totalDeductionsUSD += taskDeduction / rate;
+
+                        if (task.status === 'paid') {
+                            earnings_paid_egp += taskNet;
+                            earnings_paid_usd += taskNet / rate;
+                        } else if (task.status === 'completed') {
+                            earnings_completed_egp += taskNet;
+                            earnings_completed_usd += taskNet / rate;
+                        }
+                    } else { // USD
+                        totalGrossUSD += grossMinusFixed;
+                        totalGrossEGP += grossMinusFixed * rate;
+                        totalDeductionsUSD += taskDeduction;
+                        totalDeductionsEGP += taskDeduction * rate;
+
+                        if (task.status === 'paid') {
+                            earnings_paid_usd += taskNet;
+                            earnings_paid_egp += taskNet * rate;
+                        } else if (task.status === 'completed') {
+                            earnings_completed_usd += taskNet;
+                            earnings_completed_egp += taskNet * rate;
+                        }
+                    }
+                }
+            }
+        });
+
+        // Apply EGP balance formula
+        const activeWithdrawalsEGP = withdrawals_completed_egp + withdrawals_paid_egp;
+        const empDueEGP = Math.max(0, earnings_completed_egp - activeWithdrawalsEGP);
+        const empPaidEGP = earnings_paid_egp + activeWithdrawalsEGP;
+
+        // Apply USD balance formula
+        const activeWithdrawalsUSD = withdrawals_completed_usd + withdrawals_paid_usd;
+        const empDueUSD = Math.max(0, earnings_completed_usd - activeWithdrawalsUSD);
+        const empPaidUSD = earnings_paid_usd + activeWithdrawalsUSD;
+
+        totalDueEGP += empDueEGP;
+        totalDueUSD += empDueUSD;
+        totalPaidEGP += empPaidEGP;
+        totalPaidUSD += empPaidUSD;
+    });
+
+    document.getElementById('stat-total-tasks').textContent = completedTasksCount;
+
+    document.getElementById('stat-total-gross-egp').textContent = formatCurrency(totalGrossEGP, 'EGP');
+    document.getElementById('stat-total-gross-usd').textContent = formatCurrency(totalGrossUSD, 'USD');
+    document.getElementById('stat-total-deductions-egp').textContent = formatCurrency(totalDeductionsEGP, 'EGP');
+    document.getElementById('stat-total-deductions-usd').textContent = formatCurrency(totalDeductionsUSD, 'USD');
+    
+    document.getElementById('stat-total-paid-egp').textContent = formatCurrency(totalPaidEGP, 'EGP');
+    document.getElementById('stat-total-paid-usd').textContent = formatCurrency(totalPaidUSD, 'USD');
+    document.getElementById('stat-total-due-egp').textContent = formatCurrency(totalDueEGP, 'EGP');
+    document.getElementById('stat-total-due-usd').textContent = formatCurrency(totalDueUSD, 'USD');
+
+    // Update print month title
+    const activeMonthText = selectedMonth === 'all' ? (state.currentLanguage === 'ar' ? 'كل الشهور' : 'All Months') : i18n[state.currentLanguage]['month-' + selectedMonth.slice(0, 3)];
+    const printMonthTitle = document.getElementById('print-month-title');
+    if (printMonthTitle) {
+        printMonthTitle.textContent = ` - (${activeMonthText})`;
+    }
+}
+
+// --- Sidebar Employee Navigation Rendering ---
+function renderEmployeesList() {
+    const searchInput = document.getElementById('employee-search').value.toLowerCase();
+    const container = document.getElementById('employees-list-container');
+    container.innerHTML = '';
+
+    const filtered = state.employees.filter(emp => emp.name.toLowerCase().includes(searchInput));
+
+    filtered.forEach(emp => {
+        const item = document.createElement('div');
+        item.className = `employee-item ${state.selectedEmployeeId === emp.id ? 'active' : ''}`;
+        item.setAttribute('data-id', emp.id);
+        
+        // Initial letter for Avatar
+        const avatarLetter = emp.name.trim().charAt(0).toUpperCase();
+        
+        const avatarHTML = emp.avatarUrl 
+            ? `<img src="${emp.avatarUrl}" class="avatar-img">`
+            : `<div class="avatar">${avatarLetter}</div>`;
+        
+        item.innerHTML = `
+            <div class="employee-info-wrapper">
+                ${avatarHTML}
+                <div class="employee-text">
+                    <span class="employee-name">${escapeHTML(emp.name)}</span>
+                    <span class="employee-role">${escapeHTML(emp.role)}</span>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="task-count-badge">${emp.tasks.length}</span>
+                <div class="employee-sort-actions">
+                    <button class="btn-sort" onclick="moveEmployeeUp(event, '${emp.id}')" title="Move Up"><i data-lucide="chevron-up"></i></button>
+                    <button class="btn-sort" onclick="moveEmployeeDown(event, '${emp.id}')" title="Move Down"><i data-lucide="chevron-down"></i></button>
+                </div>
+            </div>
+        `;
+
+        item.addEventListener('click', () => {
+            selectEmployee(emp.id);
+        });
+
+        container.appendChild(item);
+    });
+
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+}
+
+async function hashPassword(password) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
+}
+
+function selectEmployee(id) {
+    state.selectedEmployeeId = id;
+    state.viewMode = 'employee';
+    state.isManagerUnlocked = false; // Reset unlock status on switching view Mode!
+    
+    // Toggle UI panels
+    document.getElementById('dashboard-placeholder').style.display = 'none';
+    document.getElementById('manager-panel-section').style.display = 'none';
+    document.getElementById('employee-detail-section').style.display = 'block';
+    document.getElementById('manager-btn').classList.remove('active');
+
+    renderEmployeesList();
+    renderEmployeeDetail(id);
+    calculateDashboardStats();
+    
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+}
+
+function selectManagerPanel() {
+    // Show password modal instead of prompt
+    const modal = document.getElementById('password-modal');
+    document.getElementById('password-form').reset();
+    document.getElementById('password-error-msg').style.display = 'none';
+    modal.classList.add('active');
+    
+    setTimeout(() => {
+        document.getElementById('manager-password-input').focus();
+    }, 100);
+}
+
+function enterManagerDashboard() {
+    state.selectedEmployeeId = null;
+    state.viewMode = 'manager';
+
+    // Toggle UI panels
+    document.getElementById('dashboard-placeholder').style.display = 'none';
+    document.getElementById('employee-detail-section').style.display = 'none';
+    document.getElementById('manager-panel-section').style.display = 'block';
+    document.getElementById('manager-btn').classList.add('active');
+
+    renderEmployeesList();
+    calculateDashboardStats();
+    renderManagerPanel();
+    
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+}
+
+function renderManagerPanel() {
+    const tableBody = document.getElementById('manager-table-body');
+    tableBody.innerHTML = '';
+
+    const dbMonthFilter = document.getElementById('dashboard-filter-month');
+    const selectedMonth = dbMonthFilter ? dbMonthFilter.value : 'all';
+
+    state.employees.forEach(emp => {
+        let empCompletedCount = 0;
+        let empGrossEGP = 0;
+        let empGrossUSD = 0;
+
+        let earnings_completed_egp = 0;
+        let earnings_completed_usd = 0;
+        let withdrawals_completed_egp = 0;
+        let withdrawals_completed_usd = 0;
+        let withdrawals_paid_egp = 0;
+        let withdrawals_paid_usd = 0;
+
+        emp.tasks.forEach(task => {
+            if (selectedMonth !== 'all' && task.month !== selectedMonth) {
+                return;
+            }
+
+            const isWithdrawal = task.type === 'withdrawal';
+            const currency = task.currency || 'EGP';
+            const rate = task.exchangeRate || state.exchangeRate;
+
+            if (isWithdrawal) {
+                if (task.status === 'completed') {
+                    if (currency === 'EGP') {
+                        withdrawals_completed_egp += task.gross;
+                        withdrawals_completed_usd += task.gross / rate;
+                    } else {
+                        withdrawals_completed_usd += task.gross;
+                        withdrawals_completed_egp += task.gross * rate;
+                    }
+                } else if (task.status === 'paid') {
+                    if (currency === 'EGP') {
+                        withdrawals_paid_egp += task.gross;
+                        withdrawals_paid_usd += task.gross / rate;
+                    } else {
+                        withdrawals_paid_usd += task.gross;
+                        withdrawals_paid_egp += task.gross * rate;
+                    }
+                }
+            } else { // Regular task
+                if (task.status === 'completed' || task.status === 'paid') {
+                    empCompletedCount++;
+                    const delay = task.delayDeduction || 0;
+                    const adv = task.advance || 0;
+                    const fixed = task.fixedDeduction || 0;
+                    const netVal = calculateTaskNet(task.gross, task.deductionRate, delay, adv, fixed);
+                    const grossMinusFixed = task.gross - fixed;
+                    
+                    if (currency === 'EGP') {
+                        empGrossEGP += grossMinusFixed;
+                        empGrossUSD += grossMinusFixed / rate;
+                        
+                        if (task.status === 'completed') {
+                            earnings_completed_egp += netVal;
+                            earnings_completed_usd += netVal / rate;
+                        }
+                    } else {
+                        empGrossUSD += grossMinusFixed;
+                        empGrossEGP += grossMinusFixed * rate;
+                        
+                        if (task.status === 'completed') {
+                            earnings_completed_usd += netVal;
+                            earnings_completed_egp += netVal * rate;
+                        }
+                    }
+                }
+            }
+        });
+
+        // The remaining Net Due for this employee:
+        const activeWithdrawalsEGP = withdrawals_completed_egp + withdrawals_paid_egp;
+        const empDueEGP = Math.max(0, earnings_completed_egp - activeWithdrawalsEGP);
+
+        const activeWithdrawalsUSD = withdrawals_completed_usd + withdrawals_paid_usd;
+        const empDueUSD = Math.max(0, earnings_completed_usd - activeWithdrawalsUSD);
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td style="font-weight: 700; color: #fff;">${escapeHTML(emp.name)}</td>
+            <td><span class="badge">${escapeHTML(emp.role)}</span></td>
+            <td style="font-weight: 700; text-align: center;">${empCompletedCount}</td>
+            <td>${formatCurrency(empGrossEGP, 'EGP')}</td>
+            <td>${formatCurrency(empGrossUSD, 'USD')}</td>
+            <td style="font-weight: 700; color: var(--color-emerald);">${formatCurrency(empDueEGP, 'EGP')}</td>
+            <td style="font-weight: 700; color: var(--color-emerald);">${formatCurrency(empDueUSD, 'USD')}</td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
+
+// --- Employee Payouts Detail Page Rendering ---
+function renderEmployeeDetail(id) {
+    const emp = state.employees.find(e => e.id === id);
+    if (!emp) {
+        // Fallback to placeholder if employee not found (e.g. deleted)
+        document.getElementById('employee-detail-section').style.display = 'none';
+        document.getElementById('dashboard-placeholder').style.display = 'flex';
+        state.selectedEmployeeId = null;
+        return;
+    }
+
+    // Set employee header details
+    document.getElementById('detail-employee-name').textContent = emp.name;
+    document.getElementById('detail-employee-role').textContent = emp.role;
+    document.getElementById('detail-employee-deduction').textContent = `${emp.defaultDeductionRate}%`;
+    
+    const initialsSpan = document.getElementById('employee-avatar-initials');
+    const avatarImg = document.getElementById('employee-avatar-img');
+    if (emp.avatarUrl) {
+        avatarImg.src = emp.avatarUrl;
+        avatarImg.style.display = 'block';
+        initialsSpan.style.display = 'none';
+    } else {
+        avatarImg.src = '';
+        avatarImg.style.display = 'none';
+        initialsSpan.textContent = emp.name.trim().charAt(0).toUpperCase();
+        initialsSpan.style.display = 'block';
+    }
+
+    const dbMonthFilter = document.getElementById('dashboard-filter-month');
+    const empMonthFilter = document.getElementById('task-filter-month');
+    if (dbMonthFilter && empMonthFilter) {
+        empMonthFilter.value = dbMonthFilter.value;
+    }
+
+    // Update payment method header display
+    const payMethodKey = emp.paymentMethod || 'instapay';
+    const payMethodText = i18n[state.currentLanguage]['payment-' + payMethodKey.replace('_', '')] || payMethodKey;
+    document.getElementById('detail-employee-payment').textContent = `${payMethodText} (${emp.paymentDetails || '-'})`;
+
+    // Populate task table
+    const statusFilter = document.getElementById('task-filter-status').value;
+    const monthFilter = empMonthFilter ? empMonthFilter.value : 'all';
+    const tableBody = document.getElementById('tasks-table-body');
+    const fallback = document.getElementById('no-tasks-fallback');
+    tableBody.innerHTML = '';
+
+    const searchInput = document.getElementById('task-search-input');
+    const searchQuery = searchInput ? searchInput.value.trim().toLowerCase() : '';
+
+    const filteredTasks = emp.tasks.filter(task => {
+        const matchStatus = (statusFilter === 'all') || (task.status === statusFilter);
+        const matchMonth = (monthFilter === 'all') || (task.month === monthFilter);
+        const matchSearch = !searchQuery || 
+            task.taskNumber.toLowerCase().includes(searchQuery) || 
+            task.title.toLowerCase().includes(searchQuery);
+        return matchStatus && matchMonth && matchSearch;
+    });
+
+    if (filteredTasks.length === 0) {
+        fallback.style.display = 'flex';
+    } else {
+        fallback.style.display = 'none';
+        
+        filteredTasks.forEach(task => {
+            const row = document.createElement('tr');
+            
+            const isWithdrawal = task.type === 'withdrawal';
+            const currency = task.currency || 'EGP';
+            const rate = task.exchangeRate || state.exchangeRate;
+            let grossDisplay = '';
+            let netDisplay = '';
+            let deductionDisplay = '';
+
+            if (isWithdrawal) {
+                grossDisplay = `<div style="color: var(--color-rose); font-weight: 600;">-${formatCurrency(task.gross, currency)}</div>`;
+                netDisplay = `<div style="color: var(--color-rose); font-weight: 600;">-${formatCurrency(task.gross, currency)}</div>`;
+                deductionDisplay = `<span style="color: var(--text-dim);">-</span>`;
+            } else {
+                const delay = task.delayDeduction || 0;
+                const adv = task.advance || 0;
+                const fixed = task.fixedDeduction || 0;
+                const netAmount = calculateTaskNet(task.gross, task.deductionRate, delay, adv, fixed);
+                // statusText is declared below (L957) for both withdrawal and task types
+                
+                grossDisplay = `<div>${formatCurrency(task.gross, currency)}</div>`;
+                netDisplay = `<div style="font-weight: 700; color: var(--color-emerald);">${formatCurrency(netAmount, currency)}</div>`;
+                
+                if (currency === 'EGP') {
+                    const convertedGross = task.gross / rate;
+                    const convertedNet = netAmount / rate;
+                    grossDisplay += `<div class="secondary-value">(${formatCurrency(convertedGross, 'USD')})</div>`;
+                    netDisplay += `<div class="secondary-value">(${formatCurrency(convertedNet, 'USD')})</div>`;
+                } else { // USD
+                    const convertedGross = task.gross * rate;
+                    const convertedNet = netAmount * rate;
+                    grossDisplay += `<div class="secondary-value">(${formatCurrency(convertedGross, 'EGP')})</div>`;
+                    netDisplay += `<div class="secondary-value">(${formatCurrency(convertedNet, 'EGP')})</div>`;
+                }
+
+                deductionDisplay = `<span>${task.deductionRate}%</span>`;
+                if (task.fixedDeduction || task.delayDeduction || task.advance) {
+                    let details = [];
+                    if (task.fixedDeduction) details.push((state.currentLanguage === 'ar' ? 'ثابت: ' : 'Fix: ') + formatCurrency(task.fixedDeduction, currency));
+                    if (task.delayDeduction) details.push((state.currentLanguage === 'ar' ? 'تأخير: ' : 'Delay: ') + formatCurrency(task.delayDeduction, currency));
+                    if (task.advance) details.push((state.currentLanguage === 'ar' ? 'سلفة: ' : 'Adv: ') + formatCurrency(task.advance, currency));
+                    
+                    deductionDisplay += `<div style="font-size: 11px; color: var(--color-rose); margin-top: 2px;">
+                        ${details.join(' • ')}
+                    </div>`;
+                }
+            }
+
+            const monthText = task.month ? i18n[state.currentLanguage][`month-${task.month.slice(0, 3)}`] || task.month : '';
+            const statusText = i18n[state.currentLanguage][`status-${task.status}`];
+            const typeBadge = isWithdrawal 
+                ? `<span class="badge" style="background: rgba(244, 63, 94, 0.15); color: var(--color-rose); margin-inline-start: 8px;">${state.currentLanguage === 'ar' ? 'سحب' : 'Withdrawal'}</span>`
+                : '';
+
+            const hasCredentials = task.email || task.password || task.character || task.vpn;
+            let credsSummary = [];
+            if (task.email) credsSummary.push(`✉️ ${escapeHTML(task.email)}`);
+            if (task.character) credsSummary.push(`👤 ${escapeHTML(task.character)}`);
+            if (task.vpn) credsSummary.push(`🛡️ ${escapeHTML(task.vpn)}`);
+
+            const credsButtonHTML = hasCredentials 
+                ? `<button class="btn btn-secondary btn-icon-only btn-sm" onclick="showTaskCredentials('${emp.id}', '${task.id}')" title="${state.currentLanguage === 'ar' ? 'عرض بيانات الحساب والـ VPN' : 'View Account Credentials & VPN'}"><i data-lucide="key" style="width: 14px; height: 14px; color: var(--color-primary);"></i></button>`
+                : '';
+
+            row.innerHTML = `
+                <td style="font-weight: 700;">${escapeHTML(task.taskNumber)}</td>
+                <td>
+                    <div style="font-weight: 600; color: #fff; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                        ${escapeHTML(task.title)}
+                        ${typeBadge}
+                    </div>
+                    <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">
+                        ${new Date(task.createdAt).toLocaleDateString(state.currentLanguage === 'ar' ? 'ar-EG' : 'en-US')}
+                        ${monthText ? ' • ' + monthText : ''}
+                    </div>
+                    ${credsSummary.length > 0 ? `<div class="creds-print-hide" style="font-size: 11px; color: var(--color-secondary); margin-top: 3px; font-family: monospace;">${credsSummary.join(' • ')}</div>` : ''}
+                </td>
+                <td>${grossDisplay}</td>
+                <td>
+                    ${deductionDisplay}
+                    ${!isWithdrawal && task.deductionRate !== emp.defaultDeductionRate ? ' <i data-lucide="info" style="width: 12px; height: 12px; vertical-align: middle; color: var(--color-amber);" title="Custom rate applied"></i>' : ''}
+                </td>
+                <td>${netDisplay}</td>
+                <td>
+                    <span class="status-badge ${task.status}" style="cursor: pointer;" onclick="toggleTaskStatus('${emp.id}', '${task.id}')">
+                        ${statusText}
+                    </span>
+                </td>
+                <td>
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        ${credsButtonHTML}
+                        <button class="btn btn-secondary btn-icon-only btn-sm" onclick="editTask('${emp.id}', '${task.id}')" title="Edit Task">
+                            <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i>
+                        </button>
+                        <button class="btn btn-danger btn-icon-only btn-sm" onclick="deleteTask('${emp.id}', '${task.id}')" title="Delete Task">
+                            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+    }
+
+    // Reset default placeholders in task form fields
+    document.getElementById('task-deduction').placeholder = `${emp.defaultDeductionRate}%`;
+    const taskCurrEl = document.getElementById('task-currency');
+    if (taskCurrEl) taskCurrEl.value = 'USD';
+}
+
+// --- CRUD Actions for Tasks ---
+window.toggleTaskStatus = function(empId, taskId) {
+    const emp = state.employees.find(e => e.id === empId);
+    if (!emp) return;
+    
+    const task = emp.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    // Toggle status cycle: pending -> completed -> paid -> pending
+    if (task.status === 'pending') {
+        task.status = 'completed';
+        delete task.exchangeRate; // Default to global dynamic rate
+    } else if (task.status === 'completed') {
+        task.status = 'paid';
+        task.exchangeRate = state.exchangeRate; // Lock current exchange rate!
+    } else {
+        task.status = 'pending';
+        delete task.exchangeRate; // Unlock!
+    }
+
+    saveState();
+    calculateDashboardStats();
+    renderEmployeeDetail(empId);
+    showToast('toast-status-updated');
+    if (window.lucide) window.lucide.createIcons();
+};
+
+window.deleteTask = function(empId, taskId) {
+    const confirmMsg = i18n[state.currentLanguage]['confirm-delete-task'];
+    if (!confirm(confirmMsg)) return;
+
+    const emp = state.employees.find(e => e.id === empId);
+    if (!emp) return;
+
+    emp.tasks = emp.tasks.filter(t => t.id !== taskId);
+
+    saveState();
+    calculateDashboardStats();
+    renderEmployeesList();
+    renderEmployeeDetail(empId);
+    showToast('toast-task-deleted');
+    if (window.lucide) window.lucide.createIcons();
+};
+
+// Edit Task Modal implementation
+window.editTask = function(empId, taskId) {
+    const emp = state.employees.find(e => e.id === empId);
+    if (!emp) return;
+    
+    const task = emp.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    document.getElementById('edit-task-id').value = task.id;
+    document.getElementById('edit-task-emp-id').value = emp.id;
+
+    document.getElementById('edit-task-type').value = task.type || 'task';
+    document.getElementById('edit-task-number').value = task.taskNumber || '';
+    document.getElementById('edit-task-title').value = task.title || '';
+    document.getElementById('edit-task-gross').value = task.gross !== undefined ? task.gross : '';
+    document.getElementById('edit-task-currency').value = task.currency || 'EGP';
+    document.getElementById('edit-task-deduction').value = (task.deductionRate !== undefined && task.deductionRate !== emp.defaultDeductionRate) ? task.deductionRate : '';
+    document.getElementById('edit-task-fixed-deduction').value = task.fixedDeduction || '';
+    document.getElementById('edit-task-delay-deduction').value = task.delayDeduction || '';
+    document.getElementById('edit-task-advance').value = task.advance || '';
+    document.getElementById('edit-task-month').value = task.month || 'january';
+    document.getElementById('edit-task-status').value = task.status || 'pending';
+
+    document.getElementById('edit-task-email').value = task.email || '';
+    document.getElementById('edit-task-password').value = task.password || '';
+    document.getElementById('edit-task-character').value = task.character || '';
+    document.getElementById('edit-task-vpn').value = task.vpn || '';
+
+    // Handle withdrawal field visibility in edit modal
+    const isWithdrawal = task.type === 'withdrawal';
+    const deductionGroup = document.getElementById('edit-task-deduction-group');
+    const adjustmentsRow = document.getElementById('edit-task-adjustments-row-1');
+    const advanceGroup = document.getElementById('edit-task-advance-group');
+    if (deductionGroup) deductionGroup.style.display = isWithdrawal ? 'none' : 'block';
+    if (adjustmentsRow) adjustmentsRow.style.display = isWithdrawal ? 'none' : 'grid';
+    if (advanceGroup) advanceGroup.style.visibility = isWithdrawal ? 'hidden' : 'visible';
+
+    const modal = document.getElementById('edit-task-modal');
+    modal.classList.add('active');
+    if (window.lucide) window.lucide.createIcons();
+};
+
+// --- CRUD Actions for Employees ---
+function openEmployeeModal(isEdit = false) {
+    const modal = document.getElementById('employee-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const form = document.getElementById('employee-form');
+    
+    form.reset();
+    document.getElementById('edit-employee-id').value = '';
+
+    state.tempAvatarUrl = null;
+    document.getElementById('employee-avatar-file').value = '';
+    const previewImg = document.getElementById('avatar-preview-img');
+    const previewInitials = document.getElementById('avatar-preview-initials');
+    const removeBtn = document.getElementById('remove-avatar-btn');
+
+    if (isEdit && state.selectedEmployeeId) {
+        const emp = state.employees.find(e => e.id === state.selectedEmployeeId);
+        if (emp) {
+            document.getElementById('edit-employee-id').value = emp.id;
+            document.getElementById('employee-name').value = emp.name;
+            document.getElementById('employee-role').value = emp.role;
+            document.getElementById('employee-deduction-rate').value = emp.defaultDeductionRate;
+            document.getElementById('employee-payment-method').value = emp.paymentMethod || 'instapay';
+            document.getElementById('employee-payment-details').value = emp.paymentDetails || '';
+            
+            if (emp.avatarUrl) {
+                previewImg.src = emp.avatarUrl;
+                previewImg.style.display = 'block';
+                previewInitials.style.display = 'none';
+                removeBtn.style.display = 'block';
+                state.tempAvatarUrl = emp.avatarUrl;
+            } else {
+                previewImg.src = '';
+                previewImg.style.display = 'none';
+                previewInitials.textContent = emp.name.charAt(0).toUpperCase();
+                previewInitials.style.display = 'block';
+                removeBtn.style.display = 'none';
+            }
+            
+            modalTitle.textContent = i18n[state.currentLanguage]['modal-edit-employee-title'];
+        }
+    } else {
+        previewImg.src = '';
+        previewImg.style.display = 'none';
+        previewInitials.textContent = '-';
+        previewInitials.style.display = 'block';
+        removeBtn.style.display = 'none';
+        modalTitle.textContent = i18n[state.currentLanguage]['modal-add-employee-title'];
+    }
+
+    modal.classList.add('active');
+}
+
+function closeEmployeeModal() {
+    document.getElementById('employee-modal').classList.remove('active');
+}
+
+// --- CSV Statement Export Helper ---
+function exportEmployeeCSV(empId) {
+    const emp = state.employees.find(e => e.id === empId);
+    if (!emp) return;
+    
+    const selectedMonth = document.getElementById('task-filter-month').value;
+    const selectedStatus = document.getElementById('task-filter-status').value;
+    const searchInput = document.getElementById('task-search-input');
+    const searchQuery = searchInput ? searchInput.value.trim().toLowerCase() : '';
+    
+    let filteredTasks = emp.tasks;
+    
+    // Apply month filter
+    if (selectedMonth !== 'all') {
+        filteredTasks = filteredTasks.filter(t => t.month === selectedMonth);
+    }
+    // Apply status filter
+    if (selectedStatus !== 'all') {
+        filteredTasks = filteredTasks.filter(t => t.status === selectedStatus);
+    }
+    // Apply search query
+    if (searchQuery) {
+        filteredTasks = filteredTasks.filter(t => 
+            t.taskNumber.toLowerCase().includes(searchQuery) || 
+            t.title.toLowerCase().includes(searchQuery)
+        );
+    }
+    
+    // Generate CSV content
+    // We use UTF-8 BOM (\uFEFF) to make sure Excel opens it correctly with Arabic RTL characters!
+    let csvContent = "\uFEFF";
+    
+    // Headers
+    const headers = state.currentLanguage === 'ar' 
+        ? ["رقم العملية", "الوصف/المهمة", "النوع", "القيمة قبل الخصم", "العملة", "نسبة الخصم", "الخصم الثابت", "خصم التأخير", "السلفة", "الصافي", "الحالة", "الشهر", "التاريخ"]
+        : ["Task Number", "Description", "Type", "Gross Amount", "Currency", "Deduction Rate", "Fixed Deduction", "Delay Deduction", "Advance", "Net Amount", "Status", "Month", "Date"];
+        
+    csvContent += headers.map(h => `"${h.replace(/"/g, '""')}"`).join(",") + "\n";
+    
+    // Rows
+    filteredTasks.forEach(task => {
+        const isWithdrawal = task.type === 'withdrawal';
+        const currency = task.currency || 'EGP';
+        const typeStr = isWithdrawal 
+            ? (state.currentLanguage === 'ar' ? 'عملية سحب' : 'Withdrawal')
+            : (state.currentLanguage === 'ar' ? 'مهمة' : 'Task');
+            
+        let netAmount = 0;
+        let gross = task.gross;
+        let rate = '';
+        let fixed = '';
+        let delay = '';
+        let adv = '';
+        
+        if (isWithdrawal) {
+            netAmount = -task.gross;
+            gross = -task.gross;
+        } else {
+            const delayVal = task.delayDeduction || 0;
+            const advVal = task.advance || 0;
+            const fixedVal = task.fixedDeduction || 0;
+            netAmount = calculateTaskNet(task.gross, task.deductionRate, delayVal, advVal, fixedVal);
+            rate = task.deductionRate + "%";
+            fixed = fixedVal || 0;
+            delay = delayVal || 0;
+            adv = advVal || 0;
+        }
+        
+        const monthText = task.month ? i18n[state.currentLanguage][`month-${task.month.slice(0, 3)}`] || task.month : '';
+        const statusText = i18n[state.currentLanguage][`status-${task.status}`];
+        const dateStr = new Date(task.createdAt).toLocaleDateString(state.currentLanguage === 'ar' ? 'ar-EG' : 'en-US');
+        
+        const row = [
+            task.taskNumber,
+            task.title,
+            typeStr,
+            gross,
+            currency,
+            rate,
+            fixed,
+            delay,
+            adv,
+            netAmount,
+            statusText,
+            monthText,
+            dateStr
+        ];
+        
+        csvContent += row.map(r => `"${String(r).replace(/"/g, '""')}"`).join(",") + "\n";
+    });
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    
+    const filePrefix = state.currentLanguage === 'ar' ? 'كشف_حساب' : 'statement';
+    const dateStamp = new Date().toISOString().slice(0, 10);
+    link.setAttribute("download", `${filePrefix}_${emp.name.replace(/\s+/g, '_')}_${dateStamp}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showToast('toast-csv-exported');
+}
+
+// --- Import/Export Operations ---
+function exportData() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    
+    const dateStamp = new Date().toISOString().slice(0, 10);
+    downloadAnchor.setAttribute("download", `task_payouts_backup_${dateStamp}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    
+    showToast('toast-data-exported');
+}
+
+function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const importedState = JSON.parse(e.target.result);
+            if (importedState && validateAndSanitizeState(importedState)) {
+                state = importedState;
+                saveState();
+                updateUIVisuals();
+                showToast('toast-data-imported');
+            } else {
+                throw new Error("Invalid format");
+            }
+        } catch (err) {
+            showToast('toast-import-fail');
+            console.error(err);
+        }
+    };
+    reader.readAsText(file);
+    // Reset file input value
+    event.target.value = '';
+}
+
+// --- Set Up Event Listeners ---
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Initial State Setup
+    await loadStateAsync();
+    
+    // Reset session view state on page load for security (asks password on entry)
+    state.isManagerUnlocked = false;
+    state.viewMode = 'placeholder';
+    state.selectedEmployeeId = null;
+    
+    // Set default month in add task form dropdown to current calendar month
+    const currentMonthIndex = new Date().getMonth();
+    const monthsKeys = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+    const currentMonthKey = monthsKeys[currentMonthIndex];
+    const taskMonthSelect = document.getElementById('task-month');
+    if (taskMonthSelect) {
+        taskMonthSelect.value = currentMonthKey;
+    }
+    
+    // Detect system preferred language (default is Arabic as requested)
+    state.currentLanguage = localStorage.getItem('task_payout_lang') || 'ar';
+    
+    // Set exchange rate initial field value
+    document.getElementById('usd-to-egp-rate').value = state.exchangeRate || 50.00;
+    
+    // Auto-fetch fresh rates on load
+    fetchExchangeRate(false);
+
+    // 2. Render Initial Interface
+    updateUIVisuals();
+
+    // 3. Event Listeners for Employee Modal
+    document.getElementById('add-employee-btn').addEventListener('click', () => openEmployeeModal(false));
+    document.getElementById('placeholder-add-btn').addEventListener('click', () => openEmployeeModal(false));
+    document.getElementById('edit-employee-btn').addEventListener('click', () => openEmployeeModal(true));
+    
+    document.getElementById('close-employee-modal').addEventListener('click', closeEmployeeModal);
+    document.getElementById('cancel-employee-modal').addEventListener('click', closeEmployeeModal);
+    
+    document.getElementById('employee-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const empId = document.getElementById('edit-employee-id').value;
+        const name = document.getElementById('employee-name').value.trim();
+        const role = document.getElementById('employee-role').value.trim();
+        const deductionRate = parseFloat(document.getElementById('employee-deduction-rate').value);
+        const paymentMethod = document.getElementById('employee-payment-method').value;
+        const paymentDetails = document.getElementById('employee-payment-details').value.trim();
+
+        if (empId) {
+            // Edit Mode
+            const emp = state.employees.find(e => e.id === empId);
+            if (emp) {
+                emp.name = name;
+                emp.role = role;
+                emp.defaultDeductionRate = deductionRate;
+                emp.paymentMethod = paymentMethod;
+                emp.paymentDetails = paymentDetails;
+                emp.avatarUrl = state.tempAvatarUrl;
+                emp.adjustments = emp.adjustments || {};
+                
+                showToast('toast-employee-updated');
+            }
+        } else {
+            // Add Mode
+            const newEmp = {
+                id: 'emp_' + Date.now(),
+                name: name,
+                role: role,
+                defaultDeductionRate: deductionRate,
+                paymentMethod: paymentMethod,
+                paymentDetails: paymentDetails,
+                avatarUrl: state.tempAvatarUrl,
+                adjustments: {},
+                tasks: []
+            };
+            state.employees.push(newEmp);
+            state.selectedEmployeeId = newEmp.id;
+            state.viewMode = 'employee';
+            
+            showToast('toast-employee-added');
+        }
+
+        saveState();
+        closeEmployeeModal();
+        
+        // Render Dashboard
+        document.getElementById('dashboard-placeholder').style.display = 'none';
+        document.getElementById('manager-panel-section').style.display = 'none';
+        document.getElementById('employee-detail-section').style.display = 'block';
+        document.getElementById('manager-btn').classList.remove('active');
+        
+        updateUIVisuals();
+    });
+
+    // 4. Delete Employee Action
+    document.getElementById('delete-employee-btn').addEventListener('click', () => {
+        if (!state.selectedEmployeeId) return;
+        
+        const confirmMsg = i18n[state.currentLanguage]['confirm-delete-employee'];
+        if (!confirm(confirmMsg)) return;
+
+        state.employees = state.employees.filter(e => e.id !== state.selectedEmployeeId);
+        state.selectedEmployeeId = null;
+        state.viewMode = 'placeholder';
+
+        saveState();
+        updateUIVisuals();
+        
+        showToast('toast-employee-deleted');
+    });
+
+    // 5. Add Task Action Form
+    document.getElementById('add-task-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        if (!state.selectedEmployeeId) return;
+        
+        const emp = state.employees.find(e => e.id === state.selectedEmployeeId);
+        if (!emp) return;
+
+        const taskNum = document.getElementById('task-number').value.trim();
+        const title = document.getElementById('task-title').value.trim();
+        const gross = parseFloat(document.getElementById('task-gross').value);
+        const currency = document.getElementById('task-currency').value;
+        
+        let deductionRate = emp.defaultDeductionRate;
+        const customDeductVal = document.getElementById('task-deduction').value;
+        if (customDeductVal.trim() !== '') {
+            const parsed = parseFloat(customDeductVal);
+            if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) {
+                deductionRate = parsed;
+            }
+        }
+
+        const type = document.getElementById('task-type').value;
+        const status = document.getElementById('task-status').value;
+        const month = document.getElementById('task-month').value;
+        const delayDeduction = parseFloat(document.getElementById('task-delay-deduction').value) || 0;
+        const advance = parseFloat(document.getElementById('task-advance').value) || 0;
+        const fixedDeduction = parseFloat(document.getElementById('task-fixed-deduction').value) || 0;
+
+        const email = document.getElementById('task-email') ? document.getElementById('task-email').value.trim() : '';
+        const password = document.getElementById('task-password') ? document.getElementById('task-password').value.trim() : '';
+        const character = document.getElementById('task-character') ? document.getElementById('task-character').value.trim() : '';
+        const vpn = document.getElementById('task-vpn') ? document.getElementById('task-vpn').value.trim() : '';
+
+        const newTask = {
+            id: 'task_' + Date.now(),
+            type: type,
+            taskNumber: taskNum,
+            title: title,
+            gross: gross,
+            currency: currency,
+            deductionRate: type === 'withdrawal' ? emp.defaultDeductionRate : deductionRate,
+            delayDeduction: type === 'withdrawal' ? 0 : delayDeduction,
+            advance: type === 'withdrawal' ? 0 : advance,
+            fixedDeduction: type === 'withdrawal' ? 0 : fixedDeduction,
+            status: status,
+            month: month,
+            email: email,
+            password: password,
+            character: character,
+            vpn: vpn,
+            createdAt: new Date().toISOString()
+        };
+
+        if (status === 'paid') {
+            newTask.exchangeRate = state.exchangeRate; // Lock global rate on creation
+        }
+
+        emp.tasks.unshift(newTask); // Add to the top of list
+        
+        saveState();
+        
+        // Reset form
+        document.getElementById('add-task-form').reset();
+        document.getElementById('task-deduction-group').style.display = 'block';
+        document.getElementById('task-adjustments-row-1').style.display = 'grid';
+        document.getElementById('task-advance-group').style.visibility = 'visible';
+        document.getElementById('task-gross-label').textContent = state.currentLanguage === 'ar' ? 'القيمة قبل الخصم' : 'Gross Payout';
+
+        // Restore defaults: USD currency + current month
+        document.getElementById('task-currency').value = 'USD';
+        const _mIdx = new Date().getMonth();
+        const _mKeys = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+        document.getElementById('task-month').value = _mKeys[_mIdx];
+        
+        calculateDashboardStats();
+        renderEmployeesList();
+        renderEmployeeDetail(state.selectedEmployeeId);
+        
+        showToast('toast-task-added');
+        
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+    });
+
+    // Exchange Rate change listeners
+    document.getElementById('usd-to-egp-rate').addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        if (!isNaN(val) && val > 0) {
+            state.exchangeRate = val;
+            saveState();
+            calculateDashboardStats();
+            if (state.viewMode === 'employee' && state.selectedEmployeeId) {
+                renderEmployeeDetail(state.selectedEmployeeId);
+            } else if (state.viewMode === 'manager') {
+                renderManagerPanel();
+            }
+        }
+    });
+
+    document.getElementById('sync-rate-btn').addEventListener('click', () => {
+        fetchExchangeRate(true);
+    });
+
+    document.getElementById('manager-btn').addEventListener('click', selectManagerPanel);
+    document.getElementById('print-global-btn').addEventListener('click', () => {
+        window.print();
+    });
+
+    // Credentials Modal events
+    const credModal = document.getElementById('credentials-modal');
+    if (credModal) {
+        document.getElementById('close-credentials-modal').addEventListener('click', () => {
+            credModal.classList.remove('active');
+        });
+        document.getElementById('close-credentials-modal-btn').addEventListener('click', () => {
+            credModal.classList.remove('active');
+        });
+    }
+
+    // Edit Task Modal Events
+    const editModal = document.getElementById('edit-task-modal');
+    if (editModal) {
+        document.getElementById('close-edit-task-modal').addEventListener('click', () => {
+            editModal.classList.remove('active');
+        });
+        document.getElementById('cancel-edit-task-modal').addEventListener('click', () => {
+            editModal.classList.remove('active');
+        });
+
+        const editTypeSelect = document.getElementById('edit-task-type');
+        if (editTypeSelect) {
+            editTypeSelect.addEventListener('change', (e) => {
+                const isWithdrawal = e.target.value === 'withdrawal';
+                const deductionGroup = document.getElementById('edit-task-deduction-group');
+                const adjustmentsRow = document.getElementById('edit-task-adjustments-row-1');
+                const advanceGroup = document.getElementById('edit-task-advance-group');
+                
+                if (deductionGroup) deductionGroup.style.display = isWithdrawal ? 'none' : 'block';
+                if (adjustmentsRow) adjustmentsRow.style.display = isWithdrawal ? 'none' : 'grid';
+                if (advanceGroup) advanceGroup.style.visibility = isWithdrawal ? 'hidden' : 'visible';
+                
+                const grossLabel = document.getElementById('edit-task-gross-label');
+                if (grossLabel) {
+                    grossLabel.textContent = isWithdrawal 
+                        ? (state.currentLanguage === 'ar' ? 'المبلغ المسحوب' : 'Withdrawn Amount')
+                        : (state.currentLanguage === 'ar' ? 'القيمة قبل الخصم' : 'Gross Payout');
+                }
+            });
+        }
+
+        document.getElementById('edit-task-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const taskId = document.getElementById('edit-task-id').value;
+            const empId = document.getElementById('edit-task-emp-id').value;
+            
+            const emp = state.employees.find(e => e.id === empId);
+            if (!emp) return;
+            const task = emp.tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            const type = document.getElementById('edit-task-type').value;
+            const taskNum = document.getElementById('edit-task-number').value.trim();
+            const title = document.getElementById('edit-task-title').value.trim();
+            const gross = parseFloat(document.getElementById('edit-task-gross').value) || 0;
+            const currency = document.getElementById('edit-task-currency').value;
+            
+            let deductionRate = emp.defaultDeductionRate;
+            const customDeductVal = document.getElementById('edit-task-deduction').value;
+            if (customDeductVal.trim() !== '') {
+                const parsed = parseFloat(customDeductVal);
+                if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) {
+                    deductionRate = parsed;
+                }
+            }
+
+            const fixedDeduction = parseFloat(document.getElementById('edit-task-fixed-deduction').value) || 0;
+            const delayDeduction = parseFloat(document.getElementById('edit-task-delay-deduction').value) || 0;
+            const advance = parseFloat(document.getElementById('edit-task-advance').value) || 0;
+            const month = document.getElementById('edit-task-month').value;
+            const status = document.getElementById('edit-task-status').value;
+
+            const email = document.getElementById('edit-task-email').value.trim();
+            const password = document.getElementById('edit-task-password').value.trim();
+            const character = document.getElementById('edit-task-character').value.trim();
+            const vpn = document.getElementById('edit-task-vpn').value.trim();
+
+            task.type = type;
+            task.taskNumber = taskNum;
+            task.title = title;
+            task.gross = gross;
+            task.currency = currency;
+            task.deductionRate = type === 'withdrawal' ? emp.defaultDeductionRate : deductionRate;
+            task.fixedDeduction = type === 'withdrawal' ? 0 : fixedDeduction;
+            task.delayDeduction = type === 'withdrawal' ? 0 : delayDeduction;
+            task.advance = type === 'withdrawal' ? 0 : advance;
+            task.month = month;
+            task.status = status;
+            task.email = email;
+            task.password = password;
+            task.character = character;
+            task.vpn = vpn;
+
+            if (status === 'paid' && !task.exchangeRate) {
+                task.exchangeRate = state.exchangeRate;
+            } else if (status !== 'paid') {
+                delete task.exchangeRate;
+            }
+
+            saveState();
+            calculateDashboardStats();
+            renderEmployeeDetail(empId);
+
+            editModal.classList.remove('active');
+            showToast('toast-employee-updated');
+            if (window.lucide) window.lucide.createIcons();
+        });
+    }
+
+    // Password modal events
+    document.getElementById('close-password-modal').addEventListener('click', () => {
+        document.getElementById('password-modal').classList.remove('active');
+    });
+    document.getElementById('cancel-password-modal').addEventListener('click', () => {
+        document.getElementById('password-modal').classList.remove('active');
+    });
+    document.getElementById('password-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const pwd = document.getElementById('manager-password-input').value;
+        const hash = await hashPassword(pwd);
+        
+        if (hash === '607f41f49b4af2f4584f54dfde33e17879d23bc0d94b6ff65b6e4feffe5e7c5d') {
+            document.getElementById('password-modal').classList.remove('active');
+            state.isManagerUnlocked = true;
+            enterManagerDashboard();
+        } else {
+            document.getElementById('password-error-msg').style.display = 'block';
+            document.getElementById('manager-password-input').select();
+        }
+    });
+
+    // 6. Language Toggle Controller
+    document.getElementById('lang-toggle-btn').addEventListener('click', () => {
+        state.currentLanguage = state.currentLanguage === 'ar' ? 'en' : 'ar';
+        localStorage.setItem('task_payout_lang', state.currentLanguage);
+        updateUIVisuals();
+    });
+
+    // 7. Filters and Search inputs
+    document.getElementById('employee-search').addEventListener('input', renderEmployeesList);
+    document.getElementById('task-filter-status').addEventListener('change', () => {
+        if (state.selectedEmployeeId) {
+            renderEmployeeDetail(state.selectedEmployeeId);
+            if (window.lucide) window.lucide.createIcons();
+        }
+    });
+    document.getElementById('task-filter-month').addEventListener('change', (e) => {
+        const val = e.target.value;
+        // Keep main dashboard filter in sync
+        document.getElementById('dashboard-filter-month').value = val;
+        
+        calculateDashboardStats();
+        if (state.selectedEmployeeId) {
+            renderEmployeeDetail(state.selectedEmployeeId);
+            if (window.lucide) window.lucide.createIcons();
+        }
+    });
+    document.getElementById('dashboard-filter-month').addEventListener('change', (e) => {
+        const val = e.target.value;
+        // Keep employee profile filter in sync
+        const empMonthFilter = document.getElementById('task-filter-month');
+        if (empMonthFilter) {
+            empMonthFilter.value = val;
+        }
+        
+        calculateDashboardStats();
+        if (state.viewMode === 'manager') {
+            renderManagerPanel();
+        } else if (state.viewMode === 'employee' && state.selectedEmployeeId) {
+            renderEmployeeDetail(state.selectedEmployeeId);
+            if (window.lucide) window.lucide.createIcons();
+        }
+    });
+
+    // Operation type select listener
+    const taskTypeSelect = document.getElementById('task-type');
+    if (taskTypeSelect) {
+        taskTypeSelect.addEventListener('change', (e) => {
+            const isWithdrawal = e.target.value === 'withdrawal';
+            const deductionGroup = document.getElementById('task-deduction-group');
+            const adjustmentsRow = document.getElementById('task-adjustments-row-1');
+            const advanceGroup = document.getElementById('task-advance-group');
+            
+            if (deductionGroup) deductionGroup.style.display = isWithdrawal ? 'none' : 'block';
+            if (adjustmentsRow) adjustmentsRow.style.display = isWithdrawal ? 'none' : 'grid';
+            if (advanceGroup) advanceGroup.style.visibility = isWithdrawal ? 'hidden' : 'visible';
+            
+            const grossLabel = document.getElementById('task-gross-label');
+            if (grossLabel) {
+                grossLabel.textContent = isWithdrawal 
+                    ? (state.currentLanguage === 'ar' ? 'المبلغ المسحوب' : 'Withdrawn Amount')
+                    : (state.currentLanguage === 'ar' ? 'القيمة قبل الخصم' : 'Gross Payout');
+            }
+        });
+    }
+
+    // Task search listener
+    const searchTaskInput = document.getElementById('task-search-input');
+    if (searchTaskInput) {
+        searchTaskInput.addEventListener('input', () => {
+            if (state.selectedEmployeeId) {
+                renderEmployeeDetail(state.selectedEmployeeId);
+                if (window.lucide) window.lucide.createIcons();
+            }
+        });
+    }
+
+    // Export CSV listener
+    const exportCsvBtn = document.getElementById('export-csv-btn');
+    if (exportCsvBtn) {
+        exportCsvBtn.addEventListener('click', () => {
+            if (state.selectedEmployeeId) {
+                exportEmployeeCSV(state.selectedEmployeeId);
+            }
+        });
+    }
+
+    // 8. Import / Export buttons hook-up
+    document.getElementById('export-btn').addEventListener('click', exportData);
+    document.getElementById('import-btn').addEventListener('click', () => {
+        document.getElementById('import-file-input').click();
+    });
+    document.getElementById('import-file-input').addEventListener('change', importData);
+
+    // 9. Printing hook-up
+    document.getElementById('print-report-btn').addEventListener('click', () => {
+        window.print();
+    });
+
+    // 10. Clear Data hook-up
+    document.getElementById('clear-data-btn').addEventListener('click', () => {
+        const confirmMsg = i18n[state.currentLanguage]['confirm-clear'];
+        if (!confirm(confirmMsg)) return;
+
+        state.employees = [];
+        state.selectedEmployeeId = null;
+        
+        saveState();
+        updateUIVisuals();
+        
+        showToast('toast-data-cleared');
+    });
+
+    // 11. Avatar events inside DOMContentLoaded
+    document.getElementById('employee-avatar-file').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const maxDim = 128;
+                let w = img.width;
+                let h = img.height;
+                if (w > h) {
+                    if (w > maxDim) {
+                        h = Math.round(h * maxDim / w);
+                        w = maxDim;
+                    }
+                } else {
+                    if (h > maxDim) {
+                        w = Math.round(w * maxDim / h);
+                        h = maxDim;
+                    }
+                }
+                canvas.width = w;
+                canvas.height = h;
+                ctx.drawImage(img, 0, 0, w, h);
+                
+                const base64 = canvas.toDataURL('image/jpeg', 0.7);
+                
+                const previewImg = document.getElementById('avatar-preview-img');
+                const previewInitials = document.getElementById('avatar-preview-initials');
+                previewImg.src = base64;
+                previewImg.style.display = 'block';
+                previewInitials.style.display = 'none';
+                
+                document.getElementById('remove-avatar-btn').style.display = 'block';
+                state.tempAvatarUrl = base64;
+            };
+            img.src = evt.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    document.getElementById('remove-avatar-btn').addEventListener('click', () => {
+        document.getElementById('employee-avatar-file').value = '';
+        const previewImg = document.getElementById('avatar-preview-img');
+        const previewInitials = document.getElementById('avatar-preview-initials');
+        previewImg.src = '';
+        previewImg.style.display = 'none';
+        
+        const empNameInput = document.getElementById('employee-name');
+        const letter = empNameInput.value.trim() ? empNameInput.value.trim().charAt(0).toUpperCase() : '-';
+        previewInitials.textContent = letter;
+        previewInitials.style.display = 'block';
+        
+        document.getElementById('remove-avatar-btn').style.display = 'none';
+        state.tempAvatarUrl = null;
+    });
+
+    document.getElementById('employee-name').addEventListener('input', (e) => {
+        if (!state.tempAvatarUrl) {
+            const letter = e.target.value.trim() ? e.target.value.trim().charAt(0).toUpperCase() : '-';
+            document.getElementById('avatar-preview-initials').textContent = letter;
+        }
+    });
+
+    // Ensure Lucide icons render reliably
+    function ensureLucideIcons() {
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+            window.lucide.createIcons();
+        }
+    }
+    ensureLucideIcons();
+    let lucideAttempts = 0;
+    const lucideTimer = setInterval(() => {
+        lucideAttempts++;
+        ensureLucideIcons();
+        if (window.lucide || lucideAttempts > 30) clearInterval(lucideTimer);
+    }, 150);
+});
+
+// --- Sorting actions global handlers ---
+window.moveEmployeeUp = function(event, id) {
+    event.stopPropagation();
+    const index = state.employees.findIndex(e => e.id === id);
+    if (index <= 0) return;
+
+    const temp = state.employees[index];
+    state.employees[index] = state.employees[index - 1];
+    state.employees[index - 1] = temp;
+
+    saveState();
+    renderEmployeesList();
+};
+
+window.moveEmployeeDown = function(event, id) {
+    event.stopPropagation();
+    const index = state.employees.findIndex(e => e.id === id);
+    if (index < 0 || index >= state.employees.length - 1) return;
+
+    const temp = state.employees[index];
+    state.employees[index] = state.employees[index + 1];
+    state.employees[index + 1] = temp;
+
+    saveState();
+    renderEmployeesList();
+};
+
+// --- Task Credentials Modal & Clipboard Helpers ---
+window.copyTextToClipboard = function(text, label) {
+    if (!text) return;
+    const isAr = state.currentLanguage === 'ar';
+    const successMsg = isAr ? `تم نسخ ${label} بنجاح!` : `${label} copied to clipboard!`;
+    
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToastDirectMsg(successMsg);
+        }).catch(() => {
+            fallbackCopyText(text, successMsg);
+        });
+    } else {
+        fallbackCopyText(text, successMsg);
+    }
+};
+
+function fallbackCopyText(text, successMsg) {
+    const input = document.createElement('input');
+    input.value = text;
+    document.body.appendChild(input);
+    input.select();
+    try {
+        document.execCommand('copy');
+        showToastDirectMsg(successMsg);
+    } catch(e) {}
+    document.body.removeChild(input);
+}
+
+function showToastDirectMsg(msg) {
+    const toast = document.getElementById('toast');
+    const toastMsg = document.getElementById('toast-message');
+    if (toast && toastMsg) {
+        toastMsg.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+}
+
+window.showTaskCredentials = function(empId, taskId) {
+    const emp = state.employees.find(e => e.id === empId);
+    if (!emp) return;
+    const task = emp.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const modal = document.getElementById('credentials-modal');
+    const modalBody = document.getElementById('credentials-modal-body');
+    const isAr = state.currentLanguage === 'ar';
+    modalBody.innerHTML = '';
+
+    const items = [
+        { label: isAr ? 'البريد الإلكتروني (Email)' : 'Email Address', val: task.email, icon: 'mail', copyLabel: 'الإيميل' },
+        { label: isAr ? 'كلمة المرور (Password)' : 'Password', val: task.password, icon: 'key', copyLabel: 'كلمة المرور', isPass: true },
+        { label: isAr ? 'اسم الشخصية (Character)' : 'Character Name', val: task.character, icon: 'user', copyLabel: 'اسم الشخصية' },
+        { label: isAr ? 'الـ VPN (Location)' : 'VPN Location', val: task.vpn, icon: 'shield', copyLabel: 'موقع الـ VPN' }
+    ];
+
+    let count = 0;
+    items.forEach(item => {
+        if (!item.val) return;
+        count++;
+        const row = document.createElement('div');
+        row.style.cssText = 'background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px;';
+        
+        const valId = 'cred_val_' + Math.random().toString(36).substr(2, 6);
+        const passVal = item.isPass ? '••••••••' : escapeHTML(item.val);
+
+        // Build info section (display only - escaped)
+        const infoDiv = document.createElement('div');
+        infoDiv.style.cssText = 'display: flex; flex-direction: column; gap: 2px; overflow: hidden; flex: 1;';
+        infoDiv.innerHTML = `
+            <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">${escapeHTML(item.label)}</span>
+            <span id="${valId}" style="font-family: monospace; font-size: 13px; font-weight: 700; color: #fff; word-break: break-all;">${passVal}</span>
+        `;
+
+        // Build action buttons with safe event listeners (NO inline onclick)
+        const actionsDiv = document.createElement('div');
+        actionsDiv.style.cssText = 'display: flex; gap: 6px; flex-shrink: 0; align-items: center;';
+
+        if (item.isPass) {
+            const toggleBtn = document.createElement('button');
+            toggleBtn.type = 'button';
+            toggleBtn.className = 'btn btn-secondary btn-icon-only btn-sm';
+            toggleBtn.innerHTML = '<i data-lucide="eye" style="width:14px;height:14px;"></i>';
+            toggleBtn.addEventListener('click', () => togglePassVisibility(valId, item.val));
+            actionsDiv.appendChild(toggleBtn);
+        }
+
+        const copyBtn = document.createElement('button');
+        copyBtn.type = 'button';
+        copyBtn.className = 'btn btn-primary btn-sm';
+        copyBtn.innerHTML = `<i data-lucide="copy" style="width:14px;height:14px;"></i> ${isAr ? 'نسخ' : 'Copy'}`;
+        copyBtn.addEventListener('click', () => copyTextToClipboard(item.val, item.copyLabel));
+        actionsDiv.appendChild(copyBtn);
+
+        row.appendChild(infoDiv);
+        row.appendChild(actionsDiv);
+        modalBody.appendChild(row);
+    });
+
+    if (count === 0) {
+        modalBody.innerHTML = `<p style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px;">${isAr ? 'لا توجد بيانات حساب مسجلة لهذه المهمة.' : 'No credentials recorded for this task.'}</p>`;
+    }
+
+    modal.classList.add('active');
+    if (window.lucide) window.lucide.createIcons();
+};
+
+window.togglePassVisibility = function(elementId, realValue) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    if (el.textContent === '••••••••') {
+        el.textContent = realValue;
+    } else {
+        el.textContent = '••••••••';
+    }
+};
+
