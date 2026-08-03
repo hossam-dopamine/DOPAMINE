@@ -128,6 +128,9 @@ const i18n = {
         "task-character-label": "اسم الشخصية (Character)",
         "task-vpn-label": "الـ VPN (Location)",
         "credentials-modal-title": "بيانات الحساب والـ VPN",
+        "confirm-delete-task": "هل أنت تأكد من حذف هذه المهمة؟",
+        "create-account": "إنشاء الحساب",
+        "employee-accounts": "إنشاء حسابات للموظفين",
         "copy": "نسخ",
         "copied": "تم النسخ!",
         "close": "إغلاق",
@@ -282,7 +285,10 @@ const i18n = {
         "current-password": "Current Password",
         "new-password": "New Password",
         "confirm-password": "Confirm Password",
-        "password-changed": "Password changed successfully"
+        "password-changed": "Password changed successfully",
+        "confirm-delete-task": "Are you sure you want to delete this task?",
+        "create-account": "Create Account",
+        "employee-accounts": "Employee Accounts"
     }
 };
 
@@ -962,6 +968,18 @@ function renderManagerPanel() {
         `;
         tableBody.appendChild(row);
     });
+
+    // Populate account creation employee select dropdown
+    const accountEmpSelect = document.getElementById('account-employee-select');
+    if (accountEmpSelect) {
+        accountEmpSelect.innerHTML = '<option value="">-- ' + (state.currentLanguage === 'ar' ? 'اختر الموظف' : 'Select Employee') + ' --</option>';
+        state.employees.forEach(emp => {
+            const opt = document.createElement('option');
+            opt.value = emp.id;
+            opt.textContent = `${emp.name} (${emp.role})`;
+            accountEmpSelect.appendChild(opt);
+        });
+    }
 }
 
 // --- Employee Payouts Detail Page Rendering ---
@@ -1594,6 +1612,48 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (errEl) {
                     errEl.textContent = 'Server error';
                     errEl.style.display = 'block';
+                }
+            }
+        });
+    }
+
+    const createAccountForm = document.getElementById('create-account-form');
+    if (createAccountForm) {
+        createAccountForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const employeeId = document.getElementById('account-employee-select').value;
+            const username = document.getElementById('account-username').value.trim();
+            const password = document.getElementById('account-password').value;
+            const msgEl = document.getElementById('account-msg');
+
+            if (!employeeId || !username || !password) return;
+
+            try {
+                const res = await fetch('/api/auth/create-employee-account', {
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify({ username, password, employeeId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (msgEl) {
+                        msgEl.style.color = 'var(--color-emerald)';
+                        msgEl.textContent = state.currentLanguage === 'ar' ? `✅ تم إنشاء حساب للموظف (${username}) بنجاح!` : `✅ Account (${username}) created successfully!`;
+                        msgEl.style.display = 'block';
+                    }
+                    createAccountForm.reset();
+                } else {
+                    if (msgEl) {
+                        msgEl.style.color = 'var(--color-rose)';
+                        msgEl.textContent = '❌ ' + (data.error || 'Error creating account');
+                        msgEl.style.display = 'block';
+                    }
+                }
+            } catch (err) {
+                if (msgEl) {
+                    msgEl.style.color = 'var(--color-rose)';
+                    msgEl.textContent = '❌ Server Error';
+                    msgEl.style.display = 'block';
                 }
             }
         });
