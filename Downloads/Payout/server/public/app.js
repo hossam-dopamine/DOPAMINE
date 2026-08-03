@@ -1591,6 +1591,8 @@ async function handleLogin(username, password) {
         loginBtn.innerHTML = `<span style="display: flex; align-items: center; justify-content: center; gap: 8px;">${flameSVG} <span>${text}</span></span>`;
     }
 
+    const startTime = Date.now();
+
     try {
         const res = await fetch('/api/auth/login', {
             method: 'POST',
@@ -1598,6 +1600,13 @@ async function handleLogin(username, password) {
             body: JSON.stringify({ username, password })
         });
         const data = await res.json();
+
+        // Ensure minimum 700ms display so the user visibly experiences the animated glowing flame loader
+        const elapsed = Date.now() - startTime;
+        if (elapsed < 700) {
+            await new Promise(r => setTimeout(r, 700 - elapsed));
+        }
+
         if (data.success) {
             setAuth(data.token, data.user);
             hideLoginOverlay();
