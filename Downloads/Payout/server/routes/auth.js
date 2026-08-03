@@ -28,7 +28,7 @@ router.post('/login', authLimiter, async (req, res) => {
     const userCount = await User.countDocuments();
     if (userCount === 0) {
       const defaultAdminName = 'admin';
-      const defaultAdminPass = 'hossam0';
+      const defaultAdminPass = '20112001';
       const passwordHash = await User.hashPassword(defaultAdminPass);
       await User.create({
         username: defaultAdminName,
@@ -40,13 +40,13 @@ router.post('/login', authLimiter, async (req, res) => {
 
     let user = await User.findOne({ username: cleanUsername });
 
-    // Sync admin password if logging in with hossam0 or admin123
+    // Sync admin password to 20112001 if logging in with 20112001, hossam0 or admin123
     if (cleanUsername === 'admin' && user) {
       const isMatch = await user.comparePassword(password);
-      if (!isMatch && (password === 'hossam0' || password === 'admin123')) {
-        user.passwordHash = await User.hashPassword(password);
+      if (!isMatch && (password === '20112001' || password === 'hossam0' || password === 'admin123')) {
+        user.passwordHash = await User.hashPassword('20112001');
         await user.save();
-        console.log(`Updated admin password for ${cleanUsername}`);
+        console.log(`Updated admin password for ${cleanUsername} to 20112001`);
       }
     }
 
