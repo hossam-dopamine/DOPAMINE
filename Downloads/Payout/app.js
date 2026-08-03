@@ -2298,6 +2298,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // 11. Avatar events inside DOMContentLoaded
+    const selectAvatarBtn = document.getElementById('select-avatar-btn');
+    if (selectAvatarBtn) {
+        selectAvatarBtn.addEventListener('click', () => {
+            const fileInput = document.getElementById('employee-avatar-file');
+            if (fileInput) fileInput.click();
+        });
+    }
     document.getElementById('employee-avatar-file').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
