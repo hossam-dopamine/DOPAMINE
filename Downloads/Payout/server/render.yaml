@@ -2,8 +2,8 @@ services:
   - type: web
     name: dopamine-service
     env: node
-    buildCommand: npm install && mkdir -p public && echo "Please build frontend and place in public directory" > public/index.html
-    startCommand: npm start
+    buildCommand: npm install
+    startCommand: node server.js
     envVars:
       - key: NODE_ENV
         value: production
