@@ -456,13 +456,19 @@ async function loadStateAsync() {
                     state.selectedEmployeeId = state.employees.length > 0 ? state.employees[0].id : null;
                     state.isManagerUnlocked = false;
                 } else {
-                    if (validateAndSanitizeState(result.data)) {
-                        state = result.data;
+                    // Admin: merge server data INTO state (preserve UI properties)
+                    const serverData = result.data;
+                    if (validateAndSanitizeState(serverData)) {
+                        state.employees = serverData.employees || [];
+                        state.exchangeRate = serverData.exchangeRate || state.exchangeRate || 50;
                     }
+                    // Admin always gets full control
+                    state.isManagerUnlocked = true;
                 }
+                state.currentLanguage = state.currentLanguage || localStorage.getItem('task_payout_lang') || 'ar';
                 hideLoginOverlay();
-                updateUIVisuals();
                 applyRoleRestrictions();
+                updateUIVisuals();
                 console.log('✅ Loaded data from server successfully!');
                 return;
             }
@@ -1587,6 +1593,7 @@ async function handleLogin(username, password) {
             setAuth(data.token, data.user);
             hideLoginOverlay();
             await loadStateAsync();
+            applyRoleRestrictions();
             updateUIVisuals();
             return true;
         } else {
@@ -1800,12 +1807,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // 1. Initial State Setup
+    state.currentLanguage = localStorage.getItem('task_payout_lang') || 'ar';
     await loadStateAsync();
-    
-    // Reset session view state on page load for security (asks password on entry)
-    state.isManagerUnlocked = false;
-    state.viewMode = 'placeholder';
-    state.selectedEmployeeId = null;
     
     // Set default month in add task form dropdown to current calendar month
     const currentMonthIndex = new Date().getMonth();
@@ -1816,16 +1819,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         taskMonthSelect.value = currentMonthKey;
     }
     
-    // Detect system preferred language (default is Arabic as requested)
-    state.currentLanguage = localStorage.getItem('task_payout_lang') || 'ar';
-    
     // Set exchange rate initial field value
     document.getElementById('usd-to-egp-rate').value = state.exchangeRate || 50.00;
     
     // Auto-fetch fresh rates on load
     fetchExchangeRate(false);
 
-    // 2. Render Initial Interface
+    // 2. Apply role restrictions and render UI
+    applyRoleRestrictions();
     updateUIVisuals();
 
     // 3. Event Listeners for Employee Modal
