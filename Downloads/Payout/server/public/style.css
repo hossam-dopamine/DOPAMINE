@@ -1181,6 +1181,112 @@ html[dir="rtl"] .employee-sort-actions {
     }
 }
 
+/* Smartphone Mobile Responsiveness (iOS & Android) */
+@media (max-width: 768px) {
+    body {
+        font-size: 14px;
+    }
+    
+    .app-container {
+        padding: 8px;
+        gap: 12px;
+    }
+
+    .sidebar {
+        padding: 12px;
+        border-radius: 16px;
+    }
+
+    .logo-area {
+        margin-bottom: 16px;
+    }
+
+    .employees-list {
+        max-height: 220px;
+        overflow-y: auto;
+    }
+
+    .main-content {
+        padding: 8px;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    .stat-card {
+        padding: 12px;
+    }
+
+    .stat-value {
+        font-size: 16px;
+    }
+
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+        min-width: 600px;
+    }
+
+    .modal-content, .glass-panel {
+        max-width: 96vw;
+        padding: 16px;
+        border-radius: 16px;
+    }
+
+    .modal-overlay {
+        padding: 10px;
+        align-items: center;
+    }
+
+    .modal-overlay .glass-panel {
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .btn {
+        min-height: 42px;
+        font-size: 13px;
+        padding: 8px 12px;
+    }
+
+    .form-group input, .form-group select, .form-group textarea {
+        min-height: 42px;
+        font-size: 14px;
+    }
+
+    .exchange-rate-widget {
+        margin-inline-end: 0;
+        width: 100%;
+        justify-content: space-between;
+        margin-bottom: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .employee-header {
+        padding: 12px;
+    }
+
+    .employee-actions {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .employee-actions .btn {
+        flex: 1;
+        justify-content: center;
+    }
+}
+
 /* ==========================================================================
    USD & EXCHANGE RATE STYLES
    ========================================================================== */
