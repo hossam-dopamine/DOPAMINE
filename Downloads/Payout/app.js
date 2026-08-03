@@ -606,31 +606,40 @@ function formatCurrency(amount, currency = 'EGP') {
 }
 
 async function fetchExchangeRate(isManual = false) {
-    try {
-        const response = await fetch('https://open.er-api.com/v6/latest/USD');
-        if (!response.ok) throw new Error('API Error');
-        const data = await response.json();
-        if (data && data.rates && data.rates.EGP) {
-            state.exchangeRate = parseFloat(data.rates.EGP.toFixed(2));
-            document.getElementById('usd-to-egp-rate').value = state.exchangeRate;
-            saveState();
-            calculateDashboardStats();
-            if (state.viewMode === 'employee' && state.selectedEmployeeId) {
-                renderEmployeeDetail(state.selectedEmployeeId);
-            } else if (state.viewMode === 'manager') {
-                renderManagerPanel();
+    const apis = [
+        'https://open.er-api.com/v6/latest/USD',
+        'https://api.exchangerate-api.com/v4/latest/USD'
+    ];
+
+    for (const url of apis) {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) continue;
+            const data = await response.json();
+            const rateVal = data && data.rates && data.rates.EGP;
+            if (rateVal && typeof rateVal === 'number' && rateVal > 0) {
+                state.exchangeRate = parseFloat(rateVal.toFixed(2));
+                const rateInput = document.getElementById('usd-to-egp-rate');
+                if (rateInput) rateInput.value = state.exchangeRate;
+                saveState();
+                calculateDashboardStats();
+                if (state.viewMode === 'employee' && state.selectedEmployeeId) {
+                    renderEmployeeDetail(state.selectedEmployeeId);
+                } else if (state.viewMode === 'manager') {
+                    renderManagerPanel();
+                }
+                if (isManual) {
+                    showToast('toast-rate-synced');
+                }
+                return;
             }
-            if (isManual) {
-                showToast('toast-rate-synced');
-            }
-        } else {
-            throw new Error('Rates not found');
+        } catch (e) {
+            console.warn(`Exchange rate API (${url}) failed:`, e);
         }
-    } catch (err) {
-        console.error("Failed to sync exchange rate:", err);
-        if (isManual) {
-            showToast('toast-rate-sync-fail');
-        }
+    }
+
+    if (isManual) {
+        showToast('toast-rate-sync-fail');
     }
 }
 
