@@ -1612,6 +1612,7 @@ async function handleLogin(username, password) {
 }
 
 function handleLogout() {
+    if (inactivityTimer) clearTimeout(inactivityTimer);
     clearAuth();
     state = {
         currentLanguage: 'ar',
@@ -1622,6 +1623,40 @@ function handleLogout() {
         employees: []
     };
     showLoginOverlay();
+}
+
+// --- Inactivity Auto-Logout Controller (10 Minutes) ---
+const INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+let inactivityTimer = null;
+
+function resetInactivityTimer() {
+    if (!isAuthenticated()) return;
+    
+    if (inactivityTimer) {
+        clearTimeout(inactivityTimer);
+    }
+    
+    inactivityTimer = setTimeout(() => {
+        if (isAuthenticated()) {
+            console.log('⏰ Logging out due to 10 minutes of inactivity...');
+            handleLogout();
+            const errEl = document.getElementById('login-error');
+            if (errEl) {
+                errEl.textContent = state.currentLanguage === 'ar' 
+                    ? 'تم تسجيل الخروج تلقائياً بسبب عدم النشاط لمدة 10 دقائق' 
+                    : 'Auto logged out due to 10 minutes of inactivity';
+                errEl.style.display = 'block';
+            }
+        }
+    }, INACTIVITY_TIMEOUT_MS);
+}
+
+function initInactivityTracker() {
+    const events = ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'];
+    events.forEach(evt => {
+        window.addEventListener(evt, resetInactivityTimer, { passive: true });
+    });
+    resetInactivityTimer();
 }
 
 function applyRoleRestrictions() {
@@ -1824,9 +1859,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Auto-fetch fresh rates on load
     fetchExchangeRate(false);
 
-    // 2. Apply role restrictions and render UI
+    // 2. Apply role restrictions, inactivity tracker, and render UI
     applyRoleRestrictions();
     updateUIVisuals();
+    initInactivityTracker();
 
     // 3. Event Listeners for Employee Modal
     document.getElementById('add-employee-btn').addEventListener('click', () => openEmployeeModal(false));
