@@ -1061,8 +1061,8 @@ async function fetchAndRenderEmployeeAccounts() {
                     <td style="font-family: monospace; color: var(--color-primary); font-weight: 600;">${escapeHTML(acc.username)}</td>
                     <td style="font-size: 12px; color: var(--text-muted);">${dateStr}</td>
                     <td>
-                        <button class="btn btn-danger btn-icon-only btn-sm" onclick="deleteEmployeeAccount('${escapeHTML(acc.username)}')" title="حذف الحساب">
-                            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                        <button class="btn btn-danger btn-icon-only btn-sm btn-delete-account" data-username="${escapeHTML(acc.username)}" onclick="deleteEmployeeAccount('${escapeHTML(acc.username)}')" title="حذف الحساب">
+                            <i data-lucide="trash-2" style="width: 14px; height: 14px; pointer-events: none;"></i>
                         </button>
                     </td>
                 `;
@@ -1226,15 +1226,15 @@ function renderEmployeeDetail(id) {
             const isAdminUser = !currentUser || currentUser.role !== 'employee';
 
             const statusBadgeHTML = isAdminUser
-                ? `<span class="status-badge ${task.status}" style="cursor: pointer;" onclick="toggleTaskStatus('${emp.id}', '${task.id}')">${statusText}</span>`
+                ? `<span class="status-badge ${task.status} btn-toggle-status" style="cursor: pointer;" data-emp-id="${emp.id}" data-task-id="${task.id}" onclick="toggleTaskStatus('${emp.id}', '${task.id}')">${statusText}</span>`
                 : `<span class="status-badge ${task.status}">${statusText}</span>`;
 
             const adminActionBtns = isAdminUser ? `
-                <button class="btn btn-secondary btn-icon-only btn-sm" onclick="editTask('${emp.id}', '${task.id}')" title="Edit Task">
-                    <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i>
+                <button class="btn btn-secondary btn-icon-only btn-sm btn-edit-task" data-emp-id="${emp.id}" data-task-id="${task.id}" onclick="editTask('${emp.id}', '${task.id}')" title="Edit Task">
+                    <i data-lucide="edit-3" style="width: 14px; height: 14px; pointer-events: none;"></i>
                 </button>
-                <button class="btn btn-danger btn-icon-only btn-sm" onclick="deleteTask('${emp.id}', '${task.id}')" title="Delete Task">
-                    <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                <button class="btn btn-danger btn-icon-only btn-sm btn-delete-task" data-emp-id="${emp.id}" data-task-id="${task.id}" onclick="deleteTask('${emp.id}', '${task.id}')" title="Delete Task">
+                    <i data-lucide="trash-2" style="width: 14px; height: 14px; pointer-events: none;"></i>
                 </button>
             ` : '';
 
@@ -2325,9 +2325,50 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('employee-name').addEventListener('input', (e) => {
         if (!state.tempAvatarUrl) {
             const letter = e.target.value.trim() ? e.target.value.trim().charAt(0).toUpperCase() : '-';
-            document.getElementById('avatar-preview-initials').textContent = letter;
         }
     });
+
+    // Event Delegation for Task Table Actions (Delete, Edit, Status Toggle)
+    const tasksTableBody = document.getElementById('tasks-table-body');
+    if (tasksTableBody) {
+        tasksTableBody.addEventListener('click', (e) => {
+            const delBtn = e.target.closest('.btn-delete-task');
+            if (delBtn) {
+                const empId = delBtn.getAttribute('data-emp-id');
+                const taskId = delBtn.getAttribute('data-task-id');
+                if (empId && taskId) window.deleteTask(empId, taskId);
+                return;
+            }
+
+            const editBtn = e.target.closest('.btn-edit-task');
+            if (editBtn) {
+                const empId = editBtn.getAttribute('data-emp-id');
+                const taskId = editBtn.getAttribute('data-task-id');
+                if (empId && taskId) window.editTask(empId, taskId);
+                return;
+            }
+
+            const statusBadge = e.target.closest('.btn-toggle-status');
+            if (statusBadge) {
+                const empId = statusBadge.getAttribute('data-emp-id');
+                const taskId = statusBadge.getAttribute('data-task-id');
+                if (empId && taskId) window.toggleTaskStatus(empId, taskId);
+                return;
+            }
+        });
+    }
+
+    // Event Delegation for Employee Accounts Table (Delete Account)
+    const accountsTableBody = document.getElementById('employee-accounts-table-body');
+    if (accountsTableBody) {
+        accountsTableBody.addEventListener('click', (e) => {
+            const delBtn = e.target.closest('.btn-delete-account');
+            if (delBtn) {
+                const username = delBtn.getAttribute('data-username');
+                if (username) window.deleteEmployeeAccount(username);
+            }
+        });
+    }
 
     // Ensure Lucide icons render reliably
     function ensureLucideIcons() {
