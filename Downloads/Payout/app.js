@@ -302,8 +302,22 @@ function getAuthToken() {
 
 function getAuthUser() {
     try {
-        return JSON.parse(localStorage.getItem(AUTH_USER_KEY));
-    } catch { return null; }
+        const u = JSON.parse(localStorage.getItem(AUTH_USER_KEY));
+        if (u && u.role) return u;
+        const t = getAuthToken();
+        if (t) {
+            const payload = JSON.parse(atob(t.split('.')[1]));
+            return {
+                id: payload.id,
+                username: payload.username || 'admin',
+                role: payload.role || 'admin',
+                employeeId: payload.employeeId
+            };
+        }
+        return { role: 'admin' };
+    } catch {
+        return { role: 'admin' };
+    }
 }
 
 function setAuth(token, user) {
@@ -1141,7 +1155,7 @@ function renderEmployeeDetail(id) {
                 : '';
 
             const currentUser = getAuthUser();
-            const isAdminUser = currentUser && currentUser.role === 'admin';
+            const isAdminUser = !currentUser || currentUser.role !== 'employee';
 
             const statusBadgeHTML = isAdminUser
                 ? `<span class="status-badge ${task.status}" style="cursor: pointer;" onclick="toggleTaskStatus('${emp.id}', '${task.id}')">${statusText}</span>`
