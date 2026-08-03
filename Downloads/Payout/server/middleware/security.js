@@ -5,7 +5,7 @@ const express = require('express');
 const compression = require('compression');
 
 const applySecurityMiddleware = (app) => {
-  // Helmet
+  // Helmet Content Security Policy
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
@@ -13,39 +13,42 @@ const applySecurityMiddleware = (app) => {
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         scriptSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:"],
+        imgSrc: ["'self'", "data:", "blob:"],
         connectSrc: ["'self'", "https://open.er-api.com", "https://api.exchangerate-api.com", "https://v6.exchangerate-api.com"]
       }
     }
   }));
 
-  // CORS
-  app.use(cors());
+  // CORS Configuration
+  app.use(cors({
+    origin: true,
+    credentials: true
+  }));
 
   // Compression
   app.use(compression());
 
-  // Body parser with size limit
+  // Body parser with safe payload limits
   app.use(express.json({ limit: '5mb' }));
   app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
   // General Rate Limiting
   const generalLimiter = rateLimit({
-    windowMs: 60 * 1000, // 1 minute
-    max: 100, // Limit each IP to 100 requests per `window` (here, per minute)
+    windowMs: 60 * 1000,
+    max: 200,
     standardHeaders: true,
     legacyHeaders: false,
-    message: { error: 'Too many requests, please try again later.' }
+    message: { success: false, error: 'Too many requests, please try again later.' }
   });
   app.use(generalLimiter);
 };
 
 const authLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 10, // Limit each IP to 10 requests per `window`
+  windowMs: 60 * 1000,
+  max: 15,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many authentication attempts, please try again later.' }
+  message: { success: false, error: 'Too many authentication attempts, please try again later.' }
 });
 
 module.exports = {

@@ -309,14 +309,14 @@ function getAuthUser() {
             const payload = JSON.parse(atob(t.split('.')[1]));
             return {
                 id: payload.id,
-                username: payload.username || 'admin',
-                role: payload.role || 'admin',
+                username: payload.username || 'user',
+                role: payload.role || 'employee',
                 employeeId: payload.employeeId
             };
         }
-        return { role: 'admin' };
+        return null;
     } catch {
-        return { role: 'admin' };
+        return null;
     }
 }
 

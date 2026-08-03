@@ -1,82 +1,145 @@
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const AppData = require('../models/AppData');
-const User = require('../models/User');
+const Employee = require('../models/Employee');
+const Task = require('../models/Task');
 const { verifyToken, requireAdmin } = require('../middleware/auth');
 const { encryptTaskFields, decryptTaskFields } = require('../utils/encryption');
 
 const router = express.Router();
 
-const fs = require('fs');
-const path = require('path');
+// Auto-migration helper: Migrate legacy AppData/data.json into normalized Employee & Task collections
+const ensureMigratedData = async () => {
+  try {
+    const empCount = await Employee.countDocuments();
+    if (empCount > 0) return;
 
-const getAppData = async () => {
-  let data = await AppData.findOne();
-  if (!data || !Array.isArray(data.employees) || data.employees.length === 0) {
-    const dataPath = path.join(__dirname, '..', '..', 'data.json');
-    let initialEmployees = [];
+    console.log('🔄 Starting data migration to normalized Employee & Task collections...');
+
+    let legacyEmployees = [];
     let initialRate = 50;
 
-    if (fs.existsSync(dataPath)) {
-      try {
-        const raw = fs.readFileSync(dataPath, 'utf8');
-        const parsed = JSON.parse(raw);
-        if (parsed && Array.isArray(parsed.employees)) {
-          initialEmployees = parsed.employees.map(emp => ({
-            ...emp,
-            tasks: (emp.tasks || []).map(task => encryptTaskFields(task))
-          }));
-          initialRate = parsed.exchangeRate || 50;
+    // Check AppData document first
+    const legacyDoc = await AppData.findOne();
+    if (legacyDoc && Array.isArray(legacyDoc.employees) && legacyDoc.employees.length > 0) {
+      legacyEmployees = legacyDoc.employees;
+      initialRate = legacyDoc.exchangeRate || 50;
+    } else {
+      // Check data.json
+      const dataPath = path.join(__dirname, '..', '..', 'data.json');
+      if (fs.existsSync(dataPath)) {
+        try {
+          const raw = fs.readFileSync(dataPath, 'utf8');
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.employees)) {
+            legacyEmployees = parsed.employees;
+            initialRate = parsed.exchangeRate || 50;
+          }
+        } catch (e) {
+          console.error('Error reading data.json during migration:', e.message);
         }
-      } catch (e) {
-        console.error('Error reading data.json:', e);
       }
     }
 
-    if (!data) {
-      data = new AppData({ employees: initialEmployees, exchangeRate: initialRate });
-    } else if (initialEmployees.length > 0) {
-      data.employees = initialEmployees;
-      data.exchangeRate = initialRate;
+    for (const empData of legacyEmployees) {
+      const empId = empData.id || ('emp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5));
+      await Employee.create({
+        id: empId,
+        name: empData.name || 'موظف',
+        role: empData.role || 'عضو',
+        defaultDeductionRate: typeof empData.defaultDeductionRate === 'number' ? empData.defaultDeductionRate : 10,
+        paymentMethod: empData.paymentMethod || 'instapay',
+        paymentDetails: empData.paymentDetails || '',
+        avatarUrl: empData.avatarUrl || '',
+        adjustments: empData.adjustments || {}
+      });
+
+      if (Array.isArray(empData.tasks)) {
+        for (const t of empData.tasks) {
+          const taskId = t.id || ('task_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5));
+          const encryptedT = encryptTaskFields(t);
+          await Task.create({
+            id: taskId,
+            employeeId: empId,
+            type: t.type || 'task',
+            taskNumber: t.taskNumber || '',
+            title: t.title || 'مهمة',
+            gross: typeof t.gross === 'number' ? t.gross : 0,
+            currency: t.currency || 'USD',
+            deductionRate: typeof t.deductionRate === 'number' ? t.deductionRate : 10,
+            delayDeduction: typeof t.delayDeduction === 'number' ? t.delayDeduction : 0,
+            advance: typeof t.advance === 'number' ? t.advance : 0,
+            fixedDeduction: typeof t.fixedDeduction === 'number' ? t.fixedDeduction : 0,
+            status: t.status || 'pending',
+            month: t.month || 'january',
+            exchangeRate: t.exchangeRate,
+            email: encryptedT.email || '',
+            password: encryptedT.password || '',
+            character: encryptedT.character || '',
+            vpn: encryptedT.vpn || '',
+            createdAt: t.createdAt ? new Date(t.createdAt) : new Date()
+          });
+        }
+      }
     }
-    await data.save();
+
+    // Save exchange rate in AppData meta document
+    let appData = await AppData.findOne();
+    if (!appData) {
+      appData = new AppData({ exchangeRate: initialRate });
+    } else {
+      appData.exchangeRate = initialRate;
+    }
+    await appData.save();
+
+    console.log('✅ Migration to normalized collections completed successfully!');
+  } catch (err) {
+    console.error('❌ Data migration error:', err);
   }
-  return data;
 };
 
-// GET /data
+// GET /data - Load full dataset for Admin or employee-scoped dataset
 router.get('/', verifyToken, async (req, res) => {
   try {
-    const appData = await getAppData();
-    
+    await ensureMigratedData();
+
+    let meta = await AppData.findOne();
+    const exchangeRate = meta ? meta.exchangeRate : 50;
+
     if (req.user.role === 'admin') {
-      // Admin sees everything, decrypt sensitive fields
-      const decryptedEmployees = appData.employees.map(emp => ({
-        ...emp,
-        tasks: (emp.tasks || []).map(task => decryptTaskFields(task))
-      }));
-      
+      const dbEmployees = await Employee.find().lean();
+      const dbTasks = await Task.find().lean();
+
+      const employeesWithTasks = dbEmployees.map(emp => {
+        const empTasks = dbTasks
+          .filter(t => String(t.employeeId) === String(emp.id))
+          .map(t => decryptTaskFields(t));
+        return { ...emp, tasks: empTasks };
+      });
+
       return res.json({
         success: true,
         data: {
-          employees: decryptedEmployees,
-          exchangeRate: appData.exchangeRate
+          employees: employeesWithTasks,
+          exchangeRate
         }
       });
     } else {
-      // Employee sees only their own data (decrypted)
-      const employeeData = appData.employees.find(emp => emp.id === req.user.employeeId);
-      
-      if (!employeeData) {
-        return res.json({ success: true, data: { employees: [], exchangeRate: appData.exchangeRate } });
+      // Employee sees only their own employee profile & tasks
+      const emp = await Employee.findOne({ id: req.user.employeeId }).lean();
+      if (!emp) {
+        return res.json({ success: true, data: { employees: [], exchangeRate } });
       }
-      
-      const decryptedTasks = (employeeData.tasks || []).map(task => decryptTaskFields(task));
-      
+
+      const dbTasks = await Task.find({ employeeId: emp.id }).lean();
+      const decryptedTasks = dbTasks.map(t => decryptTaskFields(t));
+
       return res.json({
         success: true,
         data: {
-          employees: [{ ...employeeData, tasks: decryptedTasks }],
-          exchangeRate: appData.exchangeRate
+          employees: [{ ...emp, tasks: decryptedTasks }],
+          exchangeRate
         }
       });
     }
@@ -86,33 +149,80 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
-// POST /data
+// POST /data - Granular or Bulk Sync Route
 router.post('/', verifyToken, requireAdmin, async (req, res) => {
   try {
+    await ensureMigratedData();
     const { employees, exchangeRate } = req.body;
-    
-    if (!Array.isArray(employees)) {
-      return res.status(400).json({ success: false, error: 'employees must be an array' });
+
+    if (Array.isArray(employees)) {
+      // Sync exchange rate
+      if (exchangeRate !== undefined) {
+        let meta = await AppData.findOne();
+        if (!meta) meta = new AppData();
+        meta.exchangeRate = exchangeRate;
+        meta.lastUpdatedBy = req.user ? req.user.username : 'admin';
+        await meta.save();
+      }
+
+      // Sync employees and tasks atomically
+      const currentEmpIds = employees.map(e => String(e.id));
+      await Employee.deleteMany({ id: { $nin: currentEmpIds } });
+
+      for (const empData of employees) {
+        const empId = String(empData.id);
+        await Employee.findOneAndUpdate(
+          { id: empId },
+          {
+            id: empId,
+            name: empData.name,
+            role: empData.role || 'عضو',
+            defaultDeductionRate: empData.defaultDeductionRate,
+            paymentMethod: empData.paymentMethod || 'instapay',
+            paymentDetails: empData.paymentDetails || '',
+            avatarUrl: empData.avatarUrl || '',
+            adjustments: empData.adjustments || {}
+          },
+          { upsert: true, new: true }
+        );
+
+        if (Array.isArray(empData.tasks)) {
+          const currentTaskIds = empData.tasks.map(t => String(t.id));
+          await Task.deleteMany({ employeeId: empId, id: { $nin: currentTaskIds } });
+
+          for (const t of empData.tasks) {
+            const taskId = String(t.id);
+            const encryptedT = encryptTaskFields(t);
+            await Task.findOneAndUpdate(
+              { id: taskId },
+              {
+                id: taskId,
+                employeeId: empId,
+                type: t.type || 'task',
+                taskNumber: t.taskNumber || '',
+                title: t.title || 'مهمة',
+                gross: t.gross,
+                currency: t.currency || 'USD',
+                deductionRate: t.deductionRate,
+                delayDeduction: t.delayDeduction || 0,
+                advance: t.advance || 0,
+                fixedDeduction: t.fixedDeduction || 0,
+                status: t.status || 'pending',
+                month: t.month || 'january',
+                exchangeRate: t.exchangeRate,
+                email: encryptedT.email || '',
+                password: encryptedT.password || '',
+                character: encryptedT.character || '',
+                vpn: encryptedT.vpn || '',
+                createdAt: t.createdAt ? new Date(t.createdAt) : new Date()
+              },
+              { upsert: true, new: true }
+            );
+          }
+        }
+      }
     }
-    
-    const encryptedEmployees = employees.map(emp => ({
-      ...emp,
-      tasks: (emp.tasks || []).map(task => encryptTaskFields(task))
-    }));
-    
-    const appData = await getAppData();
-    appData.employees = encryptedEmployees;
-    appData.markModified('employees');
-    
-    if (exchangeRate !== undefined) {
-      appData.exchangeRate = exchangeRate;
-    }
-    
-    appData.lastUpdatedBy = req.user ? req.user.username : 'admin';
-    appData.lastUpdatedAt = new Date();
-    
-    await appData.save();
-    
+
     res.json({ success: true, message: 'Data saved successfully' });
   } catch (error) {
     console.error('Save data error:', error);
@@ -120,19 +230,54 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
   }
 });
 
-// GET /employees
-router.get('/employees', verifyToken, requireAdmin, async (req, res) => {
+// POST /tasks - Create single task
+router.post('/tasks', verifyToken, requireAdmin, async (req, res) => {
   try {
-    const appData = await getAppData();
-    const employeesList = appData.employees.map(emp => ({
-      id: emp.id,
-      name: emp.name,
-      role: emp.role
-    }));
-    
-    res.json({ success: true, employees: employeesList });
+    const taskData = req.body;
+    if (!taskData || !taskData.employeeId || !taskData.title) {
+      return res.status(400).json({ success: false, error: 'Missing required task fields' });
+    }
+
+    const taskId = taskData.id || ('task_' + Date.now());
+    const encryptedT = encryptTaskFields(taskData);
+
+    const newTask = await Task.create({
+      id: taskId,
+      employeeId: String(taskData.employeeId),
+      type: taskData.type || 'task',
+      taskNumber: taskData.taskNumber || '',
+      title: taskData.title,
+      gross: taskData.gross || 0,
+      currency: taskData.currency || 'USD',
+      deductionRate: taskData.deductionRate || 10,
+      delayDeduction: taskData.delayDeduction || 0,
+      advance: taskData.advance || 0,
+      fixedDeduction: taskData.fixedDeduction || 0,
+      status: taskData.status || 'pending',
+      month: taskData.month || 'january',
+      exchangeRate: taskData.exchangeRate,
+      email: encryptedT.email || '',
+      password: encryptedT.password || '',
+      character: encryptedT.character || '',
+      vpn: encryptedT.vpn || '',
+      createdAt: taskData.createdAt ? new Date(taskData.createdAt) : new Date()
+    });
+
+    res.json({ success: true, task: decryptTaskFields(newTask.toObject()) });
   } catch (error) {
-    console.error('Get employees list error:', error);
+    console.error('Create task error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// DELETE /tasks/:id - Delete single task
+router.delete('/tasks/:id', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const taskId = String(req.params.id);
+    await Task.findOneAndDelete({ id: taskId });
+    res.json({ success: true, message: 'Task deleted successfully' });
+  } catch (error) {
+    console.error('Delete task error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
