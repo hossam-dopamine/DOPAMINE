@@ -1272,10 +1272,10 @@ function renderEmployeeDetail(id) {
 
 // --- CRUD Actions for Tasks ---
 window.toggleTaskStatus = function(empId, taskId) {
-    const emp = state.employees.find(e => e.id === empId);
+    const emp = state.employees.find(e => String(e.id) === String(empId));
     if (!emp) return;
     
-    const task = emp.tasks.find(t => t.id === taskId);
+    const task = emp.tasks.find(t => String(t.id) === String(taskId));
     if (!task) return;
 
     // Toggle status cycle: pending -> completed -> paid -> pending
@@ -1298,13 +1298,10 @@ window.toggleTaskStatus = function(empId, taskId) {
 };
 
 window.deleteTask = function(empId, taskId) {
-    const confirmMsg = i18n[state.currentLanguage]['confirm-delete-task'];
-    if (!confirm(confirmMsg)) return;
-
-    const emp = state.employees.find(e => e.id === empId);
+    const emp = state.employees.find(e => String(e.id) === String(empId));
     if (!emp) return;
 
-    emp.tasks = emp.tasks.filter(t => t.id !== taskId);
+    emp.tasks = emp.tasks.filter(t => String(t.id) !== String(taskId));
 
     saveState();
     calculateDashboardStats();
@@ -1316,10 +1313,10 @@ window.deleteTask = function(empId, taskId) {
 
 // Edit Task Modal implementation
 window.editTask = function(empId, taskId) {
-    const emp = state.employees.find(e => e.id === empId);
+    const emp = state.employees.find(e => String(e.id) === String(empId));
     if (!emp) return;
     
-    const task = emp.tasks.find(t => t.id === taskId);
+    const task = emp.tasks.find(t => String(t.id) === String(taskId));
     if (!task) return;
 
     document.getElementById('edit-task-id').value = task.id;
@@ -2070,9 +2067,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             const taskId = document.getElementById('edit-task-id').value;
             const empId = document.getElementById('edit-task-emp-id').value;
             
-            const emp = state.employees.find(e => e.id === empId);
+            const emp = state.employees.find(e => String(e.id) === String(empId));
             if (!emp) return;
-            const task = emp.tasks.find(t => t.id === taskId);
+            const task = emp.tasks.find(t => String(t.id) === String(taskId));
             if (!task) return;
 
             const type = document.getElementById('edit-task-type').value;

