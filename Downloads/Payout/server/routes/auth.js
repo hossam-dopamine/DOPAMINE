@@ -157,7 +157,7 @@ router.delete('/delete-account/:username', verifyToken, requireAdmin, async (req
 // GET /employee-accounts
 router.get('/employee-accounts', verifyToken, requireAdmin, async (req, res) => {
   try {
-    const users = await User.find({ role: 'employee' }).select('-passwordHash');
+    const users = await User.find({ role: { $in: ['employee', 'leader'] } }).select('-passwordHash');
     res.json({ success: true, accounts: users });
   } catch (error) {
     console.error('Get employee accounts error:', error);
