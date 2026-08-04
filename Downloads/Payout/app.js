@@ -1261,60 +1261,115 @@ window.openLeaderPermissionsModal = function(username) {
     if (!modal) return;
     
     document.getElementById('leader-target-username').value = username;
-    document.getElementById('leader-modal-title').textContent = `تعديل الموظفين الظاهرين للمشرف: (${username})`;
+    document.getElementById('leader-modal-title').textContent = `إدارة موظفين المشرف: (${username})`;
     
     const searchInput = document.getElementById('leader-emp-search-input');
     if (searchInput) searchInput.value = '';
 
+    renderLeaderModalEmployees(username, 'all');
+    modal.classList.add('active');
+    if (window.lucide) window.lucide.createIcons();
+};
+
+window.renderLeaderModalEmployees = function(username, currentFilter = 'all') {
     const container = document.getElementById('leader-emps-checkbox-container');
+    if (!container) return;
     container.innerHTML = '';
 
     const targetAccount = (window.currentLeaderAccountsData || []).find(a => a.username === username);
-    const allowedSet = new Set((targetAccount && targetAccount.allowedEmployeeIds ? targetAccount.allowedEmployeeIds : []).map(String));
+    const allowedIds = targetAccount && targetAccount.allowedEmployeeIds ? targetAccount.allowedEmployeeIds.map(String) : [];
+    const allowedSet = new Set(allowedIds);
 
-    if (state.employees.length === 0) {
-        container.innerHTML = '<p style="font-size: 12px; color: var(--text-dim); grid-column: 1/-1;">لا يوجد ملفات موظفين منشأة بعد</p>';
-    } else {
-        state.employees.forEach(emp => {
-            const isChecked = allowedSet.has(String(emp.id));
-            const label = document.createElement('label');
-            label.className = 'leader-emp-item';
-            label.setAttribute('data-emp-name', emp.name.toLowerCase());
-            label.style.cssText = `display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: #fff; cursor: pointer; user-select: none; background: ${isChecked ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255,255,255,0.02)'}; padding: 8px 10px; border-radius: 6px; border: 1px solid ${isChecked ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255,255,255,0.05)'}; transition: all 0.2s;`;
-            
-            const badgeText = isChecked 
-                ? `<span class="emp-status-badge" style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(16, 185, 129, 0.2); color: #34d399;">ظاهر</span>`
-                : `<span class="emp-status-badge" style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.06); color: var(--text-dim);">مخفي</span>`;
-
-            label.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <input type="checkbox" class="leader-emp-checkbox" value="${escapeHTML(emp.id)}" ${isChecked ? 'checked' : ''}>
-                    <span style="font-weight: 600;">${escapeHTML(emp.name)}</span>
-                </div>
-                ${badgeText}
-            `;
-
-            const checkbox = label.querySelector('.leader-emp-checkbox');
-            checkbox.addEventListener('change', () => {
-                const checked = checkbox.checked;
-                label.style.background = checked ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255,255,255,0.02)';
-                label.style.borderColor = checked ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255,255,255,0.05)';
-                const badge = label.querySelector('.emp-status-badge');
-                if (badge) {
-                    badge.style.background = checked ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.06)';
-                    badge.style.color = checked ? '#34d399' : 'var(--text-dim)';
-                    badge.textContent = checked ? 'ظاهر' : 'مخفي';
-                }
-                updateLeaderSelectedCountBadge();
-            });
-
-            container.appendChild(label);
-        });
+    const badge = document.getElementById('leader-selected-count-badge');
+    if (badge) {
+        badge.textContent = `الموظفون المخصصون: ${allowedSet.size} من ${state.employees.length}`;
     }
 
-    updateLeaderSelectedCountBadge();
-    modal.classList.add('active');
+    if (state.employees.length === 0) {
+        container.innerHTML = '<p style="font-size: 12px; color: var(--text-dim); text-align: center; padding: 20px;">لا يوجد ملفات موظفين منشأة في النظام بعد.</p>';
+        return;
+    }
+
+    const searchInput = document.getElementById('leader-emp-search-input');
+    const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+
+    state.employees.forEach(emp => {
+        const isAssigned = allowedSet.has(String(emp.id));
+
+        if (currentFilter === 'assigned' && !isAssigned) return;
+        if (currentFilter === 'unassigned' && isAssigned) return;
+        if (query && !emp.name.toLowerCase().includes(query)) return;
+
+        const row = document.createElement('div');
+        row.className = 'leader-emp-item';
+        row.setAttribute('data-emp-name', emp.name.toLowerCase());
+        row.style.cssText = `display: flex; align-items: center; justify-content: space-between; gap: 10px; background: ${isAssigned ? 'rgba(16, 185, 129, 0.07)' : 'rgba(255,255,255,0.02)'}; border: 1px solid ${isAssigned ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255,255,255,0.06)'}; border-radius: 8px; padding: 10px 14px; transition: all 0.2s;`;
+
+        const statusBadgeHTML = isAssigned
+            ? `<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-weight: 700; font-size: 11px;">مخصص للمشرف</span>`
+            : `<span class="badge" style="background: rgba(255, 255, 255, 0.06); color: var(--text-dim); font-size: 11px;">غير مخصص</span>`;
+
+        const actionBtnHTML = isAssigned
+            ? `<button type="button" class="btn btn-danger btn-sm" onclick="toggleAssignLeaderEmp('${escapeHTML(username)}', '${escapeHTML(emp.id)}', false)" style="font-size: 11px; padding: 4px 10px;">
+                <i data-lucide="user-minus" style="width: 13px; height: 13px; margin-inline-end: 4px; vertical-align: middle; pointer-events: none;"></i>
+                إلغاء التعيين / إخفاء
+               </button>`
+            : `<button type="button" class="btn btn-primary btn-sm" onclick="toggleAssignLeaderEmp('${escapeHTML(username)}', '${escapeHTML(emp.id)}', true)" style="font-size: 11px; padding: 4px 10px;">
+                <i data-lucide="user-plus" style="width: 13px; height: 13px; margin-inline-end: 4px; vertical-align: middle; pointer-events: none;"></i>
+                إسناد للمشرف
+               </button>`;
+
+        row.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--color-primary); color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 13px;">
+                    ${emp.name.trim().charAt(0).toUpperCase()}
+                </div>
+                <div>
+                    <div style="font-weight: 700; color: #fff; font-size: 13px;">${escapeHTML(emp.name)}</div>
+                    <div style="font-size: 11px; color: var(--text-dim);">${escapeHTML(emp.role || 'عضو')}</div>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                ${statusBadgeHTML}
+                ${actionBtnHTML}
+            </div>
+        `;
+
+        container.appendChild(row);
+    });
+
     if (window.lucide) window.lucide.createIcons();
+};
+
+window.toggleAssignLeaderEmp = async function(username, empId, assign) {
+    const targetAccount = (window.currentLeaderAccountsData || []).find(a => a.username === username);
+    let allowedIds = targetAccount && targetAccount.allowedEmployeeIds ? [...targetAccount.allowedEmployeeIds.map(String)] : [];
+
+    if (assign) {
+        if (!allowedIds.includes(String(empId))) allowedIds.push(String(empId));
+    } else {
+        allowedIds = allowedIds.filter(id => String(id) !== String(empId));
+    }
+
+    try {
+        const res = await fetch('/api/auth/update-allowed-employees', {
+            method: 'PUT',
+            headers: authHeaders(),
+            body: JSON.stringify({ username, allowedEmployeeIds: allowedIds })
+        });
+        const data = await res.json();
+        if (data && data.success) {
+            if (targetAccount) targetAccount.allowedEmployeeIds = allowedIds;
+            showToast('toast-employee-updated');
+            renderLeaderModalEmployees(username);
+            fetchAndRenderEmployeeAccounts();
+        } else {
+            alert(data.error || 'حدث خطأ أثناء التحديث');
+        }
+    } catch (err) {
+        console.error(err);
+        alert('حدث خطأ في الاتصال بالسيرفر');
+    }
 };
 
 window.closeLeaderPermissionsModal = function() {
@@ -1889,6 +1944,7 @@ async function handleLogin(username, password) {
             setAuth(data.token, data.user);
             hideLoginOverlay();
             await loadStateAsync();
+            fetchExchangeRate(false);
             applyRoleRestrictions();
             updateUIVisuals();
             return true;
@@ -2200,61 +2256,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (closeLeaderPermModal) closeLeaderPermModal.addEventListener('click', window.closeLeaderPermissionsModal);
     if (cancelLeaderPermModal) cancelLeaderPermModal.addEventListener('click', window.closeLeaderPermissionsModal);
 
-    const selectAllLeaderBtn = document.getElementById('select-all-leader-emps');
-    const deselectAllLeaderBtn = document.getElementById('deselect-all-leader-emps');
+    let activeLeaderTab = 'all';
+
+    const tabAll = document.getElementById('leader-tab-all');
+    const tabAssigned = document.getElementById('leader-tab-assigned');
+    const tabUnassigned = document.getElementById('leader-tab-unassigned');
+
+    function setActiveLeaderTab(tabName, clickedBtn) {
+        activeLeaderTab = tabName;
+        document.querySelectorAll('.leader-tab-btn').forEach(btn => btn.classList.remove('active'));
+        if (clickedBtn) clickedBtn.classList.add('active');
+        const username = document.getElementById('leader-target-username').value;
+        if (username) renderLeaderModalEmployees(username, activeLeaderTab);
+    }
+
+    if (tabAll) tabAll.addEventListener('click', (e) => setActiveLeaderTab('all', e.target));
+    if (tabAssigned) tabAssigned.addEventListener('click', (e) => setActiveLeaderTab('assigned', e.target));
+    if (tabUnassigned) tabUnassigned.addEventListener('click', (e) => setActiveLeaderTab('unassigned', e.target));
+
     const leaderEmpSearch = document.getElementById('leader-emp-search-input');
     if (leaderEmpSearch) {
-        leaderEmpSearch.addEventListener('input', (e) => {
-            const query = e.target.value.trim().toLowerCase();
-            document.querySelectorAll('.leader-emp-item').forEach(item => {
-                const name = item.getAttribute('data-emp-name') || '';
-                item.style.display = name.includes(query) ? 'flex' : 'none';
-            });
-        });
-    }
-
-    if (selectAllLeaderBtn) {
-        selectAllLeaderBtn.addEventListener('click', () => {
-            document.querySelectorAll('.leader-emp-checkbox').forEach(cb => {
-                cb.checked = true;
-                cb.dispatchEvent(new Event('change'));
-            });
-        });
-    }
-    if (deselectAllLeaderBtn) {
-        deselectAllLeaderBtn.addEventListener('click', () => {
-            document.querySelectorAll('.leader-emp-checkbox').forEach(cb => {
-                cb.checked = false;
-                cb.dispatchEvent(new Event('change'));
-            });
-        });
-    }
-
-    const leaderPermForm = document.getElementById('leader-permissions-form');
-    if (leaderPermForm) {
-        leaderPermForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+        leaderEmpSearch.addEventListener('input', () => {
             const username = document.getElementById('leader-target-username').value;
-            const checked = Array.from(document.querySelectorAll('.leader-emp-checkbox:checked')).map(cb => cb.value);
+            if (username) renderLeaderModalEmployees(username, activeLeaderTab);
+        });
+    }
 
-            try {
-                const res = await fetch('/api/auth/update-allowed-employees', {
-                    method: 'PUT',
-                    headers: authHeaders(),
-                    body: JSON.stringify({ username, allowedEmployeeIds: checked })
-                });
-                const data = await res.json();
-                if (data && data.success) {
-                    showToast('toast-employee-updated');
-                    window.closeLeaderPermissionsModal();
-                    fetchAndRenderEmployeeAccounts();
-                } else {
-                    alert(data.error || 'حدث خطأ أثناء تحديث الموظفين المسموحين');
-                }
-            } catch (err) {
-                console.error(err);
-                alert('حدث خطأ في الاتصال بالسيرفر');
-            }
+    const modalCreateEmpBtn = document.getElementById('leader-modal-create-emp-btn');
+    if (modalCreateEmpBtn) {
+        modalCreateEmpBtn.addEventListener('click', () => {
+            window.closeLeaderPermissionsModal();
+            openEmployeeModal(false);
         });
     }
 
