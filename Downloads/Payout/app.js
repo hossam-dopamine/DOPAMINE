@@ -1730,7 +1730,11 @@ function openEmployeeModal(isEdit = false) {
                 removeBtn.style.display = 'none';
             }
             
-            modalTitle.textContent = i18n[state.currentLanguage]['modal-edit-employee-title'];
+            if (user && user.role === 'employee') {
+                modalTitle.textContent = state.currentLanguage === 'ar' ? 'تعديل الصورة الشخصية' : 'Edit Profile Photo';
+            } else {
+                modalTitle.textContent = i18n[state.currentLanguage]['modal-edit-employee-title'];
+            }
         }
     } else {
         previewImg.src = '';
@@ -1739,6 +1743,27 @@ function openEmployeeModal(isEdit = false) {
         previewInitials.style.display = 'block';
         removeBtn.style.display = 'none';
         modalTitle.textContent = i18n[state.currentLanguage]['modal-add-employee-title'];
+    }
+
+    const isEmployeeRole = user && user.role === 'employee';
+    const empNameInput = document.getElementById('employee-name');
+    const empRoleInput = document.getElementById('employee-role');
+    const empDeductionInput = document.getElementById('employee-deduction-rate');
+    const empPayMethodInput = document.getElementById('employee-payment-method');
+    const empPayDetailsInput = document.getElementById('employee-payment-details');
+
+    if (isEmployeeRole) {
+        if (empNameInput) empNameInput.disabled = true;
+        if (empRoleInput) empRoleInput.disabled = true;
+        if (empDeductionInput) empDeductionInput.disabled = true;
+        if (empPayMethodInput) empPayMethodInput.disabled = true;
+        if (empPayDetailsInput) empPayDetailsInput.disabled = true;
+    } else {
+        if (empNameInput) empNameInput.disabled = false;
+        if (empRoleInput) empRoleInput.disabled = false;
+        if (empDeductionInput) empDeductionInput.disabled = false;
+        if (empPayMethodInput) empPayMethodInput.disabled = false;
+        if (empPayDetailsInput) empPayDetailsInput.disabled = false;
     }
 
     modal.classList.add('active');

@@ -282,19 +282,34 @@ router.post('/employees', dataMutationLimiter, verifyToken, async (req, res) => 
       }
     }
 
+    let updateFields = {
+      id: empId,
+      name: String(empData.name).trim(),
+      role: String(empData.role || 'عضو').trim(),
+      defaultDeductionRate: (empData.defaultDeductionRate !== undefined && empData.defaultDeductionRate !== null) ? Math.min(100, Math.max(0, Number(empData.defaultDeductionRate))) : 10,
+      paymentMethod: String(empData.paymentMethod || 'instapay').trim(),
+      paymentDetails: String(empData.paymentDetails || '').trim(),
+      avatarUrl: String(empData.avatarUrl || '').trim(),
+      adjustments: empData.adjustments || {}
+    };
+
+    if (req.user.role === 'employee' && existing) {
+      updateFields = {
+        id: existing.id,
+        name: existing.name,
+        role: existing.role,
+        defaultDeductionRate: existing.defaultDeductionRate,
+        paymentMethod: existing.paymentMethod,
+        paymentDetails: existing.paymentDetails,
+        avatarUrl: String(empData.avatarUrl || '').trim(),
+        adjustments: existing.adjustments || {}
+      };
+    }
+
     // Save/update Employee profile in MongoDB
     const updatedEmp = await Employee.findOneAndUpdate(
       { id: empId },
-      {
-        id: empId,
-        name: String(empData.name).trim(),
-        role: String(empData.role || 'عضو').trim(),
-        defaultDeductionRate: (empData.defaultDeductionRate !== undefined && empData.defaultDeductionRate !== null) ? Math.min(100, Math.max(0, Number(empData.defaultDeductionRate))) : 10,
-        paymentMethod: String(empData.paymentMethod || 'instapay').trim(),
-        paymentDetails: String(empData.paymentDetails || '').trim(),
-        avatarUrl: String(empData.avatarUrl || '').trim(),
-        adjustments: empData.adjustments || {}
-      },
+      updateFields,
       { upsert: true, new: true }
     ).lean();
 
