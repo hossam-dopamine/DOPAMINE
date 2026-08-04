@@ -1295,7 +1295,7 @@ function renderEmployeeDetail(id) {
             if (task.vpn) credsSummary.push(`🛡️ ${escapeHTML(task.vpn)}`);
 
             const credsButtonHTML = hasCredentials 
-                ? `<button class="btn btn-secondary btn-icon-only btn-sm" onclick="showTaskCredentials('${emp.id}', '${task.id}')" title="${state.currentLanguage === 'ar' ? 'عرض بيانات الحساب والـ VPN' : 'View Account Credentials & VPN'}"><i data-lucide="key" style="width: 14px; height: 14px; color: var(--color-primary);"></i></button>`
+                ? `<button class="btn btn-secondary btn-icon-only btn-sm btn-credentials" data-emp-id="${emp.id}" data-task-id="${task.id}" onclick="showTaskCredentials('${emp.id}', '${task.id}')" title="${state.currentLanguage === 'ar' ? 'عرض بيانات الحساب والـ VPN' : 'View Account Credentials & VPN'}"><i data-lucide="key" style="width: 14px; height: 14px; color: var(--color-primary); pointer-events: none;"></i></button>`
                 : '';
 
             const currentUser = getAuthUser();
@@ -2555,10 +2555,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // Event Delegation for Task Table Actions (Delete, Edit, Status Toggle)
+    // Event Delegation for Task Table Actions (Delete, Edit, Status Toggle, Credentials)
     const tasksTableBody = document.getElementById('tasks-table-body');
     if (tasksTableBody) {
         tasksTableBody.addEventListener('click', (e) => {
+            const credsBtn = e.target.closest('.btn-credentials');
+            if (credsBtn) {
+                const empId = credsBtn.getAttribute('data-emp-id');
+                const taskId = credsBtn.getAttribute('data-task-id');
+                if (empId && taskId) window.showTaskCredentials(empId, taskId);
+                return;
+            }
+
             const delBtn = e.target.closest('.btn-delete-task');
             if (delBtn) {
                 const empId = delBtn.getAttribute('data-emp-id');
@@ -2679,9 +2687,9 @@ function showToastDirectMsg(msg) {
 }
 
 window.showTaskCredentials = function(empId, taskId) {
-    const emp = state.employees.find(e => e.id === empId);
+    const emp = state.employees.find(e => String(e.id) === String(empId));
     if (!emp) return;
-    const task = emp.tasks.find(t => t.id === taskId);
+    const task = emp.tasks.find(t => String(t.id) === String(taskId));
     if (!task) return;
 
     const modal = document.getElementById('credentials-modal');
