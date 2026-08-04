@@ -1199,7 +1199,7 @@ async function fetchAndRenderEmployeeAccounts() {
 
                 const allowedCount = Array.isArray(acc.allowedEmployeeIds) ? acc.allowedEmployeeIds.length : 0;
                 const manageBtn = acc.role === 'leader'
-                    ? `<button class="btn btn-secondary btn-sm" onclick="openLeaderPermissionsModal('${escapeHTML(acc.username)}')" style="margin-inline-end: 6px; font-size: 11px; padding: 4px 10px;">
+                    ? `<button type="button" class="btn btn-secondary btn-sm btn-manage-leader-employees" data-username="${escapeHTML(acc.username)}" style="margin-inline-end: 6px; font-size: 11px; padding: 4px 10px;">
                         <i data-lucide="shield-check" style="width: 13px; height: 13px; vertical-align: middle; margin-inline-end: 4px; pointer-events: none;"></i>
                         إدارة الموظفين (${allowedCount})
                        </button>`
@@ -2907,10 +2907,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Event Delegation for Employee Accounts Table (Delete Account)
+    // Event Delegation for Employee Accounts Table (Manage Leader Employees & Delete Account)
     const accountsTableBody = document.getElementById('employee-accounts-table-body');
     if (accountsTableBody) {
         accountsTableBody.addEventListener('click', (e) => {
+            const manageBtn = e.target.closest('.btn-manage-leader-employees');
+            if (manageBtn) {
+                const username = manageBtn.getAttribute('data-username');
+                if (username && typeof window.openLeaderPermissionsModal === 'function') {
+                    window.openLeaderPermissionsModal(username);
+                }
+                return;
+            }
+
             const delBtn = e.target.closest('.btn-delete-account');
             if (delBtn) {
                 const username = delBtn.getAttribute('data-username');

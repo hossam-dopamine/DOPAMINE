@@ -760,6 +760,7 @@ tr:hover td {
 .modal-overlay.active {
     opacity: 1;
     pointer-events: auto;
+    z-index: 9999;
 }
 .modal-content {
     width: 480px;
