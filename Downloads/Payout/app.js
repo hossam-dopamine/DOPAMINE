@@ -495,6 +495,10 @@ async function loadStateAsync() {
                     // Admin always gets full control
                     state.isManagerUnlocked = true;
                 }
+                state.eurExchangeRate = result.data.eurExchangeRate || state.eurExchangeRate || 55;
+                const eurRateInput = document.getElementById('eur-to-egp-rate');
+                if (eurRateInput) eurRateInput.value = state.eurExchangeRate;
+
                 state.currentLanguage = state.currentLanguage || localStorage.getItem('task_payout_lang') || 'ar';
                 hideLoginOverlay();
                 applyRoleRestrictions();
@@ -688,8 +692,11 @@ function calculateTaskNet(gross, deductionRate, delayDeduction = 0, advance = 0,
 
 function formatCurrency(amount, currency = 'EGP') {
     const lang = state.currentLanguage;
-    const dispCurrency = currency === 'EGP' ? (lang === 'ar' ? 'ج.م.' : 'EGP') : (lang === 'ar' ? 'دولار' : 'USD');
-    return `${amount.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${dispCurrency}`;
+    let dispCurrency = currency;
+    if (currency === 'EGP') dispCurrency = lang === 'ar' ? 'ج.م' : 'EGP';
+    else if (currency === 'USD') dispCurrency = 'USD ($)';
+    else if (currency === 'EUR') dispCurrency = 'EUR (€)';
+    return `${(amount || 0).toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${dispCurrency}`;
 }
 
 async function fetchExchangeRate(isManual = false) {
@@ -704,10 +711,19 @@ async function fetchExchangeRate(isManual = false) {
             if (!response.ok) continue;
             const data = await response.json();
             const rateVal = data && data.rates && data.rates.EGP;
+            const eurRateVal = data && data.rates && data.rates.EUR ? (rateVal / data.rates.EUR) : null;
+
             if (rateVal && typeof rateVal === 'number' && rateVal > 0) {
                 state.exchangeRate = parseFloat(rateVal.toFixed(2));
                 const rateInput = document.getElementById('usd-to-egp-rate');
                 if (rateInput) rateInput.value = state.exchangeRate;
+
+                if (eurRateVal && typeof eurRateVal === 'number' && eurRateVal > 0) {
+                    state.eurExchangeRate = parseFloat(eurRateVal.toFixed(2));
+                    const eurInput = document.getElementById('eur-to-egp-rate');
+                    if (eurInput) eurInput.value = state.eurExchangeRate;
+                }
+
                 saveState();
                 calculateDashboardStats();
                 if (state.viewMode === 'employee' && state.selectedEmployeeId) {
@@ -734,13 +750,24 @@ async function fetchExchangeRate(isManual = false) {
 function calculateDashboardStats() {
     let totalGrossEGP = 0;
     let totalGrossUSD = 0;
+    let totalGrossEUR = 0;
+
     let totalDeductionsEGP = 0;
     let totalDeductionsUSD = 0;
+    let totalDeductionsEUR = 0;
+
     let totalPaidEGP = 0;
     let totalPaidUSD = 0;
+    let totalPaidEUR = 0;
+
     let totalDueEGP = 0;
     let totalDueUSD = 0;
+    let totalDueEUR = 0;
+
     let completedTasksCount = 0;
+
+    const usdRate = state.exchangeRate || 50;
+    const eurRate = state.eurExchangeRate || 55;
 
     // Get dashboard month filter value
     const dbMonthFilter = document.getElementById('dashboard-filter-month');
@@ -749,50 +776,52 @@ function calculateDashboardStats() {
     // Filter calculations by viewMode
     let targetEmployees = [];
     if (state.viewMode === 'employee' && state.selectedEmployeeId) {
-        const emp = state.employees.find(e => e.id === state.selectedEmployeeId);
+        const emp = state.employees.find(e => String(e.id) === String(state.selectedEmployeeId));
         if (emp) targetEmployees = [emp];
     } else if (state.viewMode === 'manager') {
         targetEmployees = state.employees;
     }
 
     targetEmployees.forEach(emp => {
-        let earnings_completed_egp = 0;
-        let earnings_completed_usd = 0;
-        let earnings_paid_egp = 0;
-        let earnings_paid_usd = 0;
+        let earnings_completed_egp = 0, earnings_completed_usd = 0, earnings_completed_eur = 0;
+        let earnings_paid_egp = 0, earnings_paid_usd = 0, earnings_paid_eur = 0;
 
-        let withdrawals_completed_egp = 0;
-        let withdrawals_completed_usd = 0;
-        let withdrawals_paid_egp = 0;
-        let withdrawals_paid_usd = 0;
+        let withdrawals_completed_egp = 0, withdrawals_completed_usd = 0, withdrawals_completed_eur = 0;
+        let withdrawals_paid_egp = 0, withdrawals_paid_usd = 0, withdrawals_paid_eur = 0;
 
         emp.tasks.forEach(task => {
-            // Apply month filter
-            if (selectedMonth !== 'all' && task.month !== selectedMonth) {
-                return;
-            }
+            if (selectedMonth !== 'all' && task.month !== selectedMonth) return;
 
             const isWithdrawal = task.type === 'withdrawal';
-            const currency = task.currency || 'EGP';
-            const rate = task.exchangeRate || state.exchangeRate;
+            const currency = task.currency || 'USD';
+            const taskUsdRate = task.exchangeRate || usdRate;
+            const taskEurRate = eurRate;
+
+            let egpVal = 0, usdVal = 0, eurVal = 0;
+
+            if (currency === 'EGP') {
+                egpVal = task.gross;
+                usdVal = task.gross / taskUsdRate;
+                eurVal = task.gross / taskEurRate;
+            } else if (currency === 'EUR') {
+                eurVal = task.gross;
+                egpVal = task.gross * taskEurRate;
+                usdVal = (task.gross * taskEurRate) / taskUsdRate;
+            } else { // USD
+                usdVal = task.gross;
+                egpVal = task.gross * taskUsdRate;
+                eurVal = (task.gross * taskUsdRate) / taskEurRate;
+            }
 
             if (isWithdrawal) {
                 if (task.status === 'completed') {
-                    if (currency === 'EGP') {
-                        withdrawals_completed_egp += task.gross;
-                        withdrawals_completed_usd += task.gross / rate;
-                    } else {
-                        withdrawals_completed_usd += task.gross;
-                        withdrawals_completed_egp += task.gross * rate;
-                    }
+                    withdrawals_completed_egp += egpVal;
+                    withdrawals_completed_usd += usdVal;
+                    withdrawals_completed_eur += eurVal;
                 } else if (task.status === 'paid') {
-                    if (currency === 'EGP') {
-                        withdrawals_paid_egp += task.gross;
-                        withdrawals_paid_usd += task.gross / rate;
-                    } else {
-                        withdrawals_paid_usd += task.gross;
-                        withdrawals_paid_egp += task.gross * rate;
-                    }
+                    withdrawals_paid_egp += egpVal;
+                    withdrawals_paid_usd += usdVal;
+                    withdrawals_paid_eur += eurVal;
                 }
             } else { // Regular task
                 if (task.status === 'completed' || task.status === 'paid') {
@@ -805,32 +834,31 @@ function calculateDashboardStats() {
                     const grossMinusFixed = task.gross - fixed;
                     const taskDeduction = grossMinusFixed * (task.deductionRate / 100);
 
+                    let netEgp = 0, netUsd = 0, netEur = 0;
+                    let grossEgp = 0, grossUsd = 0, grossEur = 0;
+                    let dedEgp = 0, dedUsd = 0, dedEur = 0;
+
                     if (currency === 'EGP') {
-                        totalGrossEGP += grossMinusFixed;
-                        totalGrossUSD += grossMinusFixed / rate;
-                        totalDeductionsEGP += taskDeduction;
-                        totalDeductionsUSD += taskDeduction / rate;
-
-                        if (task.status === 'paid') {
-                            earnings_paid_egp += taskNet;
-                            earnings_paid_usd += taskNet / rate;
-                        } else if (task.status === 'completed') {
-                            earnings_completed_egp += taskNet;
-                            earnings_completed_usd += taskNet / rate;
-                        }
+                        grossEgp = grossMinusFixed; grossUsd = grossMinusFixed / taskUsdRate; grossEur = grossMinusFixed / taskEurRate;
+                        dedEgp = taskDeduction; dedUsd = taskDeduction / taskUsdRate; dedEur = taskDeduction / taskEurRate;
+                        netEgp = taskNet; netUsd = taskNet / taskUsdRate; netEur = taskNet / taskEurRate;
+                    } else if (currency === 'EUR') {
+                        grossEur = grossMinusFixed; grossEgp = grossMinusFixed * taskEurRate; grossUsd = (grossMinusFixed * taskEurRate) / taskUsdRate;
+                        dedEur = taskDeduction; dedEgp = taskDeduction * taskEurRate; dedUsd = (taskDeduction * taskEurRate) / taskUsdRate;
+                        netEur = taskNet; netEgp = taskNet * taskEurRate; netUsd = (taskNet * taskEurRate) / taskUsdRate;
                     } else { // USD
-                        totalGrossUSD += grossMinusFixed;
-                        totalGrossEGP += grossMinusFixed * rate;
-                        totalDeductionsUSD += taskDeduction;
-                        totalDeductionsEGP += taskDeduction * rate;
+                        grossUsd = grossMinusFixed; grossEgp = grossMinusFixed * taskUsdRate; grossEur = (grossMinusFixed * taskUsdRate) / taskEurRate;
+                        dedUsd = taskDeduction; dedEgp = taskDeduction * taskUsdRate; dedEur = (taskDeduction * taskUsdRate) / taskEurRate;
+                        netUsd = taskNet; netEgp = taskNet * taskUsdRate; netEur = (taskNet * taskUsdRate) / taskEurRate;
+                    }
 
-                        if (task.status === 'paid') {
-                            earnings_paid_usd += taskNet;
-                            earnings_paid_egp += taskNet * rate;
-                        } else if (task.status === 'completed') {
-                            earnings_completed_usd += taskNet;
-                            earnings_completed_egp += taskNet * rate;
-                        }
+                    totalGrossEGP += grossEgp; totalGrossUSD += grossUsd; totalGrossEUR += grossEur;
+                    totalDeductionsEGP += dedEgp; totalDeductionsUSD += dedUsd; totalDeductionsEUR += dedEur;
+
+                    if (task.status === 'paid') {
+                        earnings_paid_egp += netEgp; earnings_paid_usd += netUsd; earnings_paid_eur += netEur;
+                    } else if (task.status === 'completed') {
+                        earnings_completed_egp += netEgp; earnings_completed_usd += netUsd; earnings_completed_eur += netEur;
                     }
                 }
             }
@@ -846,23 +874,28 @@ function calculateDashboardStats() {
         const empDueUSD = Math.max(0, earnings_completed_usd - activeWithdrawalsUSD);
         const empPaidUSD = earnings_paid_usd + activeWithdrawalsUSD;
 
-        totalDueEGP += empDueEGP;
-        totalDueUSD += empDueUSD;
-        totalPaidEGP += empPaidEGP;
-        totalPaidUSD += empPaidUSD;
+        // Apply EUR balance formula
+        const activeWithdrawalsEUR = withdrawals_completed_eur + withdrawals_paid_eur;
+        const empDueEUR = Math.max(0, earnings_completed_eur - activeWithdrawalsEUR);
+        const empPaidEUR = earnings_paid_eur + activeWithdrawalsEUR;
+
+        totalDueEGP += empDueEGP; totalDueUSD += empDueUSD; totalDueEUR += empDueEUR;
+        totalPaidEGP += empPaidEGP; totalPaidUSD += empPaidUSD; totalPaidEUR += empPaidEUR;
     });
 
     document.getElementById('stat-total-tasks').textContent = completedTasksCount;
 
     document.getElementById('stat-total-gross-egp').textContent = formatCurrency(totalGrossEGP, 'EGP');
-    document.getElementById('stat-total-gross-usd').textContent = formatCurrency(totalGrossUSD, 'USD');
+    document.getElementById('stat-total-gross-usd').textContent = `${formatCurrency(totalGrossUSD, 'USD')} • ${formatCurrency(totalGrossEUR, 'EUR')}`;
+
     document.getElementById('stat-total-deductions-egp').textContent = formatCurrency(totalDeductionsEGP, 'EGP');
-    document.getElementById('stat-total-deductions-usd').textContent = formatCurrency(totalDeductionsUSD, 'USD');
-    
+    document.getElementById('stat-total-deductions-usd').textContent = `${formatCurrency(totalDeductionsUSD, 'USD')} • ${formatCurrency(totalDeductionsEUR, 'EUR')}`;
+
     document.getElementById('stat-total-paid-egp').textContent = formatCurrency(totalPaidEGP, 'EGP');
-    document.getElementById('stat-total-paid-usd').textContent = formatCurrency(totalPaidUSD, 'USD');
+    document.getElementById('stat-total-paid-usd').textContent = `${formatCurrency(totalPaidUSD, 'USD')} • ${formatCurrency(totalPaidEUR, 'EUR')}`;
+
     document.getElementById('stat-total-due-egp').textContent = formatCurrency(totalDueEGP, 'EGP');
-    document.getElementById('stat-total-due-usd').textContent = formatCurrency(totalDueUSD, 'USD');
+    document.getElementById('stat-total-due-usd').textContent = `${formatCurrency(totalDueUSD, 'USD')} • ${formatCurrency(totalDueEUR, 'EUR')}`;
 
     // Update print month title
     const activeMonthText = selectedMonth === 'all' ? (state.currentLanguage === 'ar' ? 'كل الشهور' : 'All Months') : i18n[state.currentLanguage]['month-' + selectedMonth.slice(0, 3)];
@@ -1264,16 +1297,28 @@ function renderEmployeeDetail(id) {
                 grossDisplay = `<div>${formatCurrency(task.gross, currency)}</div>`;
                 netDisplay = `<div style="font-weight: 700; color: var(--color-emerald);">${formatCurrency(netAmount, currency)}</div>`;
                 
+                const eurRate = state.eurExchangeRate || 55;
                 if (currency === 'EGP') {
-                    const convertedGross = task.gross / rate;
-                    const convertedNet = netAmount / rate;
-                    grossDisplay += `<div class="secondary-value">(${formatCurrency(convertedGross, 'USD')})</div>`;
-                    netDisplay += `<div class="secondary-value">(${formatCurrency(convertedNet, 'USD')})</div>`;
+                    const convertedGrossUsd = task.gross / rate;
+                    const convertedNetUsd = netAmount / rate;
+                    const convertedGrossEur = task.gross / eurRate;
+                    const convertedNetEur = netAmount / eurRate;
+                    grossDisplay += `<div class="secondary-value">(${formatCurrency(convertedGrossUsd, 'USD')} • ${formatCurrency(convertedGrossEur, 'EUR')})</div>`;
+                    netDisplay += `<div class="secondary-value">(${formatCurrency(convertedNetUsd, 'USD')} • ${formatCurrency(convertedNetEur, 'EUR')})</div>`;
+                } else if (currency === 'EUR') {
+                    const convertedGrossEgp = task.gross * eurRate;
+                    const convertedNetEgp = netAmount * eurRate;
+                    const convertedGrossUsd = (task.gross * eurRate) / rate;
+                    const convertedNetUsd = (netAmount * eurRate) / rate;
+                    grossDisplay += `<div class="secondary-value">(${formatCurrency(convertedGrossEgp, 'EGP')} • ${formatCurrency(convertedGrossUsd, 'USD')})</div>`;
+                    netDisplay += `<div class="secondary-value">(${formatCurrency(convertedNetEgp, 'EGP')} • ${formatCurrency(convertedNetUsd, 'USD')})</div>`;
                 } else { // USD
-                    const convertedGross = task.gross * rate;
-                    const convertedNet = netAmount * rate;
-                    grossDisplay += `<div class="secondary-value">(${formatCurrency(convertedGross, 'EGP')})</div>`;
-                    netDisplay += `<div class="secondary-value">(${formatCurrency(convertedNet, 'EGP')})</div>`;
+                    const convertedGrossEgp = task.gross * rate;
+                    const convertedNetEgp = netAmount * rate;
+                    const convertedGrossEur = (task.gross * rate) / eurRate;
+                    const convertedNetEur = (netAmount * rate) / eurRate;
+                    grossDisplay += `<div class="secondary-value">(${formatCurrency(convertedGrossEgp, 'EGP')} • ${formatCurrency(convertedGrossEur, 'EUR')})</div>`;
+                    netDisplay += `<div class="secondary-value">(${formatCurrency(convertedNetEgp, 'EGP')} • ${formatCurrency(convertedNetEur, 'EUR')})</div>`;
                 }
 
                 deductionDisplay = `<span>${task.deductionRate}%</span>`;
@@ -2228,6 +2273,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
     });
+
+    const eurRateEl = document.getElementById('eur-to-egp-rate');
+    if (eurRateEl) {
+        eurRateEl.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            if (!isNaN(val) && val > 0) {
+                state.eurExchangeRate = val;
+                saveState();
+                calculateDashboardStats();
+                if (state.viewMode === 'employee' && state.selectedEmployeeId) {
+                    renderEmployeeDetail(state.selectedEmployeeId);
+                } else if (state.viewMode === 'manager') {
+                    renderManagerPanel();
+                }
+            }
+        });
+    }
 
     document.getElementById('sync-rate-btn').addEventListener('click', () => {
         fetchExchangeRate(true);

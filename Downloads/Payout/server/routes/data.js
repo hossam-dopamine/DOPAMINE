@@ -105,6 +105,7 @@ router.get('/', verifyToken, async (req, res) => {
   try {
     let meta = await AppData.findOne();
     const exchangeRate = meta ? meta.exchangeRate : 50;
+    const eurExchangeRate = meta && meta.eurExchangeRate ? meta.eurExchangeRate : 55;
 
     if (req.user.role === 'admin') {
       const dbEmployees = await Employee.find().lean();
@@ -121,7 +122,8 @@ router.get('/', verifyToken, async (req, res) => {
         success: true,
         data: {
           employees: employeesWithTasks,
-          exchangeRate
+          exchangeRate,
+          eurExchangeRate
         }
       });
     } else if (req.user.role === 'leader') {
@@ -143,14 +145,15 @@ router.get('/', verifyToken, async (req, res) => {
         success: true,
         data: {
           employees: employeesWithTasks,
-          exchangeRate
+          exchangeRate,
+          eurExchangeRate
         }
       });
     } else {
       // Employee sees only their own employee profile & tasks
       const emp = await Employee.findOne({ id: req.user.employeeId }).lean();
       if (!emp) {
-        return res.json({ success: true, data: { employees: [], exchangeRate } });
+        return res.json({ success: true, data: { employees: [], exchangeRate, eurExchangeRate } });
       }
 
       const dbTasks = await Task.find({ employeeId: emp.id }).lean();
@@ -160,7 +163,8 @@ router.get('/', verifyToken, async (req, res) => {
         success: true,
         data: {
           employees: [{ ...emp, tasks: decryptedTasks }],
-          exchangeRate
+          exchangeRate,
+          eurExchangeRate
         }
       });
     }

@@ -7,7 +7,11 @@ const appDataSchema = new mongoose.Schema({
   },
   exchangeRate: {
     type: Number,
-    default: 0
+    default: 50
+  },
+  eurExchangeRate: {
+    type: Number,
+    default: 55
   },
   lastUpdatedBy: {
     type: String,

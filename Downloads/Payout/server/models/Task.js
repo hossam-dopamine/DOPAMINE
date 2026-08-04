@@ -33,7 +33,7 @@ const taskSchema = new mongoose.Schema({
   },
   currency: {
     type: String,
-    enum: ['EGP', 'USD'],
+    enum: ['EGP', 'USD', 'EUR'],
     default: 'USD'
   },
   deductionRate: {
