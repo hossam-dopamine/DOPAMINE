@@ -19,15 +19,16 @@ const setup = async () => {
     const adminUsername = process.env.ADMIN_USERNAME || 'admin';
     const adminExists = await User.findOne({ username: adminUsername });
 
+    const adminPassword = process.env.ADMIN_PASSWORD || '20112001';
     if (!adminExists) {
-      const passwordHash = await User.hashPassword('admin123');
+      const passwordHash = await User.hashPassword(adminPassword);
       const admin = new User({
         username: adminUsername,
         passwordHash,
         role: 'admin'
       });
       await admin.save();
-      console.log(`Admin user created: ${adminUsername} / admin123`);
+      console.log(`Admin user created: ${adminUsername}`);
     } else {
       console.log('Admin user already exists.');
     }

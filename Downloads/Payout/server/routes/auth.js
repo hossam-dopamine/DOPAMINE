@@ -24,20 +24,6 @@ router.post('/login', authLimiter, async (req, res) => {
 
     const cleanUsername = String(username).toLowerCase().trim();
 
-    // Auto-bootstrap initial admin user if database is empty
-    const userCount = await User.countDocuments();
-    if (userCount === 0) {
-      const defaultAdminName = 'admin';
-      const defaultAdminPass = '20112001';
-      const passwordHash = await User.hashPassword(defaultAdminPass);
-      await User.create({
-        username: defaultAdminName,
-        passwordHash: passwordHash,
-        role: 'admin'
-      });
-      console.log(`✅ Auto-created initial admin user: ${defaultAdminName}`);
-    }
-
     let user = await User.findOne({ username: cleanUsername });
 
 
