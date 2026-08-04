@@ -291,7 +291,7 @@ router.post('/tasks', dataMutationLimiter, verifyToken, requireAdminOrLeader, as
         title: taskData.title,
         gross: taskData.gross || 0,
         currency: taskData.currency || 'USD',
-        deductionRate: taskData.deductionRate || 10,
+        deductionRate: (taskData.deductionRate !== undefined && taskData.deductionRate !== null) ? Number(taskData.deductionRate) : 10,
         delayDeduction: taskData.delayDeduction || 0,
         advance: taskData.advance || 0,
         fixedDeduction: taskData.fixedDeduction || 0,
