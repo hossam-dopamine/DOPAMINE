@@ -302,13 +302,15 @@ router.post('/employees', dataMutationLimiter, verifyToken, async (req, res) => 
 
     // If Leader created or updated an employee, ensure employee ID is associated with Leader user account in DB!
     if (req.user.role === 'leader') {
+      const targetUserId = req.user._id || req.user.id;
       const updatedUser = await User.findOneAndUpdate(
-        { $or: [{ _id: req.user._id }, { username: req.user.username }] },
+        { $or: [{ _id: targetUserId }, { username: req.user.username }] },
         { $addToSet: { allowedEmployeeIds: String(empId) } },
         { new: true }
       );
       if (updatedUser) {
         updatedAllowedIds = updatedUser.allowedEmployeeIds;
+        req.user.allowedEmployeeIds = updatedAllowedIds;
       }
     }
 

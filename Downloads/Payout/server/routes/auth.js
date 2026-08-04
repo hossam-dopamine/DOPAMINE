@@ -166,7 +166,7 @@ router.get('/employee-accounts', verifyToken, requireAdmin, async (req, res) => 
 });
 
 // PUT /update-allowed-employees - Admin updates allowed employees for a Leader account
-router.put('/update-allowed-employees', verifyToken, requireAdmin, async (req, res) => {
+router.put('/update-allowed-employees', authLimiter, verifyToken, requireAdmin, async (req, res) => {
   try {
     const { username, allowedEmployeeIds } = req.body;
     if (!username) {
