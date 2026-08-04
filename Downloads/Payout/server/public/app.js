@@ -1245,13 +1245,27 @@ window.deleteEmployeeAccount = async function(username) {
     }
 };
 
+function updateLeaderSelectedCountBadge() {
+    const checkedCount = document.querySelectorAll('.leader-emp-checkbox:checked').length;
+    const totalCount = document.querySelectorAll('.leader-emp-checkbox').length;
+    const badge = document.getElementById('leader-selected-count-badge');
+    if (badge) {
+        badge.textContent = state.currentLanguage === 'ar' 
+            ? `الظاهرون للمشرف: ${checkedCount} من ${totalCount}`
+            : `Visible to Leader: ${checkedCount} of ${totalCount}`;
+    }
+}
+
 window.openLeaderPermissionsModal = function(username) {
     const modal = document.getElementById('leader-permissions-modal');
     if (!modal) return;
     
     document.getElementById('leader-target-username').value = username;
-    document.getElementById('leader-modal-title').textContent = `تحديد الموظفين المسموحين للمشرف: (${username})`;
+    document.getElementById('leader-modal-title').textContent = `تعديل الموظفين الظاهرين للمشرف: (${username})`;
     
+    const searchInput = document.getElementById('leader-emp-search-input');
+    if (searchInput) searchInput.value = '';
+
     const container = document.getElementById('leader-emps-checkbox-container');
     container.innerHTML = '';
 
@@ -1264,15 +1278,41 @@ window.openLeaderPermissionsModal = function(username) {
         state.employees.forEach(emp => {
             const isChecked = allowedSet.has(String(emp.id));
             const label = document.createElement('label');
-            label.style.cssText = 'display: flex; align-items: center; gap: 8px; font-size: 13px; color: #fff; cursor: pointer; user-select: none; background: rgba(255,255,255,0.03); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);';
+            label.className = 'leader-emp-item';
+            label.setAttribute('data-emp-name', emp.name.toLowerCase());
+            label.style.cssText = `display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: #fff; cursor: pointer; user-select: none; background: ${isChecked ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255,255,255,0.02)'}; padding: 8px 10px; border-radius: 6px; border: 1px solid ${isChecked ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255,255,255,0.05)'}; transition: all 0.2s;`;
+            
+            const badgeText = isChecked 
+                ? `<span class="emp-status-badge" style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(16, 185, 129, 0.2); color: #34d399;">ظاهر</span>`
+                : `<span class="emp-status-badge" style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.06); color: var(--text-dim);">مخفي</span>`;
+
             label.innerHTML = `
-                <input type="checkbox" class="leader-emp-checkbox" value="${escapeHTML(emp.id)}" ${isChecked ? 'checked' : ''}>
-                <span>${escapeHTML(emp.name)}</span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" class="leader-emp-checkbox" value="${escapeHTML(emp.id)}" ${isChecked ? 'checked' : ''}>
+                    <span style="font-weight: 600;">${escapeHTML(emp.name)}</span>
+                </div>
+                ${badgeText}
             `;
+
+            const checkbox = label.querySelector('.leader-emp-checkbox');
+            checkbox.addEventListener('change', () => {
+                const checked = checkbox.checked;
+                label.style.background = checked ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255,255,255,0.02)';
+                label.style.borderColor = checked ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255,255,255,0.05)';
+                const badge = label.querySelector('.emp-status-badge');
+                if (badge) {
+                    badge.style.background = checked ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.06)';
+                    badge.style.color = checked ? '#34d399' : 'var(--text-dim)';
+                    badge.textContent = checked ? 'ظاهر' : 'مخفي';
+                }
+                updateLeaderSelectedCountBadge();
+            });
+
             container.appendChild(label);
         });
     }
 
+    updateLeaderSelectedCountBadge();
     modal.classList.add('active');
     if (window.lucide) window.lucide.createIcons();
 };
@@ -2162,14 +2202,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const selectAllLeaderBtn = document.getElementById('select-all-leader-emps');
     const deselectAllLeaderBtn = document.getElementById('deselect-all-leader-emps');
+    const leaderEmpSearch = document.getElementById('leader-emp-search-input');
+    if (leaderEmpSearch) {
+        leaderEmpSearch.addEventListener('input', (e) => {
+            const query = e.target.value.trim().toLowerCase();
+            document.querySelectorAll('.leader-emp-item').forEach(item => {
+                const name = item.getAttribute('data-emp-name') || '';
+                item.style.display = name.includes(query) ? 'flex' : 'none';
+            });
+        });
+    }
+
     if (selectAllLeaderBtn) {
         selectAllLeaderBtn.addEventListener('click', () => {
-            document.querySelectorAll('.leader-emp-checkbox').forEach(cb => cb.checked = true);
+            document.querySelectorAll('.leader-emp-checkbox').forEach(cb => {
+                cb.checked = true;
+                cb.dispatchEvent(new Event('change'));
+            });
         });
     }
     if (deselectAllLeaderBtn) {
         deselectAllLeaderBtn.addEventListener('click', () => {
-            document.querySelectorAll('.leader-emp-checkbox').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.leader-emp-checkbox').forEach(cb => {
+                cb.checked = false;
+                cb.dispatchEvent(new Event('change'));
+            });
         });
     }
 
