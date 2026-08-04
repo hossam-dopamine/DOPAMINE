@@ -12,7 +12,7 @@ const applySecurityMiddleware = (app) => {
         defaultSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com"],
         imgSrc: ["'self'", "data:", "blob:"],
         connectSrc: ["'self'", "https://open.er-api.com", "https://api.exchangerate-api.com", "https://v6.exchangerate-api.com"]
       }
