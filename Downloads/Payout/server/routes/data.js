@@ -277,9 +277,14 @@ router.post('/employees', dataMutationLimiter, verifyToken, async (req, res) => 
         return res.status(403).json({ success: false, error: 'غير مصرح بتعديل بيانات هذا الموظف' });
       }
     } else if (req.user.role === 'employee') {
-      if (String(empId) !== String(req.user.employeeId)) {
-        return res.status(403).json({ success: false, error: 'غير مصرح بتعديل بيانات موظف آخر' });
+      if (isNew || String(empId) !== String(req.user.employeeId)) {
+        return res.status(403).json({ success: false, error: 'غير مصرح لملف الموظف العادي بإضافة موظف جديد أو تعديل موظف آخر' });
       }
+    }
+
+    let cleanAvatarUrl = String(empData.avatarUrl || '').trim();
+    if (cleanAvatarUrl.length > 350000) {
+      cleanAvatarUrl = existing ? existing.avatarUrl : '';
     }
 
     let updateFields = {
@@ -289,7 +294,7 @@ router.post('/employees', dataMutationLimiter, verifyToken, async (req, res) => 
       defaultDeductionRate: (empData.defaultDeductionRate !== undefined && empData.defaultDeductionRate !== null) ? Math.min(100, Math.max(0, Number(empData.defaultDeductionRate))) : 10,
       paymentMethod: String(empData.paymentMethod || 'instapay').trim(),
       paymentDetails: String(empData.paymentDetails || '').trim(),
-      avatarUrl: String(empData.avatarUrl || '').trim(),
+      avatarUrl: cleanAvatarUrl,
       adjustments: empData.adjustments || {}
     };
 
@@ -301,7 +306,7 @@ router.post('/employees', dataMutationLimiter, verifyToken, async (req, res) => 
         defaultDeductionRate: existing.defaultDeductionRate,
         paymentMethod: existing.paymentMethod,
         paymentDetails: existing.paymentDetails,
-        avatarUrl: String(empData.avatarUrl || '').trim(),
+        avatarUrl: cleanAvatarUrl,
         adjustments: existing.adjustments || {}
       };
     }
