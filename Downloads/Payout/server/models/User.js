@@ -15,12 +15,16 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['admin', 'employee'],
+    enum: ['admin', 'employee', 'leader'],
     required: true
   },
   employeeId: {
     type: String,
     default: null
+  },
+  allowedEmployeeIds: {
+    type: [String],
+    default: []
   },
   createdAt: {
     type: Date,

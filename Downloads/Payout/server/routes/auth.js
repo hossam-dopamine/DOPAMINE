@@ -8,7 +8,7 @@ const router = express.Router();
 
 const generateToken = (user) => {
   return jwt.sign(
-    { id: user._id, role: user.role, employeeId: user.employeeId },
+    { id: user._id, role: user.role, employeeId: user.employeeId, allowedEmployeeIds: user.allowedEmployeeIds || [] },
     process.env.JWT_SECRET,
     { expiresIn: '24h' }
   );
@@ -25,8 +25,6 @@ router.post('/login', authLimiter, async (req, res) => {
     const cleanUsername = String(username).toLowerCase().trim();
 
     let user = await User.findOne({ username: cleanUsername });
-
-
 
     if (!user) {
       return res.status(401).json({ success: false, error: 'اسم المستخدم أو كلمة المرور غير صحيحة' });
@@ -45,7 +43,8 @@ router.post('/login', authLimiter, async (req, res) => {
         id: user._id,
         username: user.username,
         role: user.role,
-        employeeId: user.employeeId
+        employeeId: user.employeeId,
+        allowedEmployeeIds: user.allowedEmployeeIds || []
       }
     });
   } catch (error) {
@@ -79,7 +78,7 @@ router.post('/change-password', verifyToken, async (req, res) => {
 // POST /create-employee-account
 router.post('/create-employee-account', verifyToken, requireAdmin, async (req, res) => {
   try {
-    const { username, password, employeeId } = req.body;
+    const { username, password, employeeId, role, allowedEmployeeIds } = req.body;
     
     if (!username || !password || !employeeId) {
       return res.status(400).json({ success: false, error: 'Missing required fields' });
@@ -95,12 +94,16 @@ router.post('/create-employee-account', verifyToken, requireAdmin, async (req, r
       return res.status(409).json({ success: false, error: 'Account already exists for this employee' });
     }
     
+    const userRole = (role === 'leader') ? 'leader' : 'employee';
+    const allowedIds = Array.isArray(allowedEmployeeIds) ? allowedEmployeeIds.map(String) : [];
+
     const passwordHash = await User.hashPassword(password);
     const user = new User({
       username,
       passwordHash,
-      role: 'employee',
-      employeeId
+      role: userRole,
+      employeeId,
+      allowedEmployeeIds: allowedIds
     });
     
     await user.save();
@@ -119,7 +122,8 @@ router.get('/me', verifyToken, (req, res) => {
       id: req.user._id,
       username: req.user.username,
       role: req.user.role,
-      employeeId: req.user.employeeId
+      employeeId: req.user.employeeId,
+      allowedEmployeeIds: req.user.allowedEmployeeIds || []
     }
   });
 });

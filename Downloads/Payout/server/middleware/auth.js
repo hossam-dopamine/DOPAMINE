@@ -31,6 +31,14 @@ const requireAdmin = (req, res, next) => {
   }
 };
 
+const requireAdminOrLeader = (req, res, next) => {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'leader')) {
+    next();
+  } else {
+    res.status(403).json({ success: false, error: 'Admin or Leader access required' });
+  }
+};
+
 const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -51,5 +59,6 @@ const optionalAuth = async (req, res, next) => {
 module.exports = {
   verifyToken,
   requireAdmin,
+  requireAdminOrLeader,
   optionalAuth
 };

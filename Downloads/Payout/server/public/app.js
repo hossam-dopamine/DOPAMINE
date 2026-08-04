@@ -469,6 +469,15 @@ async function loadStateAsync() {
                     const myEmp = user.employeeId ? state.employees.find(e => String(e.id) === String(user.employeeId)) : null;
                     state.selectedEmployeeId = myEmp ? myEmp.id : (state.employees.length > 0 ? state.employees[0].id : null);
                     state.isManagerUnlocked = false;
+                } else if (user && user.role === 'leader') {
+                    const serverData = result.data;
+                    if (validateAndSanitizeState(serverData)) {
+                        state.employees = serverData.employees || [];
+                        state.exchangeRate = serverData.exchangeRate || state.exchangeRate || 50;
+                    }
+                    state.viewMode = 'employee';
+                    state.selectedEmployeeId = state.employees.length > 0 ? state.employees[0].id : null;
+                    state.isManagerUnlocked = true;
                 } else {
                     // Admin: merge server data INTO state (preserve UI properties)
                     const serverData = result.data;
@@ -1035,15 +1044,24 @@ function renderManagerPanel() {
         tableBody.appendChild(row);
     });
 
-    // Populate account creation employee select dropdown
+    // Populate account creation employee select dropdown & allowed checkboxes
     const accountEmpSelect = document.getElementById('account-employee-select');
+    const checkboxesDiv = document.getElementById('allowed-employees-checkboxes');
     if (accountEmpSelect) {
         accountEmpSelect.innerHTML = '<option value="">-- ' + (state.currentLanguage === 'ar' ? 'اختر الموظف' : 'Select Employee') + ' --</option>';
+        if (checkboxesDiv) checkboxesDiv.innerHTML = '';
         state.employees.forEach(emp => {
             const opt = document.createElement('option');
             opt.value = emp.id;
             opt.textContent = `${emp.name} (${emp.role})`;
             accountEmpSelect.appendChild(opt);
+
+            if (checkboxesDiv) {
+                const label = document.createElement('label');
+                label.style.cssText = 'display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #fff; cursor: pointer; background: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);';
+                label.innerHTML = `<input type="checkbox" class="allowed-emp-checkbox" value="${escapeHTML(emp.id)}"> <span>${escapeHTML(emp.name)}</span>`;
+                checkboxesDiv.appendChild(label);
+            }
         });
     }
 
@@ -1071,11 +1089,15 @@ async function fetchAndRenderEmployeeAccounts() {
                 const emp = state.employees.find(e => e.id === acc.employeeId);
                 const empName = emp ? emp.name : (acc.employeeId || 'غير محدد');
                 const dateStr = acc.createdAt ? new Date(acc.createdAt).toLocaleDateString(state.currentLanguage === 'ar' ? 'ar-EG' : 'en-US') : '-';
-                
+                const roleBadge = acc.role === 'leader' 
+                    ? `<span class="badge" style="background: rgba(16,185,129,0.2); color: #34d399; font-weight:700;">مشرف / قائد فريق</span>`
+                    : `<span class="badge" style="background: rgba(255,255,255,0.1); color: var(--text-dim);">موظف عادي</span>`;
+
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td style="font-weight: 700; color: #fff;">${escapeHTML(empName)}</td>
                     <td style="font-family: monospace; color: var(--color-primary); font-weight: 600;">${escapeHTML(acc.username)}</td>
+                    <td>${roleBadge}</td>
                     <td style="font-size: 12px; color: var(--text-muted);">${dateStr}</td>
                     <td>
                         <button class="btn btn-danger btn-icon-only btn-sm btn-delete-account" data-username="${escapeHTML(acc.username)}" onclick="deleteEmployeeAccount('${escapeHTML(acc.username)}')" title="حذف الحساب">
@@ -1240,13 +1262,20 @@ function renderEmployeeDetail(id) {
                 : '';
 
             const currentUser = getAuthUser();
-            const isAdminUser = !currentUser || currentUser.role !== 'employee';
+            let isCanEditTask = false;
+            if (!currentUser || currentUser.role === 'admin') {
+                isCanEditTask = true;
+            } else if (currentUser.role === 'leader') {
+                const allowed = new Set((currentUser.allowedEmployeeIds || []).map(String));
+                if (currentUser.employeeId) allowed.add(String(currentUser.employeeId));
+                if (allowed.has(String(emp.id))) isCanEditTask = true;
+            }
 
-            const statusBadgeHTML = isAdminUser
+            const statusBadgeHTML = isCanEditTask
                 ? `<span class="status-badge ${task.status} btn-toggle-status" style="cursor: pointer;" data-emp-id="${emp.id}" data-task-id="${task.id}" onclick="toggleTaskStatus('${emp.id}', '${task.id}')">${statusText}</span>`
                 : `<span class="status-badge ${task.status}">${statusText}</span>`;
 
-            const adminActionBtns = isAdminUser ? `
+            const adminActionBtns = isCanEditTask ? `
                 <button class="btn btn-secondary btn-icon-only btn-sm btn-edit-task" data-emp-id="${emp.id}" data-task-id="${task.id}" onclick="editTask('${emp.id}', '${task.id}')" title="Edit Task">
                     <i data-lucide="edit-3" style="width: 14px; height: 14px; pointer-events: none;"></i>
                 </button>
@@ -1731,6 +1760,38 @@ function applyRoleRestrictions() {
 
         const addTaskForm = document.getElementById('add-task-form');
         if (addTaskForm) addTaskForm.style.display = '';
+        
+        const createAccForm = document.getElementById('create-account-form');
+        if (createAccForm && createAccForm.parentElement) createAccForm.parentElement.style.display = '';
+    } else if (user.role === 'leader') {
+        state.isManagerUnlocked = true;
+
+        const addEmpBtn = document.getElementById('add-employee-btn');
+        if (addEmpBtn) addEmpBtn.style.display = 'none';
+
+        const placeholderAddBtn = document.getElementById('placeholder-add-btn');
+        if (placeholderAddBtn) placeholderAddBtn.style.display = 'none';
+
+        const managerBtn = document.getElementById('manager-btn');
+        if (managerBtn) managerBtn.style.display = '';
+
+        const editEmpBtn = document.getElementById('edit-employee-btn');
+        if (editEmpBtn) editEmpBtn.style.display = 'none';
+
+        const delEmpBtn = document.getElementById('delete-employee-btn');
+        if (delEmpBtn) delEmpBtn.style.display = 'none';
+
+        const clearDataBtn = document.getElementById('clear-data-btn');
+        if (clearDataBtn) clearDataBtn.style.display = 'none';
+
+        const importBtn = document.getElementById('import-btn');
+        if (importBtn) importBtn.style.display = 'none';
+
+        const addTaskForm = document.getElementById('add-task-form');
+        if (addTaskForm) addTaskForm.style.display = '';
+
+        const createAccForm = document.getElementById('create-account-form');
+        if (createAccForm && createAccForm.parentElement) createAccForm.parentElement.style.display = 'none';
     } else if (user.role === 'employee') {
         state.isManagerUnlocked = false;
 
@@ -1835,6 +1896,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    const roleSelect = document.getElementById('account-role-select');
+    const allowedContainer = document.getElementById('account-allowed-employees-container');
+    if (roleSelect && allowedContainer) {
+        roleSelect.addEventListener('change', (e) => {
+            allowedContainer.style.display = e.target.value === 'leader' ? 'block' : 'none';
+        });
+    }
+
     const createAccountForm = document.getElementById('create-account-form');
     if (createAccountForm) {
         createAccountForm.addEventListener('submit', async (e) => {
@@ -1842,7 +1911,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             const employeeId = document.getElementById('account-employee-select').value;
             const username = document.getElementById('account-username').value.trim();
             const password = document.getElementById('account-password').value;
+            const role = roleSelect ? roleSelect.value : 'employee';
             const msgEl = document.getElementById('account-msg');
+
+            let allowedEmployeeIds = [];
+            if (role === 'leader') {
+                const checkedBoxes = document.querySelectorAll('.allowed-emp-checkbox:checked');
+                allowedEmployeeIds = Array.from(checkedBoxes).map(cb => cb.value);
+            }
 
             if (!employeeId || !username || !password) return;
 
@@ -1850,7 +1926,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const res = await fetch('/api/auth/create-employee-account', {
                     method: 'POST',
                     headers: authHeaders(),
-                    body: JSON.stringify({ username, password, employeeId })
+                    body: JSON.stringify({ username, password, employeeId, role, allowedEmployeeIds })
                 });
                 if (res.status === 401 || res.status === 403) {
                     clearAuth();
@@ -1870,6 +1946,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         msgEl.style.display = 'block';
                     }
                     createAccountForm.reset();
+                    if (allowedContainer) allowedContainer.style.display = 'none';
                     fetchAndRenderEmployeeAccounts();
                 } else {
                     if (msgEl) {

@@ -4,7 +4,7 @@ const path = require('path');
 const AppData = require('../models/AppData');
 const Employee = require('../models/Employee');
 const Task = require('../models/Task');
-const { verifyToken, requireAdmin } = require('../middleware/auth');
+const { verifyToken, requireAdmin, requireAdminOrLeader } = require('../middleware/auth');
 const { dataMutationLimiter } = require('../middleware/security');
 const { encryptTaskFields, decryptTaskFields } = require('../utils/encryption');
 
@@ -124,6 +124,28 @@ router.get('/', verifyToken, async (req, res) => {
           exchangeRate
         }
       });
+    } else if (req.user.role === 'leader') {
+      const allowedIds = new Set((req.user.allowedEmployeeIds || []).map(String));
+      if (req.user.employeeId) allowedIds.add(String(req.user.employeeId));
+
+      const targetEmpIds = Array.from(allowedIds);
+      const dbEmployees = await Employee.find({ id: { $in: targetEmpIds } }).lean();
+      const dbTasks = await Task.find({ employeeId: { $in: targetEmpIds } }).lean();
+
+      const employeesWithTasks = dbEmployees.map(emp => {
+        const empTasks = dbTasks
+          .filter(t => String(t.employeeId) === String(emp.id))
+          .map(t => decryptTaskFields(t));
+        return { ...emp, tasks: empTasks };
+      });
+
+      return res.json({
+        success: true,
+        data: {
+          employees: employeesWithTasks,
+          exchangeRate
+        }
+      });
     } else {
       // Employee sees only their own employee profile & tasks
       const emp = await Employee.findOne({ id: req.user.employeeId }).lean();
@@ -228,38 +250,50 @@ router.post('/', dataMutationLimiter, verifyToken, requireAdmin, async (req, res
   }
 });
 
-// POST /tasks - Create single task
-router.post('/tasks', dataMutationLimiter, verifyToken, requireAdmin, async (req, res) => {
+// POST /tasks - Create or Edit single task
+router.post('/tasks', dataMutationLimiter, verifyToken, requireAdminOrLeader, async (req, res) => {
   try {
     const taskData = req.body;
     if (!taskData || !taskData.employeeId || !taskData.title) {
       return res.status(400).json({ success: false, error: 'Missing required task fields' });
     }
 
+    if (req.user.role === 'leader') {
+      const allowedIds = new Set((req.user.allowedEmployeeIds || []).map(String));
+      if (req.user.employeeId) allowedIds.add(String(req.user.employeeId));
+      if (!allowedIds.has(String(taskData.employeeId))) {
+        return res.status(403).json({ success: false, error: 'غير مصرح بتعديل أو إضافة مهام هذا الموظف' });
+      }
+    }
+
     const taskId = taskData.id || ('task_' + Date.now());
     const encryptedT = encryptTaskFields(taskData);
 
-    const newTask = await Task.create({
-      id: taskId,
-      employeeId: String(taskData.employeeId),
-      type: taskData.type || 'task',
-      taskNumber: taskData.taskNumber || '',
-      title: taskData.title,
-      gross: taskData.gross || 0,
-      currency: taskData.currency || 'USD',
-      deductionRate: taskData.deductionRate || 10,
-      delayDeduction: taskData.delayDeduction || 0,
-      advance: taskData.advance || 0,
-      fixedDeduction: taskData.fixedDeduction || 0,
-      status: taskData.status || 'pending',
-      month: taskData.month || 'january',
-      exchangeRate: taskData.exchangeRate,
-      email: encryptedT.email || '',
-      password: encryptedT.password || '',
-      character: encryptedT.character || '',
-      vpn: encryptedT.vpn || '',
-      createdAt: taskData.createdAt ? new Date(taskData.createdAt) : new Date()
-    });
+    const newTask = await Task.findOneAndUpdate(
+      { id: taskId },
+      {
+        id: taskId,
+        employeeId: String(taskData.employeeId),
+        type: taskData.type || 'task',
+        taskNumber: taskData.taskNumber || '',
+        title: taskData.title,
+        gross: taskData.gross || 0,
+        currency: taskData.currency || 'USD',
+        deductionRate: taskData.deductionRate || 10,
+        delayDeduction: taskData.delayDeduction || 0,
+        advance: taskData.advance || 0,
+        fixedDeduction: taskData.fixedDeduction || 0,
+        status: taskData.status || 'pending',
+        month: taskData.month || 'january',
+        exchangeRate: taskData.exchangeRate,
+        email: encryptedT.email || '',
+        password: encryptedT.password || '',
+        character: encryptedT.character || '',
+        vpn: encryptedT.vpn || '',
+        createdAt: taskData.createdAt ? new Date(taskData.createdAt) : new Date()
+      },
+      { upsert: true, new: true }
+    );
 
     res.json({ success: true, task: decryptTaskFields(newTask.toObject()) });
   } catch (error) {
@@ -269,9 +303,22 @@ router.post('/tasks', dataMutationLimiter, verifyToken, requireAdmin, async (req
 });
 
 // DELETE /tasks/:id - Delete single task
-router.delete('/tasks/:id', dataMutationLimiter, verifyToken, requireAdmin, async (req, res) => {
+router.delete('/tasks/:id', dataMutationLimiter, verifyToken, requireAdminOrLeader, async (req, res) => {
   try {
     const taskId = String(req.params.id);
+    const task = await Task.findOne({ id: taskId });
+    if (!task) {
+      return res.status(404).json({ success: false, error: 'Task not found' });
+    }
+
+    if (req.user.role === 'leader') {
+      const allowedIds = new Set((req.user.allowedEmployeeIds || []).map(String));
+      if (req.user.employeeId) allowedIds.add(String(req.user.employeeId));
+      if (!allowedIds.has(String(task.employeeId))) {
+        return res.status(403).json({ success: false, error: 'غير مصرح لك بحذف مهمة هذا الموظف' });
+      }
+    }
+
     await Task.findOneAndDelete({ id: taskId });
     res.json({ success: true, message: 'Task deleted successfully' });
   } catch (error) {
