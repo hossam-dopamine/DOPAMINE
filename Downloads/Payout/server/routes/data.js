@@ -4,6 +4,7 @@ const path = require('path');
 const AppData = require('../models/AppData');
 const Employee = require('../models/Employee');
 const Task = require('../models/Task');
+const User = require('../models/User');
 const { verifyToken, requireAdmin, requireAdminOrLeader } = require('../middleware/auth');
 const { dataMutationLimiter } = require('../middleware/security');
 const { encryptTaskFields, decryptTaskFields } = require('../utils/encryption');
@@ -251,6 +252,73 @@ router.post('/', dataMutationLimiter, verifyToken, requireAdmin, async (req, res
     res.json({ success: true, message: 'Data saved successfully' });
   } catch (error) {
     console.error('Save data error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// POST /employees - Create or Edit employee profile
+router.post('/employees', dataMutationLimiter, verifyToken, async (req, res) => {
+  try {
+    const empData = req.body;
+    if (!empData || !empData.name) {
+      return res.status(400).json({ success: false, error: 'اسم الموظف مطلوب' });
+    }
+
+    const empId = empData.id || ('emp_' + Date.now());
+    const existing = await Employee.findOne({ id: String(empId) });
+    const isNew = !existing;
+
+    // Authorization checks
+    if (req.user.role === 'leader') {
+      const allowedIds = new Set((req.user.allowedEmployeeIds || []).map(String));
+      if (req.user.employeeId) allowedIds.add(String(req.user.employeeId));
+
+      if (!isNew && !allowedIds.has(String(empId))) {
+        return res.status(403).json({ success: false, error: 'غير مصرح بتعديل بيانات هذا الموظف' });
+      }
+    } else if (req.user.role === 'employee') {
+      if (String(empId) !== String(req.user.employeeId)) {
+        return res.status(403).json({ success: false, error: 'غير مصرح بتعديل بيانات موظف آخر' });
+      }
+    }
+
+    // Save/update Employee profile in MongoDB
+    const updatedEmp = await Employee.findOneAndUpdate(
+      { id: empId },
+      {
+        id: empId,
+        name: empData.name,
+        role: empData.role || 'عضو',
+        defaultDeductionRate: (empData.defaultDeductionRate !== undefined && empData.defaultDeductionRate !== null) ? Number(empData.defaultDeductionRate) : 10,
+        paymentMethod: empData.paymentMethod || 'instapay',
+        paymentDetails: empData.paymentDetails || '',
+        avatarUrl: empData.avatarUrl || '',
+        adjustments: empData.adjustments || {}
+      },
+      { upsert: true, new: true }
+    ).lean();
+
+    let updatedAllowedIds = req.user.allowedEmployeeIds || [];
+
+    // If Leader created a NEW employee, automatically associate new employee ID with Leader user account in DB!
+    if (isNew && req.user.role === 'leader') {
+      const updatedUser = await User.findOneAndUpdate(
+        { id: req.user.id },
+        { $addToSet: { allowedEmployeeIds: empId } },
+        { new: true }
+      );
+      if (updatedUser) {
+        updatedAllowedIds = updatedUser.allowedEmployeeIds;
+      }
+    }
+
+    res.json({
+      success: true,
+      employee: updatedEmp,
+      allowedEmployeeIds: updatedAllowedIds
+    });
+  } catch (error) {
+    console.error('Save employee error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });

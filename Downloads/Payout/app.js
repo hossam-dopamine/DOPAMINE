@@ -580,6 +580,32 @@ async function deleteTaskApi(taskId) {
     }
 }
 
+async function saveEmployeeApi(emp) {
+    if (!isAuthenticated() || !emp) return null;
+    try {
+        const res = await fetch('/api/data/employees', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify(emp)
+        });
+        const data = await res.json();
+        if (data && data.success && data.employee) {
+            showStorageSyncBadge(true);
+            const user = getAuthUser();
+            if (user && data.allowedEmployeeIds) {
+                user.allowedEmployeeIds = data.allowedEmployeeIds;
+                const token = getAuthToken();
+                if (token) setAuth(token, user);
+            }
+            return data.employee;
+        }
+    } catch (e) {
+        showStorageSyncBadge(false);
+        console.error('Error saving employee via API:', e);
+    }
+    return null;
+}
+
 function showStorageSyncBadge(isFileSaved) {
     let badge = document.getElementById('disk-sync-indicator');
     if (!badge) {
@@ -1235,7 +1261,20 @@ function renderEmployeeDetail(id) {
         avatarImg.src = '';
         avatarImg.style.display = 'none';
         initialsSpan.textContent = emp.name.trim().charAt(0).toUpperCase();
-        initialsSpan.style.display = 'block';
+    }
+
+    const currentUser = getAuthUser();
+    const editEmpBtn = document.getElementById('edit-employee-btn');
+    if (editEmpBtn) {
+        if (currentUser && currentUser.role === 'admin') {
+            editEmpBtn.style.display = '';
+        } else if (currentUser && currentUser.role === 'leader') {
+            const allowed = new Set((currentUser.allowedEmployeeIds || []).map(String));
+            if (currentUser.employeeId) allowed.add(String(currentUser.employeeId));
+            editEmpBtn.style.display = allowed.has(String(emp.id)) ? '' : 'none';
+        } else if (currentUser && currentUser.role === 'employee') {
+            editEmpBtn.style.display = (currentUser.employeeId && String(emp.id) === String(currentUser.employeeId)) ? '' : 'none';
+        }
     }
 
     const dbMonthFilter = document.getElementById('dashboard-filter-month');
@@ -1509,7 +1548,8 @@ window.editTask = function(empId, taskId) {
 // --- CRUD Actions for Employees ---
 function openEmployeeModal(isEdit = false) {
     const user = getAuthUser();
-    if (user && user.role === 'employee') return; // Employees cannot create or edit employee accounts
+    if (!user) return;
+    if (user.role === 'employee' && (!isEdit || String(state.selectedEmployeeId) !== String(user.employeeId))) return;
 
     const modal = document.getElementById('employee-modal');
     const modalTitle = document.getElementById('modal-title');
@@ -1869,7 +1909,7 @@ function applyRoleRestrictions() {
         state.isManagerUnlocked = true;
 
         const addEmpBtn = document.getElementById('add-employee-btn');
-        if (addEmpBtn) addEmpBtn.style.display = 'none';
+        if (addEmpBtn) addEmpBtn.style.display = '';
 
         const placeholderAddBtn = document.getElementById('placeholder-add-btn');
         if (placeholderAddBtn) placeholderAddBtn.style.display = 'none';
@@ -1878,7 +1918,7 @@ function applyRoleRestrictions() {
         if (managerBtn) managerBtn.style.display = '';
 
         const editEmpBtn = document.getElementById('edit-employee-btn');
-        if (editEmpBtn) editEmpBtn.style.display = 'none';
+        if (editEmpBtn) editEmpBtn.style.display = '';
 
         const delEmpBtn = document.getElementById('delete-employee-btn');
         if (delEmpBtn) delEmpBtn.style.display = 'none';
@@ -2099,7 +2139,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('close-employee-modal').addEventListener('click', closeEmployeeModal);
     document.getElementById('cancel-employee-modal').addEventListener('click', closeEmployeeModal);
     
-    document.getElementById('employee-form').addEventListener('submit', (e) => {
+    document.getElementById('employee-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         
         const empId = document.getElementById('edit-employee-id').value;
@@ -2109,9 +2149,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         const paymentMethod = document.getElementById('employee-payment-method').value;
         const paymentDetails = document.getElementById('employee-payment-details').value.trim();
 
+        const empToSave = {
+            id: empId || undefined,
+            name: name,
+            role: role,
+            defaultDeductionRate: deductionRate,
+            paymentMethod: paymentMethod,
+            paymentDetails: paymentDetails,
+            avatarUrl: state.tempAvatarUrl
+        };
+
+        const savedEmp = await saveEmployeeApi(empToSave);
+        const user = getAuthUser();
+
         if (empId) {
             // Edit Mode
-            const emp = state.employees.find(e => e.id === empId);
+            const emp = state.employees.find(e => String(e.id) === String(empId));
             if (emp) {
                 emp.name = name;
                 emp.role = role;
@@ -2125,8 +2178,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         } else {
             // Add Mode
+            const finalId = savedEmp ? savedEmp.id : ('emp_' + Date.now());
             const newEmp = {
-                id: 'emp_' + Date.now(),
+                id: finalId,
                 name: name,
                 role: role,
                 defaultDeductionRate: deductionRate,
@@ -2143,7 +2197,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             showToast('toast-employee-added');
         }
 
-        saveState();
+        if (user && user.role === 'admin') {
+            saveState();
+        }
         closeEmployeeModal();
         
         // Render Dashboard
