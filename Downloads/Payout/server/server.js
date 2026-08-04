@@ -12,8 +12,12 @@ const PORT = process.env.PORT || 3000;
 // Trust reverse proxy (Render.com)
 app.set('trust proxy', 1);
 
-// Connect to MongoDB
-connectDB();
+// Connect to MongoDB and run initial data migration if needed
+connectDB().then(() => {
+  if (dataRoutes.ensureMigratedData) {
+    dataRoutes.ensureMigratedData();
+  }
+}).catch(err => console.error('DB connect error:', err));
 
 // Apply security and standard middlewares
 applySecurityMiddleware(app);

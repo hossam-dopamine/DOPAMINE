@@ -102,8 +102,6 @@ const ensureMigratedData = async () => {
 // GET /data - Load full dataset for Admin or employee-scoped dataset
 router.get('/', verifyToken, async (req, res) => {
   try {
-    await ensureMigratedData();
-
     let meta = await AppData.findOne();
     const exchangeRate = meta ? meta.exchangeRate : 50;
 
@@ -152,7 +150,6 @@ router.get('/', verifyToken, async (req, res) => {
 // POST /data - Granular or Bulk Sync Route
 router.post('/', verifyToken, requireAdmin, async (req, res) => {
   try {
-    await ensureMigratedData();
     const { employees, exchangeRate } = req.body;
 
     if (Array.isArray(employees)) {
@@ -282,4 +279,5 @@ router.delete('/tasks/:id', verifyToken, requireAdmin, async (req, res) => {
   }
 });
 
+router.ensureMigratedData = ensureMigratedData;
 module.exports = router;

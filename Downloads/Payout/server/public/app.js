@@ -821,8 +821,11 @@ function renderEmployeesList() {
         // Initial letter for Avatar
         const avatarLetter = emp.name.trim().charAt(0).toUpperCase();
         
-        const avatarHTML = emp.avatarUrl 
-            ? `<img src="${emp.avatarUrl}" class="avatar-img">`
+        const safeAvatarUrl = (emp.avatarUrl && (emp.avatarUrl.startsWith('http://') || emp.avatarUrl.startsWith('https://') || emp.avatarUrl.startsWith('data:image/')))
+            ? escapeHTML(emp.avatarUrl)
+            : '';
+        const avatarHTML = safeAvatarUrl 
+            ? `<img src="${safeAvatarUrl}" class="avatar-img">`
             : `<div class="avatar">${avatarLetter}</div>`;
         
         item.innerHTML = `
