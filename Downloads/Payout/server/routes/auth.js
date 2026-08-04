@@ -147,7 +147,12 @@ router.delete('/delete-account/:username', verifyToken, requireAdmin, async (req
       return res.status(400).json({ success: false, error: 'Cannot delete own account' });
     }
     
-    const result = await User.findOneAndDelete({ username: username.toLowerCase() });
+    const cleanTargetUser = String(username).toLowerCase().trim();
+    if (cleanTargetUser === req.user.username.toLowerCase().trim()) {
+      return res.status(400).json({ success: false, error: 'Cannot delete own account' });
+    }
+    
+    const result = await User.findOneAndDelete({ username: cleanTargetUser });
     if (!result) {
       return res.status(404).json({ success: false, error: 'User not found' });
     }

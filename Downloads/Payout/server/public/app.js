@@ -453,7 +453,8 @@ async function loadStateAsync() {
                     state.employees = result.data.employees || [];
                     state.exchangeRate = result.data.exchangeRate || 50;
                     state.viewMode = 'employee';
-                    state.selectedEmployeeId = state.employees.length > 0 ? state.employees[0].id : null;
+                    const myEmp = user.employeeId ? state.employees.find(e => String(e.id) === String(user.employeeId)) : null;
+                    state.selectedEmployeeId = myEmp ? myEmp.id : (state.employees.length > 0 ? state.employees[0].id : null);
                     state.isManagerUnlocked = false;
                 } else {
                     // Admin: merge server data INTO state (preserve UI properties)
@@ -1363,6 +1364,9 @@ window.editTask = function(empId, taskId) {
 
 // --- CRUD Actions for Employees ---
 function openEmployeeModal(isEdit = false) {
+    const user = getAuthUser();
+    if (user && user.role === 'employee') return; // Employees cannot create or edit employee accounts
+
     const modal = document.getElementById('employee-modal');
     const modalTitle = document.getElementById('modal-title');
     const form = document.getElementById('employee-form');
@@ -1719,6 +1723,9 @@ function applyRoleRestrictions() {
 
         const addEmpBtn = document.getElementById('add-employee-btn');
         if (addEmpBtn) addEmpBtn.style.display = 'none';
+
+        const placeholderAddBtn = document.getElementById('placeholder-add-btn');
+        if (placeholderAddBtn) placeholderAddBtn.style.display = 'none';
 
         const managerBtn = document.getElementById('manager-btn');
         if (managerBtn) managerBtn.style.display = 'none';

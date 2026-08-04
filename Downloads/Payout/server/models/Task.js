@@ -28,7 +28,8 @@ const taskSchema = new mongoose.Schema({
   gross: {
     type: Number,
     required: true,
-    default: 0
+    default: 0,
+    min: 0
   },
   currency: {
     type: String,
@@ -37,19 +38,24 @@ const taskSchema = new mongoose.Schema({
   },
   deductionRate: {
     type: Number,
-    default: 10
+    default: 10,
+    min: 0,
+    max: 100
   },
   delayDeduction: {
     type: Number,
-    default: 0
+    default: 0,
+    min: 0
   },
   advance: {
     type: Number,
-    default: 0
+    default: 0,
+    min: 0
   },
   fixedDeduction: {
     type: Number,
-    default: 0
+    default: 0,
+    min: 0
   },
   status: {
     type: String,
@@ -84,5 +90,7 @@ const taskSchema = new mongoose.Schema({
     default: Date.now
   }
 });
+
+taskSchema.index({ employeeId: 1, month: 1 });
 
 module.exports = mongoose.model('Task', taskSchema);
