@@ -297,12 +297,12 @@ const AUTH_TOKEN_KEY = 'dopamine_auth_token';
 const AUTH_USER_KEY = 'dopamine_auth_user';
 
 function getAuthToken() {
-    return localStorage.getItem(AUTH_TOKEN_KEY);
+    return sessionStorage.getItem(AUTH_TOKEN_KEY);
 }
 
 function getAuthUser() {
     try {
-        const u = JSON.parse(localStorage.getItem(AUTH_USER_KEY));
+        const u = JSON.parse(sessionStorage.getItem(AUTH_USER_KEY));
         if (u && u.role) return u;
         const t = getAuthToken();
         if (t) {
@@ -311,7 +311,8 @@ function getAuthUser() {
                 id: payload.id,
                 username: payload.username || 'user',
                 role: payload.role || 'employee',
-                employeeId: payload.employeeId
+                employeeId: payload.employeeId,
+                allowedEmployeeIds: payload.allowedEmployeeIds || []
             };
         }
         return null;
@@ -321,11 +322,17 @@ function getAuthUser() {
 }
 
 function setAuth(token, user) {
-    localStorage.setItem(AUTH_TOKEN_KEY, token);
-    localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+    // Clean legacy localStorage auth tokens
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(AUTH_USER_KEY);
+    // Store in sessionStorage so closing tab/browser auto-logs out
+    sessionStorage.setItem(AUTH_TOKEN_KEY, token);
+    sessionStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
 }
 
 function clearAuth() {
+    sessionStorage.removeItem(AUTH_TOKEN_KEY);
+    sessionStorage.removeItem(AUTH_USER_KEY);
     localStorage.removeItem(AUTH_TOKEN_KEY);
     localStorage.removeItem(AUTH_USER_KEY);
 }
