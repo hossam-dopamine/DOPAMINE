@@ -14,7 +14,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z'/></svg>">
-    <link rel="stylesheet" href="style.css?v=50.0">
+    <link rel="stylesheet" href="style.css?v=52.0">
 </head>
 <body>
     <!-- Login Overlay -->
@@ -819,6 +819,33 @@
         </div>
     </div>
 
+    <!-- Leader Allowed Employees Modal -->
+    <div id="leader-permissions-modal" class="modal-overlay">
+        <div class="modal-content glass-panel" style="max-width: 550px;">
+            <div class="modal-header">
+                <h3 id="leader-modal-title">تحديد الموظفين المسموحين للمشرف</h3>
+                <button class="modal-close" id="close-leader-permissions-modal">&times;</button>
+            </div>
+            <form id="leader-permissions-form">
+                <input type="hidden" id="leader-target-username">
+                <p style="font-size: 13px; color: var(--text-dim); margin-bottom: 12px;">
+                    اختر الموظفين الذين يحق لهذا المشرف رؤيتهم وإدارة مهامهم ومستحقاتهم:
+                </p>
+                <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                    <button type="button" class="btn btn-secondary btn-sm" id="select-all-leader-emps">تحديد الكل</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="deselect-all-leader-emps">إلغاء التحديد</button>
+                </div>
+                <div id="leader-emps-checkbox-container" style="max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-bottom: 16px;">
+                    <!-- Dynamically populated checkboxes -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancel-leader-permissions-modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Notification Toast -->
     <div id="toast" class="toast">
         <span id="toast-message">تمت العملية بنجاح!</span>
@@ -835,7 +862,7 @@
         }
     </script>
     <!-- App JavaScript Logic -->
-    <script src="app.js?v=50.0"></script>
+    <script src="app.js?v=52.0"></script>
 </body>
 </html>
 

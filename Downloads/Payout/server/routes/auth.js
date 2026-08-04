@@ -165,4 +165,36 @@ router.get('/employee-accounts', verifyToken, requireAdmin, async (req, res) => 
   }
 });
 
+// PUT /update-allowed-employees - Admin updates allowed employees for a Leader account
+router.put('/update-allowed-employees', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const { username, allowedEmployeeIds } = req.body;
+    if (!username) {
+      return res.status(400).json({ success: false, error: 'اسم المستخدم مطلوب' });
+    }
+
+    const cleanUsername = String(username).toLowerCase().trim();
+    const newAllowedIds = Array.isArray(allowedEmployeeIds) ? allowedEmployeeIds.map(String) : [];
+
+    const updatedUser = await User.findOneAndUpdate(
+      { username: cleanUsername },
+      { allowedEmployeeIds: newAllowedIds },
+      { new: true }
+    ).select('-passwordHash');
+
+    if (!updatedUser) {
+      return res.status(404).json({ success: false, error: 'الحساب غير موجود' });
+    }
+
+    res.json({
+      success: true,
+      message: 'تم تحديث الموظفين المسموحين للمشرف بنجاح',
+      user: updatedUser
+    });
+  } catch (error) {
+    console.error('Update allowed employees error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
 module.exports = router;

@@ -1182,6 +1182,7 @@ async function fetchAndRenderEmployeeAccounts() {
         if (!res.ok) return;
         const data = await res.json();
         if (data.success && Array.isArray(data.accounts)) {
+            window.currentLeaderAccountsData = data.accounts;
             if (data.accounts.length === 0) {
                 container.style.display = 'none';
                 return;
@@ -1196,6 +1197,14 @@ async function fetchAndRenderEmployeeAccounts() {
                     ? `<span class="badge" style="background: rgba(16,185,129,0.2); color: #34d399; font-weight:700;">مشرف / قائد فريق</span>`
                     : `<span class="badge" style="background: rgba(255,255,255,0.1); color: var(--text-dim);">موظف عادي</span>`;
 
+                const allowedCount = Array.isArray(acc.allowedEmployeeIds) ? acc.allowedEmployeeIds.length : 0;
+                const manageBtn = acc.role === 'leader'
+                    ? `<button class="btn btn-secondary btn-sm" onclick="openLeaderPermissionsModal('${escapeHTML(acc.username)}')" style="margin-inline-end: 6px; font-size: 11px; padding: 4px 10px;">
+                        <i data-lucide="shield-check" style="width: 13px; height: 13px; vertical-align: middle; margin-inline-end: 4px; pointer-events: none;"></i>
+                        إدارة الموظفين (${allowedCount})
+                       </button>`
+                    : '';
+
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td style="font-weight: 700; color: #fff;">${escapeHTML(empName)}</td>
@@ -1203,6 +1212,7 @@ async function fetchAndRenderEmployeeAccounts() {
                     <td>${roleBadge}</td>
                     <td style="font-size: 12px; color: var(--text-muted);">${dateStr}</td>
                     <td>
+                        ${manageBtn}
                         <button class="btn btn-danger btn-icon-only btn-sm btn-delete-account" data-username="${escapeHTML(acc.username)}" onclick="deleteEmployeeAccount('${escapeHTML(acc.username)}')" title="حذف الحساب">
                             <i data-lucide="trash-2" style="width: 14px; height: 14px; pointer-events: none;"></i>
                         </button>
@@ -1233,6 +1243,43 @@ window.deleteEmployeeAccount = async function(username) {
     } catch (e) {
         alert('Server error');
     }
+};
+
+window.openLeaderPermissionsModal = function(username) {
+    const modal = document.getElementById('leader-permissions-modal');
+    if (!modal) return;
+    
+    document.getElementById('leader-target-username').value = username;
+    document.getElementById('leader-modal-title').textContent = `تحديد الموظفين المسموحين للمشرف: (${username})`;
+    
+    const container = document.getElementById('leader-emps-checkbox-container');
+    container.innerHTML = '';
+
+    const targetAccount = (window.currentLeaderAccountsData || []).find(a => a.username === username);
+    const allowedSet = new Set((targetAccount && targetAccount.allowedEmployeeIds ? targetAccount.allowedEmployeeIds : []).map(String));
+
+    if (state.employees.length === 0) {
+        container.innerHTML = '<p style="font-size: 12px; color: var(--text-dim); grid-column: 1/-1;">لا يوجد ملفات موظفين منشأة بعد</p>';
+    } else {
+        state.employees.forEach(emp => {
+            const isChecked = allowedSet.has(String(emp.id));
+            const label = document.createElement('label');
+            label.style.cssText = 'display: flex; align-items: center; gap: 8px; font-size: 13px; color: #fff; cursor: pointer; user-select: none; background: rgba(255,255,255,0.03); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);';
+            label.innerHTML = `
+                <input type="checkbox" class="leader-emp-checkbox" value="${escapeHTML(emp.id)}" ${isChecked ? 'checked' : ''}>
+                <span>${escapeHTML(emp.name)}</span>
+            `;
+            container.appendChild(label);
+        });
+    }
+
+    modal.classList.add('active');
+    if (window.lucide) window.lucide.createIcons();
+};
+
+window.closeLeaderPermissionsModal = function() {
+    const modal = document.getElementById('leader-permissions-modal');
+    if (modal) modal.classList.remove('active');
 };
 
 // --- Employee Payouts Detail Page Rendering ---
@@ -2103,6 +2150,53 @@ document.addEventListener('DOMContentLoaded', async () => {
                     msgEl.textContent = '❌ Server Error';
                     msgEl.style.display = 'block';
                 }
+            }
+        });
+    }
+
+    // Leader Permissions Modal Event Listeners
+    const closeLeaderPermModal = document.getElementById('close-leader-permissions-modal');
+    const cancelLeaderPermModal = document.getElementById('cancel-leader-permissions-modal');
+    if (closeLeaderPermModal) closeLeaderPermModal.addEventListener('click', window.closeLeaderPermissionsModal);
+    if (cancelLeaderPermModal) cancelLeaderPermModal.addEventListener('click', window.closeLeaderPermissionsModal);
+
+    const selectAllLeaderBtn = document.getElementById('select-all-leader-emps');
+    const deselectAllLeaderBtn = document.getElementById('deselect-all-leader-emps');
+    if (selectAllLeaderBtn) {
+        selectAllLeaderBtn.addEventListener('click', () => {
+            document.querySelectorAll('.leader-emp-checkbox').forEach(cb => cb.checked = true);
+        });
+    }
+    if (deselectAllLeaderBtn) {
+        deselectAllLeaderBtn.addEventListener('click', () => {
+            document.querySelectorAll('.leader-emp-checkbox').forEach(cb => cb.checked = false);
+        });
+    }
+
+    const leaderPermForm = document.getElementById('leader-permissions-form');
+    if (leaderPermForm) {
+        leaderPermForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('leader-target-username').value;
+            const checked = Array.from(document.querySelectorAll('.leader-emp-checkbox:checked')).map(cb => cb.value);
+
+            try {
+                const res = await fetch('/api/auth/update-allowed-employees', {
+                    method: 'PUT',
+                    headers: authHeaders(),
+                    body: JSON.stringify({ username, allowedEmployeeIds: checked })
+                });
+                const data = await res.json();
+                if (data && data.success) {
+                    showToast('toast-employee-updated');
+                    window.closeLeaderPermissionsModal();
+                    fetchAndRenderEmployeeAccounts();
+                } else {
+                    alert(data.error || 'حدث خطأ أثناء تحديث الموظفين المسموحين');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('حدث خطأ في الاتصال بالسيرفر');
             }
         });
     }

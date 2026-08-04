@@ -287,12 +287,12 @@ router.post('/employees', dataMutationLimiter, verifyToken, async (req, res) => 
       { id: empId },
       {
         id: empId,
-        name: empData.name,
-        role: empData.role || 'عضو',
-        defaultDeductionRate: (empData.defaultDeductionRate !== undefined && empData.defaultDeductionRate !== null) ? Number(empData.defaultDeductionRate) : 10,
-        paymentMethod: empData.paymentMethod || 'instapay',
-        paymentDetails: empData.paymentDetails || '',
-        avatarUrl: empData.avatarUrl || '',
+        name: String(empData.name).trim(),
+        role: String(empData.role || 'عضو').trim(),
+        defaultDeductionRate: (empData.defaultDeductionRate !== undefined && empData.defaultDeductionRate !== null) ? Math.min(100, Math.max(0, Number(empData.defaultDeductionRate))) : 10,
+        paymentMethod: String(empData.paymentMethod || 'instapay').trim(),
+        paymentDetails: String(empData.paymentDetails || '').trim(),
+        avatarUrl: String(empData.avatarUrl || '').trim(),
         adjustments: empData.adjustments || {}
       },
       { upsert: true, new: true }
@@ -300,11 +300,11 @@ router.post('/employees', dataMutationLimiter, verifyToken, async (req, res) => 
 
     let updatedAllowedIds = req.user.allowedEmployeeIds || [];
 
-    // If Leader created a NEW employee, automatically associate new employee ID with Leader user account in DB!
-    if (isNew && req.user.role === 'leader') {
+    // If Leader created or updated an employee, ensure employee ID is associated with Leader user account in DB!
+    if (req.user.role === 'leader') {
       const updatedUser = await User.findOneAndUpdate(
-        { id: req.user.id },
-        { $addToSet: { allowedEmployeeIds: empId } },
+        { $or: [{ _id: req.user._id }, { username: req.user.username }] },
+        { $addToSet: { allowedEmployeeIds: String(empId) } },
         { new: true }
       );
       if (updatedUser) {
