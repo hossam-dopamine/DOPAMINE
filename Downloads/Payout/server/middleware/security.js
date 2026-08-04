@@ -51,7 +51,16 @@ const authLimiter = rateLimit({
   message: { success: false, error: 'Too many authentication attempts, please try again later.' }
 });
 
+const dataMutationLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many data modification requests, please try again later.' }
+});
+
 module.exports = {
   applySecurityMiddleware,
-  authLimiter
+  authLimiter,
+  dataMutationLimiter
 };

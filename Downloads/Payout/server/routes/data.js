@@ -5,6 +5,7 @@ const AppData = require('../models/AppData');
 const Employee = require('../models/Employee');
 const Task = require('../models/Task');
 const { verifyToken, requireAdmin } = require('../middleware/auth');
+const { dataMutationLimiter } = require('../middleware/security');
 const { encryptTaskFields, decryptTaskFields } = require('../utils/encryption');
 
 const router = express.Router();
@@ -148,7 +149,7 @@ router.get('/', verifyToken, async (req, res) => {
 });
 
 // POST /data - Granular or Bulk Sync Route
-router.post('/', verifyToken, requireAdmin, async (req, res) => {
+router.post('/', dataMutationLimiter, verifyToken, requireAdmin, async (req, res) => {
   try {
     const { employees, exchangeRate } = req.body;
 
@@ -228,7 +229,7 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
 });
 
 // POST /tasks - Create single task
-router.post('/tasks', verifyToken, requireAdmin, async (req, res) => {
+router.post('/tasks', dataMutationLimiter, verifyToken, requireAdmin, async (req, res) => {
   try {
     const taskData = req.body;
     if (!taskData || !taskData.employeeId || !taskData.title) {
@@ -268,7 +269,7 @@ router.post('/tasks', verifyToken, requireAdmin, async (req, res) => {
 });
 
 // DELETE /tasks/:id - Delete single task
-router.delete('/tasks/:id', verifyToken, requireAdmin, async (req, res) => {
+router.delete('/tasks/:id', dataMutationLimiter, verifyToken, requireAdmin, async (req, res) => {
   try {
     const taskId = String(req.params.id);
     await Task.findOneAndDelete({ id: taskId });

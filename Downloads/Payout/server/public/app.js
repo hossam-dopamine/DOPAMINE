@@ -370,6 +370,11 @@ function escapeHTML(str) {
         .replace(/'/g, '&#039;');
 }
 
+// --- Global Error Boundaries ---
+window.addEventListener('unhandledrejection', (event) => {
+    console.warn('Unhandled promise rejection:', event.reason);
+});
+
 // --- Data Structure Validation Helper ---
 function validateAndSanitizeState(obj) {
     if (!obj || typeof obj !== 'object') return false;
@@ -380,12 +385,20 @@ function validateAndSanitizeState(obj) {
         if (!emp.name) emp.name = 'موظف';
         if (!emp.role) emp.role = 'عضو';
         if (typeof emp.defaultDeductionRate !== 'number') emp.defaultDeductionRate = 10;
+        if (emp.avatarUrl && typeof emp.avatarUrl === 'string') {
+            if (!emp.avatarUrl.startsWith('http://') && !emp.avatarUrl.startsWith('https://') && !emp.avatarUrl.startsWith('data:image/')) {
+                emp.avatarUrl = '';
+            }
+        } else {
+            emp.avatarUrl = '';
+        }
         if (!Array.isArray(emp.tasks)) emp.tasks = [];
         emp.tasks.forEach((task, tIdx) => {
             if (!task.id) task.id = 'task_' + Date.now() + '_' + tIdx;
             if (!task.taskNumber) task.taskNumber = '#000';
             if (!task.title) task.title = 'مهمة';
             if (typeof task.gross !== 'number') task.gross = parseFloat(task.gross) || 0;
+            if (task.gross < 0) task.gross = 0;
             if (!task.currency) task.currency = 'USD';
             if (typeof task.deductionRate !== 'number') task.deductionRate = emp.defaultDeductionRate;
             if (!task.status) task.status = 'pending';
@@ -1250,7 +1263,7 @@ function renderEmployeeDetail(id) {
                         ${typeBadge}
                     </div>
                     <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">
-                        ${new Date(task.createdAt).toLocaleDateString(state.currentLanguage === 'ar' ? 'ar-EG' : 'en-US')}
+                        ${(task.createdAt && !isNaN(new Date(task.createdAt).getTime()) ? new Date(task.createdAt) : new Date()).toLocaleDateString(state.currentLanguage === 'ar' ? 'ar-EG' : 'en-US')}
                         ${monthText ? ' • ' + monthText : ''}
                     </div>
                     ${credsSummary.length > 0 ? `<div class="creds-print-hide" style="font-size: 11px; color: var(--color-secondary); margin-top: 3px; font-family: monospace;">${credsSummary.join(' • ')}</div>` : ''}

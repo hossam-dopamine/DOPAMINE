@@ -33,7 +33,8 @@ const employeeSchema = new mongoose.Schema({
     default: ''
   },
   adjustments: {
-    type: mongoose.Schema.Types.Mixed,
+    type: Map,
+    of: mongoose.Schema.Types.Mixed,
     default: {}
   },
   createdAt: {

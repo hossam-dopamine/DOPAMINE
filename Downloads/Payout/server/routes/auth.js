@@ -101,12 +101,12 @@ router.post('/create-employee-account', verifyToken, requireAdmin, async (req, r
     
     const existingUser = await User.findOne({ username });
     if (existingUser) {
-      return res.status(400).json({ success: false, error: 'Username already exists' });
+      return res.status(409).json({ success: false, error: 'Username already exists' });
     }
     
     const existingEmployeeUser = await User.findOne({ employeeId });
     if (existingEmployeeUser) {
-      return res.status(400).json({ success: false, error: 'Account already exists for this employee' });
+      return res.status(409).json({ success: false, error: 'Account already exists for this employee' });
     }
     
     const passwordHash = await User.hashPassword(password);
