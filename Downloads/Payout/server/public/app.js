@@ -606,6 +606,27 @@ async function saveEmployeeApi(emp) {
     return null;
 }
 
+async function deleteEmployeeApi(empId) {
+    if (!isAuthenticated() || !empId) return false;
+    try {
+        const res = await fetch(`/api/data/employees/${encodeURIComponent(empId)}`, {
+            method: 'DELETE',
+            headers: authHeaders()
+        });
+        if (res.ok) {
+            showStorageSyncBadge(true);
+            return true;
+        } else {
+            showStorageSyncBadge(false);
+            return false;
+        }
+    } catch (e) {
+        showStorageSyncBadge(false);
+        console.error('Error deleting employee via API:', e);
+        return false;
+    }
+}
+
 function showStorageSyncBadge(isFileSaved) {
     let badge = document.getElementById('disk-sync-indicator');
     if (!badge) {
@@ -1342,8 +1363,24 @@ window.renderLeaderModalEmployees = function(username, currentFilter = 'all') {
 };
 
 window.toggleAssignLeaderEmp = async function(username, empId, assign) {
-    const targetAccount = (window.currentLeaderAccountsData || []).find(a => a.username === username);
-    let allowedIds = targetAccount && targetAccount.allowedEmployeeIds ? [...targetAccount.allowedEmployeeIds.map(String)] : [];
+    if (!username) return;
+
+    if (!Array.isArray(window.currentLeaderAccountsData)) {
+        try {
+            const accRes = await fetch('/api/auth/employee-accounts', { headers: authHeaders() });
+            if (accRes.ok) {
+                const accData = await accRes.json();
+                if (accData.success) window.currentLeaderAccountsData = accData.accounts || [];
+            }
+        } catch(e) {}
+    }
+
+    const cleanUser = String(username).trim().toLowerCase();
+    const targetAccount = (window.currentLeaderAccountsData || []).find(a => String(a.username).trim().toLowerCase() === cleanUser);
+    
+    let allowedIds = targetAccount && Array.isArray(targetAccount.allowedEmployeeIds) 
+        ? [...targetAccount.allowedEmployeeIds.map(String)] 
+        : [];
 
     if (assign) {
         if (!allowedIds.includes(String(empId))) allowedIds.push(String(empId));
@@ -1355,11 +1392,13 @@ window.toggleAssignLeaderEmp = async function(username, empId, assign) {
         const res = await fetch('/api/auth/update-allowed-employees', {
             method: 'PUT',
             headers: authHeaders(),
-            body: JSON.stringify({ username, allowedEmployeeIds: allowedIds })
+            body: JSON.stringify({ username: username, allowedEmployeeIds: allowedIds })
         });
         const data = await res.json();
         if (data && data.success) {
-            if (targetAccount) targetAccount.allowedEmployeeIds = allowedIds;
+            if (targetAccount) {
+                targetAccount.allowedEmployeeIds = allowedIds;
+            }
             showToast('toast-employee-updated');
             renderLeaderModalEmployees(username);
             fetchAndRenderEmployeeAccounts();
@@ -2420,14 +2459,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // 4. Delete Employee Action
-    document.getElementById('delete-employee-btn').addEventListener('click', () => {
+    document.getElementById('delete-employee-btn').addEventListener('click', async () => {
         if (!state.selectedEmployeeId) return;
 
-        state.employees = state.employees.filter(e => String(e.id) !== String(state.selectedEmployeeId));
+        const targetId = state.selectedEmployeeId;
+        const confirmMsg = state.currentLanguage === 'ar' ? 'هل أنت تأكد من حذف هذا الموظف وكافة مهامه نهائياً؟' : 'Are you sure you want to delete this employee and all their tasks?';
+        if (!confirm(confirmMsg)) return;
+
+        const user = getAuthUser();
+        if (user && user.role === 'admin') {
+            await deleteEmployeeApi(targetId);
+        }
+
+        state.employees = state.employees.filter(e => String(e.id) !== String(targetId));
         state.selectedEmployeeId = null;
         state.viewMode = 'placeholder';
 
-        saveState();
+        if (user && user.role === 'admin') {
+            saveState();
+        }
         updateUIVisuals();
         
         showToast('toast-employee-deleted');

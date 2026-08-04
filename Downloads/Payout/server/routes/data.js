@@ -345,6 +345,28 @@ router.post('/employees', dataMutationLimiter, verifyToken, async (req, res) => 
   }
 });
 
+// DELETE /employees/:id - Admin deletes employee profile and their tasks
+router.delete('/employees/:id', dataMutationLimiter, verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const empId = String(req.params.id);
+    const deletedEmp = await Employee.findOneAndDelete({ id: empId });
+    if (!deletedEmp) {
+      return res.status(404).json({ success: false, error: 'الموظف غير موجود' });
+    }
+
+    // Delete all associated tasks in DB
+    await Task.deleteMany({ employeeId: empId });
+
+    // Remove empId from all users' allowedEmployeeIds array in DB
+    await User.updateMany({}, { $pull: { allowedEmployeeIds: empId } });
+
+    res.json({ success: true, message: 'تم حذف الموظف وكافة مهامه بنجاح' });
+  } catch (error) {
+    console.error('Delete employee error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
 // POST /tasks - Create or Edit single task
 router.post('/tasks', dataMutationLimiter, verifyToken, requireAdminOrLeader, async (req, res) => {
   try {
