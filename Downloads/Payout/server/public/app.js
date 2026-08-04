@@ -508,7 +508,7 @@ function saveState() {
         return;
     }
     const user = getAuthUser();
-    if (user && user.role !== 'admin') return; // Only admin can save
+    if (user && user.role !== 'admin') return; // Only admin can save full state
 
     fetch('/api/data', {
         method: 'POST',
@@ -530,6 +530,43 @@ function saveState() {
     }).catch(() => {
         showStorageSyncBadge(false);
     });
+}
+
+async function saveTaskApi(task) {
+    if (!isAuthenticated() || !task) return;
+    try {
+        const res = await fetch('/api/data/tasks', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify(task)
+        });
+        if (res.ok) {
+            showStorageSyncBadge(true);
+        } else {
+            showStorageSyncBadge(false);
+        }
+    } catch (e) {
+        showStorageSyncBadge(false);
+        console.error('Error saving task via API:', e);
+    }
+}
+
+async function deleteTaskApi(taskId) {
+    if (!isAuthenticated() || !taskId) return;
+    try {
+        const res = await fetch(`/api/data/tasks/${encodeURIComponent(taskId)}`, {
+            method: 'DELETE',
+            headers: authHeaders()
+        });
+        if (res.ok) {
+            showStorageSyncBadge(true);
+        } else {
+            showStorageSyncBadge(false);
+        }
+    } catch (e) {
+        showStorageSyncBadge(false);
+        console.error('Error deleting task via API:', e);
+    }
 }
 
 function showStorageSyncBadge(isFileSaved) {
@@ -1341,7 +1378,12 @@ window.toggleTaskStatus = function(empId, taskId) {
         delete task.exchangeRate; // Unlock!
     }
 
-    saveState();
+    const user = getAuthUser();
+    if (user && user.role === 'leader') {
+        saveTaskApi(task);
+    } else {
+        saveState();
+    }
     calculateDashboardStats();
     renderEmployeeDetail(empId);
     showToast('toast-status-updated');
@@ -1354,7 +1396,12 @@ window.deleteTask = function(empId, taskId) {
 
     emp.tasks = emp.tasks.filter(t => String(t.id) !== String(taskId));
 
-    saveState();
+    const user = getAuthUser();
+    if (user && user.role === 'leader') {
+        deleteTaskApi(taskId);
+    } else {
+        saveState();
+    }
     calculateDashboardStats();
     renderEmployeesList();
     renderEmployeeDetail(empId);
@@ -2128,7 +2175,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         emp.tasks.unshift(newTask); // Add to the top of list
         
-        saveState();
+        const user = getAuthUser();
+        if (user && user.role === 'leader') {
+            newTask.employeeId = emp.id;
+            saveTaskApi(newTask);
+        } else {
+            saveState();
+        }
         
         // Reset form
         document.getElementById('add-task-form').reset();
@@ -2278,7 +2331,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 delete task.exchangeRate;
             }
 
-            saveState();
+            const user = getAuthUser();
+            if (user && user.role === 'leader') {
+                task.employeeId = emp.id;
+                saveTaskApi(task);
+            } else {
+                saveState();
+            }
             calculateDashboardStats();
             renderEmployeeDetail(empId);
 

@@ -264,6 +264,13 @@ router.post('/tasks', dataMutationLimiter, verifyToken, requireAdminOrLeader, as
       if (!allowedIds.has(String(taskData.employeeId))) {
         return res.status(403).json({ success: false, error: 'غير مصرح بتعديل أو إضافة مهام هذا الموظف' });
       }
+
+      if (taskData.id) {
+        const existingTask = await Task.findOne({ id: String(taskData.id) });
+        if (existingTask && !allowedIds.has(String(existingTask.employeeId))) {
+          return res.status(403).json({ success: false, error: 'غير مصرح بتعديل مهام هذا الموظف' });
+        }
+      }
     }
 
     const taskId = taskData.id || ('task_' + Date.now());
