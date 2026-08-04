@@ -1348,8 +1348,15 @@ html[dir="rtl"] .employee-sort-actions {
 .rate-target {
     color: var(--color-emerald);
 }
-#usd-to-egp-rate {
-    width: 70px;
+.rate-divider {
+    color: rgba(255, 255, 255, 0.2);
+    font-size: 14px;
+    font-weight: 300;
+    margin: 0 2px;
+}
+#usd-to-egp-rate,
+#eur-to-egp-rate {
+    width: 72px;
     background: rgba(0, 0, 0, 0.4);
     border: 1px solid var(--border-color);
     border-radius: 6px;
@@ -1363,11 +1370,14 @@ html[dir="rtl"] .employee-sort-actions {
     -moz-appearance: textfield;
 }
 #usd-to-egp-rate::-webkit-outer-spin-button,
-#usd-to-egp-rate::-webkit-inner-spin-button {
+#usd-to-egp-rate::-webkit-inner-spin-button,
+#eur-to-egp-rate::-webkit-outer-spin-button,
+#eur-to-egp-rate::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
 }
-#usd-to-egp-rate:focus {
+#usd-to-egp-rate:focus,
+#eur-to-egp-rate:focus {
     outline: none;
     border-color: var(--color-primary);
     box-shadow: 0 0 5px rgba(255, 90, 0, 0.3);
