@@ -69,6 +69,9 @@ const taskSchema = new mongoose.Schema({
   exchangeRate: {
     type: Number
   },
+  eurExchangeRate: {
+    type: Number
+  },
   email: {
     type: String,
     default: ''

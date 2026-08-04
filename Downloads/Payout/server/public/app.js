@@ -1421,13 +1421,16 @@ window.toggleTaskStatus = function(empId, taskId) {
     // Toggle status cycle: pending -> completed -> paid -> pending
     if (task.status === 'pending') {
         task.status = 'completed';
-        delete task.exchangeRate; // Default to global dynamic rate
+        delete task.exchangeRate;
+        delete task.eurExchangeRate;
     } else if (task.status === 'completed') {
         task.status = 'paid';
-        task.exchangeRate = state.exchangeRate; // Lock current exchange rate!
+        task.exchangeRate = state.exchangeRate;
+        task.eurExchangeRate = state.eurExchangeRate;
     } else {
         task.status = 'pending';
-        delete task.exchangeRate; // Unlock!
+        delete task.exchangeRate;
+        delete task.eurExchangeRate;
     }
 
     const user = getAuthUser();
@@ -2222,7 +2225,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         if (status === 'paid') {
-            newTask.exchangeRate = state.exchangeRate; // Lock global rate on creation
+            newTask.exchangeRate = state.exchangeRate;
+            newTask.eurExchangeRate = state.eurExchangeRate;
         }
 
         emp.tasks.unshift(newTask); // Add to the top of list
@@ -2394,10 +2398,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             task.character = character;
             task.vpn = vpn;
 
-            if (status === 'paid' && !task.exchangeRate) {
-                task.exchangeRate = state.exchangeRate;
-            } else if (status !== 'paid') {
+            if (status === 'paid') {
+                if (!task.exchangeRate) task.exchangeRate = state.exchangeRate;
+                if (!task.eurExchangeRate) task.eurExchangeRate = state.eurExchangeRate;
+            } else {
                 delete task.exchangeRate;
+                delete task.eurExchangeRate;
             }
 
             const user = getAuthUser();
