@@ -1,6 +1,22 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+const USER_CACHE = new Map();
+const USER_CACHE_TTL_MS = 30000;
+
+const getCachedUser = async (userId) => {
+  const now = Date.now();
+  const cached = USER_CACHE.get(String(userId));
+  if (cached && (now - cached.timestamp < USER_CACHE_TTL_MS)) {
+    return cached.user;
+  }
+  const user = await User.findById(userId).select('-passwordHash').lean();
+  if (user) {
+    USER_CACHE.set(String(userId), { user, timestamp: now });
+  }
+  return user;
+};
+
 const verifyToken = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -11,7 +27,7 @@ const verifyToken = async (req, res, next) => {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    const user = await User.findById(decoded.id);
+    const user = await getCachedUser(decoded.id);
     if (!user) {
       return res.status(401).json({ success: false, error: 'User not found' });
     }
@@ -45,7 +61,7 @@ const optionalAuth = async (req, res, next) => {
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await User.findById(decoded.id);
+      const user = await getCachedUser(decoded.id);
       if (user) {
         req.user = user;
       }

@@ -26,8 +26,11 @@ applySecurityMiddleware(app);
 app.use('/api/auth', authRoutes);
 app.use('/api/data', dataRoutes);
 
-// Static files
-app.use(express.static(path.join(__dirname, 'public')));
+// Static files with optimized HTTP caching
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: '1d',
+  etag: true
+}));
 
 // SPA Fallback
 app.get('*', (req, res, next) => {

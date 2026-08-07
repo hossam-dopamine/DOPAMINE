@@ -157,7 +157,7 @@ router.delete('/delete-account/:username', verifyToken, requireAdmin, async (req
 // GET /employee-accounts
 router.get('/employee-accounts', verifyToken, requireAdmin, async (req, res) => {
   try {
-    const users = await User.find({ role: { $in: ['employee', 'leader'] } }).select('-passwordHash');
+    const users = await User.find({ role: { $in: ['employee', 'leader'] } }).select('-passwordHash').lean();
     res.json({ success: true, accounts: users });
   } catch (error) {
     console.error('Get employee accounts error:', error);
@@ -180,7 +180,7 @@ router.put('/update-allowed-employees', authLimiter, verifyToken, requireAdmin, 
       { username: cleanUsername },
       { allowedEmployeeIds: newAllowedIds },
       { new: true }
-    ).select('-passwordHash');
+    ).select('-passwordHash').lean();
 
     if (!updatedUser) {
       return res.status(404).json({ success: false, error: 'الحساب غير موجود' });

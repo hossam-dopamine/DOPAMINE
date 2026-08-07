@@ -104,7 +104,7 @@ const ensureMigratedData = async () => {
 // GET /data - Load full dataset for Admin or employee-scoped dataset
 router.get('/', verifyToken, async (req, res) => {
   try {
-    let meta = await AppData.findOne();
+    const meta = await AppData.findOne().lean();
     const exchangeRate = meta ? meta.exchangeRate : 50;
     const eurExchangeRate = meta && meta.eurExchangeRate ? meta.eurExchangeRate : 55;
 
@@ -112,12 +112,22 @@ router.get('/', verifyToken, async (req, res) => {
       const dbEmployees = await Employee.find().lean();
       const dbTasks = await Task.find().lean();
 
-      const employeesWithTasks = dbEmployees.map(emp => {
-        const empTasks = dbTasks
-          .filter(t => String(t.employeeId) === String(emp.id))
-          .map(t => decryptTaskFields(t));
-        return { ...emp, tasks: empTasks };
-      });
+      const tasksByEmpId = new Map();
+      for (let i = 0; i < dbTasks.length; i++) {
+        const t = decryptTaskFields(dbTasks[i]);
+        const empId = String(t.employeeId);
+        let list = tasksByEmpId.get(empId);
+        if (!list) {
+          list = [];
+          tasksByEmpId.set(empId, list);
+        }
+        list.push(t);
+      }
+
+      const employeesWithTasks = dbEmployees.map(emp => ({
+        ...emp,
+        tasks: tasksByEmpId.get(String(emp.id)) || []
+      }));
 
       return res.json({
         success: true,
@@ -135,12 +145,22 @@ router.get('/', verifyToken, async (req, res) => {
       const dbEmployees = await Employee.find({ id: { $in: targetEmpIds } }).lean();
       const dbTasks = await Task.find({ employeeId: { $in: targetEmpIds } }).lean();
 
-      const employeesWithTasks = dbEmployees.map(emp => {
-        const empTasks = dbTasks
-          .filter(t => String(t.employeeId) === String(emp.id))
-          .map(t => decryptTaskFields(t));
-        return { ...emp, tasks: empTasks };
-      });
+      const tasksByEmpId = new Map();
+      for (let i = 0; i < dbTasks.length; i++) {
+        const t = decryptTaskFields(dbTasks[i]);
+        const empId = String(t.employeeId);
+        let list = tasksByEmpId.get(empId);
+        if (!list) {
+          list = [];
+          tasksByEmpId.set(empId, list);
+        }
+        list.push(t);
+      }
+
+      const employeesWithTasks = dbEmployees.map(emp => ({
+        ...emp,
+        tasks: tasksByEmpId.get(String(emp.id)) || []
+      }));
 
       return res.json({
         success: true,
@@ -190,63 +210,81 @@ router.post('/', dataMutationLimiter, verifyToken, requireAdmin, async (req, res
         await meta.save();
       }
 
-      // Sync employees and tasks atomically
+      // Sync employees and tasks atomically using batched bulkWrite
       const currentEmpIds = employees.map(e => String(e.id));
       await Employee.deleteMany({ id: { $nin: currentEmpIds } });
 
+      const empOps = [];
+      const taskOps = [];
+      const allTaskIds = [];
+
       for (const empData of employees) {
         const empId = String(empData.id);
-        await Employee.findOneAndUpdate(
-          { id: empId },
-          {
-            id: empId,
-            name: empData.name,
-            role: empData.role || 'عضو',
-            defaultDeductionRate: empData.defaultDeductionRate,
-            paymentMethod: empData.paymentMethod || 'instapay',
-            paymentDetails: empData.paymentDetails || '',
-            avatarUrl: empData.avatarUrl || '',
-            adjustments: empData.adjustments || {}
-          },
-          { upsert: true, new: true }
-        );
+        empOps.push({
+          updateOne: {
+            filter: { id: empId },
+            update: {
+              $set: {
+                id: empId,
+                name: empData.name,
+                role: empData.role || 'عضو',
+                defaultDeductionRate: empData.defaultDeductionRate,
+                paymentMethod: empData.paymentMethod || 'instapay',
+                paymentDetails: empData.paymentDetails || '',
+                avatarUrl: empData.avatarUrl || '',
+                adjustments: empData.adjustments || {}
+              }
+            },
+            upsert: true
+          }
+        });
 
         if (Array.isArray(empData.tasks)) {
-          const currentTaskIds = empData.tasks.map(t => String(t.id));
-          await Task.deleteMany({ employeeId: empId, id: { $nin: currentTaskIds } });
-
           for (const t of empData.tasks) {
             const taskId = String(t.id);
+            allTaskIds.push(taskId);
             const encryptedT = encryptTaskFields(t);
-            await Task.findOneAndUpdate(
-              { id: taskId },
-              {
-                id: taskId,
-                employeeId: empId,
-                type: t.type || 'task',
-                taskNumber: t.taskNumber || '',
-                title: t.title || 'مهمة',
-                gross: t.gross,
-                currency: t.currency || 'USD',
-                deductionRate: t.deductionRate,
-                delayDeduction: t.delayDeduction || 0,
-                advance: t.advance || 0,
-                fixedDeduction: t.fixedDeduction || 0,
-                status: t.status || 'pending',
-                month: t.month || 'january',
-                exchangeRate: t.exchangeRate,
-                eurExchangeRate: t.eurExchangeRate,
-                email: encryptedT.email || '',
-                password: encryptedT.password || '',
-                character: encryptedT.character || '',
-                vpn: encryptedT.vpn || '',
-                createdAt: t.createdAt ? new Date(t.createdAt) : new Date()
-              },
-              { upsert: true, new: true }
-            );
+            taskOps.push({
+              updateOne: {
+                filter: { id: taskId },
+                update: {
+                  $set: {
+                    id: taskId,
+                    employeeId: empId,
+                    type: t.type || 'task',
+                    taskNumber: t.taskNumber || '',
+                    title: t.title || 'مهمة',
+                    gross: t.gross,
+                    currency: t.currency || 'USD',
+                    deductionRate: t.deductionRate,
+                    delayDeduction: t.delayDeduction || 0,
+                    advance: t.advance || 0,
+                    fixedDeduction: t.fixedDeduction || 0,
+                    status: t.status || 'pending',
+                    month: t.month || 'january',
+                    exchangeRate: t.exchangeRate,
+                    eurExchangeRate: t.eurExchangeRate,
+                    email: encryptedT.email || '',
+                    password: encryptedT.password || '',
+                    character: encryptedT.character || '',
+                    vpn: encryptedT.vpn || '',
+                    createdAt: t.createdAt ? new Date(t.createdAt) : new Date()
+                  }
+                },
+                upsert: true
+              }
+            });
           }
         }
       }
+
+      if (empOps.length > 0) await Employee.bulkWrite(empOps, { ordered: false });
+      if (allTaskIds.length > 0) {
+        await Task.deleteMany({ id: { $nin: allTaskIds } });
+      } else {
+        await Task.deleteMany({});
+      }
+      if (taskOps.length > 0) await Task.bulkWrite(taskOps, { ordered: false });
     }
 
     res.json({ success: true, message: 'Data saved successfully' });

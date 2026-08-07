@@ -363,8 +363,28 @@ let state = {
     employees: []
 };
 
-// LocalStorage Keys
-const STORAGE_KEY = 'task_payout_manager_state';
+// --- Performance Utilities (Debounce & RAF Lucide Scheduler) ---
+function debounce(fn, delay = 150) {
+    let timeoutId = null;
+    return function(...args) {
+        if (timeoutId) clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+            fn.apply(this, args);
+        }, delay);
+    };
+}
+
+let lucideSchedulePending = false;
+function scheduleLucideIcons() {
+    if (lucideSchedulePending) return;
+    lucideSchedulePending = true;
+    requestAnimationFrame(() => {
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+            window.lucide.createIcons();
+        }
+        lucideSchedulePending = false;
+    });
+}
 
 // --- Security: HTML Escape Utility (XSS Protection) ---
 function escapeHTML(str) {
@@ -2766,7 +2786,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // 7. Filters and Search inputs
-    document.getElementById('employee-search').addEventListener('input', renderEmployeesList);
+    document.getElementById('employee-search').addEventListener('input', debounce(renderEmployeesList, 150));
     document.getElementById('task-filter-status').addEventListener('change', () => {
         if (state.selectedEmployeeId) {
             renderEmployeeDetail(state.selectedEmployeeId);
