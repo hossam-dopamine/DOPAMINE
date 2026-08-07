@@ -5,6 +5,8 @@ try {
   dns.setServers(['8.8.8.8', '1.1.1.1']);
 } catch (e) {}
 
+let isListenersAttached = false;
+
 const connectDB = async (retries = 5, delay = 5000) => {
   const uri = process.env.MONGODB_URI;
   if (!uri) {
@@ -12,21 +14,31 @@ const connectDB = async (retries = 5, delay = 5000) => {
     process.exit(1);
   }
 
-  mongoose.connection.on('connected', () => {
-    console.log('Mongoose connected to MongoDB');
-  });
+  if (!isListenersAttached) {
+    mongoose.connection.on('connected', () => {
+      console.log('Mongoose connected to MongoDB');
+    });
 
-  mongoose.connection.on('error', (err) => {
-    console.error(`Mongoose connection error: ${err.message}`);
-  });
+    mongoose.connection.on('error', (err) => {
+      console.error(`Mongoose connection error: ${err.message}`);
+    });
 
-  mongoose.connection.on('disconnected', () => {
-    console.log('Mongoose disconnected from MongoDB');
-  });
+    mongoose.connection.on('disconnected', () => {
+      console.log('Mongoose disconnected from MongoDB');
+    });
+    isListenersAttached = true;
+  }
+
+  const options = {
+    maxPoolSize: 50,
+    minPoolSize: 5,
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000
+  };
 
   while (retries > 0) {
     try {
-      await mongoose.connect(uri);
+      await mongoose.connect(uri, options);
       console.log('MongoDB connection successful');
       return;
     } catch (error) {
