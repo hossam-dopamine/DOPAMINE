@@ -1317,7 +1317,8 @@ window.renderLeaderModalEmployees = function(username, currentFilter = 'all') {
     if (!container) return;
     container.innerHTML = '';
 
-    const targetAccount = (window.currentLeaderAccountsData || []).find(a => a.username === username);
+    const cleanUser = String(username).trim().toLowerCase();
+    const targetAccount = (window.currentLeaderAccountsData || []).find(a => String(a.username).trim().toLowerCase() === cleanUser);
     const allowedIds = targetAccount && targetAccount.allowedEmployeeIds ? targetAccount.allowedEmployeeIds.map(String) : [];
     const allowedSet = new Set(allowedIds);
 
@@ -1350,16 +1351,6 @@ window.renderLeaderModalEmployees = function(username, currentFilter = 'all') {
             ? `<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-weight: 700; font-size: 11px;">مخصص للمشرف</span>`
             : `<span class="badge" style="background: rgba(255, 255, 255, 0.06); color: var(--text-dim); font-size: 11px;">غير مخصص</span>`;
 
-        const actionBtnHTML = isAssigned
-            ? `<button type="button" class="btn btn-danger btn-sm" onclick="toggleAssignLeaderEmp('${escapeHTML(username)}', '${escapeHTML(emp.id)}', false)" style="font-size: 11px; padding: 4px 10px;">
-                <i data-lucide="user-minus" style="width: 13px; height: 13px; margin-inline-end: 4px; vertical-align: middle; pointer-events: none;"></i>
-                إلغاء التعيين / إخفاء
-               </button>`
-            : `<button type="button" class="btn btn-primary btn-sm" onclick="toggleAssignLeaderEmp('${escapeHTML(username)}', '${escapeHTML(emp.id)}', true)" style="font-size: 11px; padding: 4px 10px;">
-                <i data-lucide="user-plus" style="width: 13px; height: 13px; margin-inline-end: 4px; vertical-align: middle; pointer-events: none;"></i>
-                إسناد للمشرف
-               </button>`;
-
         row.innerHTML = `
             <div style="display: flex; align-items: center; gap: 10px;">
                 <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--color-primary); color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 13px;">
@@ -1370,12 +1361,28 @@ window.renderLeaderModalEmployees = function(username, currentFilter = 'all') {
                     <div style="font-size: 11px; color: var(--text-dim);">${escapeHTML(emp.role || 'عضو')}</div>
                 </div>
             </div>
-            <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="leader-emp-actions" style="display: flex; align-items: center; gap: 10px;">
                 ${statusBadgeHTML}
-                ${actionBtnHTML}
             </div>
         `;
 
+        const actionBtn = document.createElement('button');
+        actionBtn.type = 'button';
+        actionBtn.style.cssText = 'font-size: 11px; padding: 4px 10px;';
+        if (isAssigned) {
+            actionBtn.className = 'btn btn-danger btn-sm';
+            actionBtn.innerHTML = `<i data-lucide="user-minus" style="width: 13px; height: 13px; margin-inline-end: 4px; vertical-align: middle; pointer-events: none;"></i>إلغاء التعيين / إخفاء`;
+            actionBtn.addEventListener('click', () => {
+                window.toggleAssignLeaderEmp(username, emp.id, false);
+            });
+        } else {
+            actionBtn.className = 'btn btn-primary btn-sm';
+            actionBtn.innerHTML = `<i data-lucide="user-plus" style="width: 13px; height: 13px; margin-inline-end: 4px; vertical-align: middle; pointer-events: none;"></i>إسناد للمشرف`;
+            actionBtn.addEventListener('click', () => {
+                window.toggleAssignLeaderEmp(username, emp.id, true);
+            });
+        }
+        row.querySelector('.leader-emp-actions').appendChild(actionBtn);
         container.appendChild(row);
     });
 
@@ -1421,7 +1428,7 @@ window.toggleAssignLeaderEmp = async function(username, empId, assign) {
             }
             showToast('toast-employee-updated');
             renderLeaderModalEmployees(username);
-            fetchAndRenderEmployeeAccounts();
+            await fetchAndRenderEmployeeAccounts();
         } else {
             alert(data.error || 'حدث خطأ أثناء التحديث');
         }
