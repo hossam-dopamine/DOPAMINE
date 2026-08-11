@@ -26,9 +26,39 @@ const userSchema = new mongoose.Schema({
     type: [String],
     default: []
   },
+  email: {
+    type: String,
+    lowercase: true,
+    trim: true,
+    default: ''
+  },
+  birthDate: {
+    type: Date,
+    default: null
+  },
+  tenantId: {
+    type: String,
+    required: true,
+    default: 'default_tenant',
+    index: true
+  },
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'approved',
+    index: true
+  },
+  banReason: {
+    type: String,
+    default: ''
+  },
+  lastLogin: {
+    type: Date,
+    default: null
   }
 });
 

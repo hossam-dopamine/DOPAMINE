@@ -14,6 +14,13 @@ const router = express.Router();
 // Auto-migration helper: Migrate legacy AppData/data.json into normalized Employee & Task collections
 const ensureMigratedData = async () => {
   try {
+    // Auto-migrate legacy documents without a tenantId to 'default_tenant'
+    await User.updateMany({ tenantId: { $exists: false } }, { $set: { tenantId: 'default_tenant' } });
+    await User.updateMany({ status: { $exists: false } }, { $set: { status: 'approved' } });
+    await Employee.updateMany({ tenantId: { $exists: false } }, { $set: { tenantId: 'default_tenant' } });
+    await Task.updateMany({ tenantId: { $exists: false } }, { $set: { tenantId: 'default_tenant' } });
+    await AppData.updateMany({ tenantId: { $exists: false } }, { $set: { tenantId: 'default_tenant' } });
+
     const empCount = await Employee.countDocuments();
     if (empCount > 0) return;
 
@@ -54,7 +61,8 @@ const ensureMigratedData = async () => {
         paymentMethod: empData.paymentMethod || 'instapay',
         paymentDetails: empData.paymentDetails || '',
         avatarUrl: empData.avatarUrl || '',
-        adjustments: empData.adjustments || {}
+        adjustments: empData.adjustments || {},
+        tenantId: 'default_tenant'
       });
 
       if (Array.isArray(empData.tasks)) {
@@ -80,6 +88,7 @@ const ensureMigratedData = async () => {
             password: encryptedT.password || '',
             character: encryptedT.character || '',
             vpn: encryptedT.vpn || '',
+            tenantId: 'default_tenant',
             createdAt: t.createdAt ? new Date(t.createdAt) : new Date()
           });
         }
@@ -87,9 +96,9 @@ const ensureMigratedData = async () => {
     }
 
     // Save exchange rate in AppData meta document
-    let appData = await AppData.findOne();
+    let appData = await AppData.findOne({ tenantId: 'default_tenant' });
     if (!appData) {
-      appData = new AppData({ exchangeRate: initialRate });
+      appData = new AppData({ exchangeRate: initialRate, tenantId: 'default_tenant' });
     } else {
       appData.exchangeRate = initialRate;
     }
@@ -104,13 +113,14 @@ const ensureMigratedData = async () => {
 // GET /data - Load full dataset for Admin or employee-scoped dataset
 router.get('/', verifyToken, async (req, res) => {
   try {
-    const meta = await AppData.findOne().lean();
+    const tenantId = req.user.tenantId || 'default_tenant';
+    const meta = await AppData.findOne({ tenantId }).lean();
     const exchangeRate = meta ? meta.exchangeRate : 50;
     const eurExchangeRate = meta && meta.eurExchangeRate ? meta.eurExchangeRate : 55;
 
     if (req.user.role === 'admin') {
-      const dbEmployees = await Employee.find().lean();
-      const dbTasks = await Task.find().lean();
+      const dbEmployees = await Employee.find({ tenantId }).lean();
+      const dbTasks = await Task.find({ tenantId }).lean();
 
       const tasksByEmpId = new Map();
       for (let i = 0; i < dbTasks.length; i++) {
@@ -142,8 +152,8 @@ router.get('/', verifyToken, async (req, res) => {
       if (req.user.employeeId) allowedIds.add(String(req.user.employeeId));
 
       const targetEmpIds = Array.from(allowedIds);
-      const dbEmployees = await Employee.find({ id: { $in: targetEmpIds } }).lean();
-      const dbTasks = await Task.find({ employeeId: { $in: targetEmpIds } }).lean();
+      const dbEmployees = await Employee.find({ id: { $in: targetEmpIds }, tenantId }).lean();
+      const dbTasks = await Task.find({ employeeId: { $in: targetEmpIds }, tenantId }).lean();
 
       const tasksByEmpId = new Map();
       for (let i = 0; i < dbTasks.length; i++) {
@@ -172,12 +182,12 @@ router.get('/', verifyToken, async (req, res) => {
       });
     } else {
       // Employee sees only their own employee profile & tasks
-      const emp = await Employee.findOne({ id: req.user.employeeId }).lean();
+      const emp = await Employee.findOne({ id: req.user.employeeId, tenantId }).lean();
       if (!emp) {
         return res.json({ success: true, data: { employees: [], exchangeRate, eurExchangeRate } });
       }
 
-      const dbTasks = await Task.find({ employeeId: emp.id }).lean();
+      const dbTasks = await Task.find({ employeeId: emp.id, tenantId }).lean();
       const decryptedTasks = dbTasks.map(t => decryptTaskFields(t));
 
       return res.json({
@@ -199,12 +209,13 @@ router.get('/', verifyToken, async (req, res) => {
 router.post('/', dataMutationLimiter, verifyToken, requireAdmin, async (req, res) => {
   try {
     const { employees, exchangeRate } = req.body;
+    const tenantId = req.user.tenantId || 'default_tenant';
 
     if (Array.isArray(employees)) {
       // Sync exchange rate
       if (exchangeRate !== undefined) {
-        let meta = await AppData.findOne();
-        if (!meta) meta = new AppData();
+        let meta = await AppData.findOne({ tenantId });
+        if (!meta) meta = new AppData({ tenantId });
         meta.exchangeRate = exchangeRate;
         meta.lastUpdatedBy = req.user ? req.user.username : 'admin';
         await meta.save();
@@ -212,7 +223,7 @@ router.post('/', dataMutationLimiter, verifyToken, requireAdmin, async (req, res
 
       // Sync employees and tasks atomically using batched bulkWrite
       const currentEmpIds = employees.map(e => String(e.id));
-      await Employee.deleteMany({ id: { $nin: currentEmpIds } });
+      await Employee.deleteMany({ id: { $nin: currentEmpIds }, tenantId });
 
       const empOps = [];
       const taskOps = [];
@@ -222,7 +233,7 @@ router.post('/', dataMutationLimiter, verifyToken, requireAdmin, async (req, res
         const empId = String(empData.id);
         empOps.push({
           updateOne: {
-            filter: { id: empId },
+            filter: { id: empId, tenantId },
             update: {
               $set: {
                 id: empId,
@@ -232,7 +243,8 @@ router.post('/', dataMutationLimiter, verifyToken, requireAdmin, async (req, res
                 paymentMethod: empData.paymentMethod || 'instapay',
                 paymentDetails: empData.paymentDetails || '',
                 avatarUrl: empData.avatarUrl || '',
-                adjustments: empData.adjustments || {}
+                adjustments: empData.adjustments || {},
+                tenantId
               }
             },
             upsert: true
@@ -246,7 +258,7 @@ router.post('/', dataMutationLimiter, verifyToken, requireAdmin, async (req, res
             const encryptedT = encryptTaskFields(t);
             taskOps.push({
               updateOne: {
-                filter: { id: taskId },
+                filter: { id: taskId, tenantId },
                 update: {
                   $set: {
                     id: taskId,
@@ -268,6 +280,7 @@ router.post('/', dataMutationLimiter, verifyToken, requireAdmin, async (req, res
                     password: encryptedT.password || '',
                     character: encryptedT.character || '',
                     vpn: encryptedT.vpn || '',
+                    tenantId,
                     createdAt: t.createdAt ? new Date(t.createdAt) : new Date()
                   }
                 },
@@ -280,9 +293,9 @@ router.post('/', dataMutationLimiter, verifyToken, requireAdmin, async (req, res
 
       if (empOps.length > 0) await Employee.bulkWrite(empOps, { ordered: false });
       if (allTaskIds.length > 0) {
-        await Task.deleteMany({ id: { $nin: allTaskIds } });
+        await Task.deleteMany({ id: { $nin: allTaskIds }, tenantId });
       } else {
-        await Task.deleteMany({});
+        await Task.deleteMany({ tenantId });
       }
       if (taskOps.length > 0) await Task.bulkWrite(taskOps, { ordered: false });
     }
@@ -302,8 +315,9 @@ router.post('/employees', dataMutationLimiter, verifyToken, async (req, res) => 
       return res.status(400).json({ success: false, error: 'اسم الموظف مطلوب' });
     }
 
+    const tenantId = req.user.tenantId || 'default_tenant';
     const empId = empData.id || ('emp_' + Date.now());
-    const existing = await Employee.findOne({ id: String(empId) });
+    const existing = await Employee.findOne({ id: String(empId), tenantId });
     const isNew = !existing;
 
     // Authorization checks
@@ -333,7 +347,8 @@ router.post('/employees', dataMutationLimiter, verifyToken, async (req, res) => 
       paymentMethod: String(empData.paymentMethod || 'instapay').trim(),
       paymentDetails: String(empData.paymentDetails || '').trim(),
       avatarUrl: cleanAvatarUrl,
-      adjustments: empData.adjustments || {}
+      adjustments: empData.adjustments || {},
+      tenantId
     };
 
     if (req.user.role === 'employee' && existing) {
@@ -345,13 +360,14 @@ router.post('/employees', dataMutationLimiter, verifyToken, async (req, res) => 
         paymentMethod: existing.paymentMethod,
         paymentDetails: existing.paymentDetails,
         avatarUrl: cleanAvatarUrl,
-        adjustments: existing.adjustments || {}
+        adjustments: existing.adjustments || {},
+        tenantId
       };
     }
 
     // Save/update Employee profile in MongoDB
     const updatedEmp = await Employee.findOneAndUpdate(
-      { id: empId },
+      { id: empId, tenantId },
       updateFields,
       { upsert: true, new: true }
     ).lean();
@@ -386,17 +402,18 @@ router.post('/employees', dataMutationLimiter, verifyToken, async (req, res) => 
 // DELETE /employees/:id - Admin deletes employee profile and their tasks
 router.delete('/employees/:id', dataMutationLimiter, verifyToken, requireAdmin, async (req, res) => {
   try {
+    const tenantId = req.user.tenantId || 'default_tenant';
     const empId = String(req.params.id);
-    const deletedEmp = await Employee.findOneAndDelete({ id: empId });
+    const deletedEmp = await Employee.findOneAndDelete({ id: empId, tenantId });
     if (!deletedEmp) {
       return res.status(404).json({ success: false, error: 'الموظف غير موجود' });
     }
 
     // Delete all associated tasks in DB
-    await Task.deleteMany({ employeeId: empId });
+    await Task.deleteMany({ employeeId: empId, tenantId });
 
     // Remove empId from all users' allowedEmployeeIds array in DB
-    await User.updateMany({}, { $pull: { allowedEmployeeIds: empId } });
+    await User.updateMany({ tenantId }, { $pull: { allowedEmployeeIds: empId } });
 
     res.json({ success: true, message: 'تم حذف الموظف وكافة مهامه بنجاح' });
   } catch (error) {
@@ -413,6 +430,8 @@ router.post('/tasks', dataMutationLimiter, verifyToken, requireAdminOrLeader, as
       return res.status(400).json({ success: false, error: 'Missing required task fields' });
     }
 
+    const tenantId = req.user.tenantId || 'default_tenant';
+
     if (req.user.role === 'leader') {
       const allowedIds = new Set((req.user.allowedEmployeeIds || []).map(String));
       if (req.user.employeeId) allowedIds.add(String(req.user.employeeId));
@@ -421,7 +440,7 @@ router.post('/tasks', dataMutationLimiter, verifyToken, requireAdminOrLeader, as
       }
 
       if (taskData.id) {
-        const existingTask = await Task.findOne({ id: String(taskData.id) });
+        const existingTask = await Task.findOne({ id: String(taskData.id), tenantId });
         if (existingTask && !allowedIds.has(String(existingTask.employeeId))) {
           return res.status(403).json({ success: false, error: 'غير مصرح بتعديل مهام هذا الموظف' });
         }
@@ -432,7 +451,7 @@ router.post('/tasks', dataMutationLimiter, verifyToken, requireAdminOrLeader, as
     const encryptedT = encryptTaskFields(taskData);
 
     const newTask = await Task.findOneAndUpdate(
-      { id: taskId },
+      { id: taskId, tenantId },
       {
         id: taskId,
         employeeId: String(taskData.employeeId),
@@ -453,6 +472,7 @@ router.post('/tasks', dataMutationLimiter, verifyToken, requireAdminOrLeader, as
         password: encryptedT.password || '',
         character: encryptedT.character || '',
         vpn: encryptedT.vpn || '',
+        tenantId,
         createdAt: taskData.createdAt ? new Date(taskData.createdAt) : new Date()
       },
       { upsert: true, new: true }
@@ -468,8 +488,9 @@ router.post('/tasks', dataMutationLimiter, verifyToken, requireAdminOrLeader, as
 // DELETE /tasks/:id - Delete single task
 router.delete('/tasks/:id', dataMutationLimiter, verifyToken, requireAdminOrLeader, async (req, res) => {
   try {
+    const tenantId = req.user.tenantId || 'default_tenant';
     const taskId = String(req.params.id);
-    const task = await Task.findOne({ id: taskId });
+    const task = await Task.findOne({ id: taskId, tenantId });
     if (!task) {
       return res.status(404).json({ success: false, error: 'Task not found' });
     }
@@ -482,7 +503,7 @@ router.delete('/tasks/:id', dataMutationLimiter, verifyToken, requireAdminOrLead
       }
     }
 
-    await Task.findOneAndDelete({ id: taskId });
+    await Task.findOneAndDelete({ id: taskId, tenantId });
     res.json({ success: true, message: 'Task deleted successfully' });
   } catch (error) {
     console.error('Delete task error:', error);

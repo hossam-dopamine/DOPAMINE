@@ -88,12 +88,21 @@ const taskSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  tenantId: {
+    type: String,
+    required: true,
+    default: 'default_tenant',
+    index: true
+  },
   createdAt: {
     type: Date,
     default: Date.now
   }
 });
 
+taskSchema.index({ tenantId: 1, employeeId: 1, month: 1 });
+taskSchema.index({ tenantId: 1, status: 1 });
+taskSchema.index({ tenantId: 1, employeeId: 1, status: 1 });
 taskSchema.index({ employeeId: 1, month: 1 });
 taskSchema.index({ status: 1 });
 taskSchema.index({ employeeId: 1, status: 1 });

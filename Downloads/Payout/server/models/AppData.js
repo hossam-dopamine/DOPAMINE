@@ -17,18 +17,24 @@ const appDataSchema = new mongoose.Schema({
     type: String,
     default: 'system'
   },
+  tenantId: {
+    type: String,
+    required: true,
+    default: 'default_tenant',
+    index: true
+  },
   lastUpdatedAt: {
     type: Date,
     default: Date.now
   }
 });
 
-// Always enforce single document
+// Always enforce single document per tenant
 appDataSchema.pre('save', async function(next) {
   if (this.isNew) {
-    const count = await this.constructor.countDocuments();
+    const count = await this.constructor.countDocuments({ tenantId: this.tenantId });
     if (count > 0) {
-      return next(new Error('Only one AppData document can exist'));
+      return next(new Error('Only one AppData document can exist per tenant'));
     }
   }
   this.lastUpdatedAt = new Date();

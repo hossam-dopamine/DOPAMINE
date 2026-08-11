@@ -19,9 +19,19 @@ const applySecurityMiddleware = (app) => {
     }
   }));
 
-  // CORS Configuration
+  // CORS Configuration — restrict to known origins
+  const allowedOrigins = process.env.APP_URL
+    ? [process.env.APP_URL.replace(/\/+$/, '')]
+    : [];
   app.use(cors({
-    origin: true,
+    origin: (origin, callback) => {
+      // Allow same-origin requests (no origin header) and configured origins
+      if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true
   }));
 

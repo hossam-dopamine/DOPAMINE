@@ -17,6 +17,13 @@ const getCachedUser = async (userId) => {
   return user;
 };
 
+// Invalidate a specific user's cache entry (call after status changes)
+const invalidateUserCache = (userId) => {
+  if (userId) {
+    USER_CACHE.delete(String(userId));
+  }
+};
+
 const verifyToken = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -30,6 +37,10 @@ const verifyToken = async (req, res, next) => {
     const user = await getCachedUser(decoded.id);
     if (!user) {
       return res.status(401).json({ success: false, error: 'User not found' });
+    }
+
+    if (user.status !== 'approved') {
+      return res.status(403).json({ success: false, error: 'حسابك غير نشط أو تم تعليقه من قبل الإدارة' });
     }
 
     req.user = user;
@@ -62,7 +73,7 @@ const optionalAuth = async (req, res, next) => {
       const token = authHeader.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const user = await getCachedUser(decoded.id);
-      if (user) {
+      if (user && user.status === 'approved') {
         req.user = user;
       }
     }
@@ -76,5 +87,6 @@ module.exports = {
   verifyToken,
   requireAdmin,
   requireAdminOrLeader,
-  optionalAuth
+  optionalAuth,
+  invalidateUserCache
 };

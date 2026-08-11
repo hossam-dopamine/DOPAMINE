@@ -303,7 +303,10 @@ function getAuthToken() {
 function getAuthUser() {
     try {
         const u = JSON.parse(sessionStorage.getItem(AUTH_USER_KEY));
-        if (u && u.role) return u;
+        if (u && u.role) {
+            if (!u.tenantId) u.tenantId = 'default_tenant';
+            return u;
+        }
         const t = getAuthToken();
         if (t) {
             const payload = JSON.parse(atob(t.split('.')[1]));
@@ -312,7 +315,8 @@ function getAuthUser() {
                 username: payload.username || 'user',
                 role: payload.role || 'employee',
                 employeeId: payload.employeeId,
-                allowedEmployeeIds: payload.allowedEmployeeIds || []
+                allowedEmployeeIds: payload.allowedEmployeeIds || [],
+                tenantId: payload.tenantId || 'default_tenant'
             };
         }
         return null;
@@ -734,14 +738,36 @@ function updateUIVisuals() {
     renderEmployeesList();
     if (state.viewMode === 'employee' && state.selectedEmployeeId) {
         renderEmployeeDetail(state.selectedEmployeeId);
+        const reviewRequestsSec = document.getElementById('review-requests-section');
+        if (reviewRequestsSec) reviewRequestsSec.style.display = 'none';
+        const reviewRequestsBtn = document.getElementById('review-requests-btn');
+        if (reviewRequestsBtn) reviewRequestsBtn.classList.remove('active');
     } else if (state.viewMode === 'manager') {
         renderManagerPanel();
         document.getElementById('manager-btn').classList.add('active');
+        const reviewRequestsSec = document.getElementById('review-requests-section');
+        if (reviewRequestsSec) reviewRequestsSec.style.display = 'none';
+        const reviewRequestsBtn = document.getElementById('review-requests-btn');
+        if (reviewRequestsBtn) reviewRequestsBtn.classList.remove('active');
+    } else if (state.viewMode === 'review-requests') {
+        document.getElementById('employee-detail-section').style.display = 'none';
+        document.getElementById('manager-panel-section').style.display = 'none';
+        document.getElementById('dashboard-placeholder').style.display = 'none';
+        document.getElementById('manager-btn').classList.remove('active');
+        const reviewRequestsSec = document.getElementById('review-requests-section');
+        if (reviewRequestsSec) reviewRequestsSec.style.display = 'block';
+        const reviewRequestsBtn = document.getElementById('review-requests-btn');
+        if (reviewRequestsBtn) reviewRequestsBtn.classList.add('active');
+        fetchAndRenderPendingRequests();
     } else {
         document.getElementById('employee-detail-section').style.display = 'none';
         document.getElementById('manager-panel-section').style.display = 'none';
+        const reviewRequestsSec = document.getElementById('review-requests-section');
+        if (reviewRequestsSec) reviewRequestsSec.style.display = 'none';
         document.getElementById('dashboard-placeholder').style.display = 'flex';
         document.getElementById('manager-btn').classList.remove('active');
+        const reviewRequestsBtn = document.getElementById('review-requests-btn');
+        if (reviewRequestsBtn) reviewRequestsBtn.classList.remove('active');
     }
     
     // Refresh Icons
@@ -1047,6 +1073,12 @@ function selectEmployee(id) {
     document.getElementById('employee-detail-section').style.display = 'block';
     document.getElementById('manager-btn').classList.remove('active');
 
+    // Hide review-requests section
+    const reviewSec = document.getElementById('review-requests-section');
+    if (reviewSec) reviewSec.style.display = 'none';
+    const reviewBtn = document.getElementById('review-requests-btn');
+    if (reviewBtn) reviewBtn.classList.remove('active');
+
     renderEmployeesList();
     renderEmployeeDetail(id);
     calculateDashboardStats();
@@ -1082,6 +1114,12 @@ function enterManagerDashboard() {
     document.getElementById('employee-detail-section').style.display = 'none';
     document.getElementById('manager-panel-section').style.display = 'block';
     document.getElementById('manager-btn').classList.add('active');
+
+    // Hide review-requests section
+    const reviewSec = document.getElementById('review-requests-section');
+    if (reviewSec) reviewSec.style.display = 'none';
+    const reviewBtn = document.getElementById('review-requests-btn');
+    if (reviewBtn) reviewBtn.classList.remove('active');
 
     renderEmployeesList();
     calculateDashboardStats();
@@ -1265,6 +1303,219 @@ async function fetchAndRenderEmployeeAccounts() {
         }
     } catch (e) {
         console.error('Error fetching employee accounts:', e);
+    }
+}
+
+async function fetchAndRenderPendingRequests() {
+    const container = document.getElementById('review-requests-section');
+    const tableBody = document.getElementById('pending-requests-table-body');
+    if (!container || !tableBody) return;
+
+    // Check if the current user is the main founder admin
+    const user = getAuthUser();
+    if (!user || user.role !== 'admin' || (user.tenantId && user.tenantId !== 'default_tenant')) {
+        container.style.display = 'none';
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/auth/admin-accounts', { headers: authHeaders() });
+        if (!res.ok) {
+            container.style.display = 'none';
+            return;
+        }
+        const data = await res.json();
+        if (data.success && Array.isArray(data.accounts)) {
+            container.style.display = 'block';
+            tableBody.innerHTML = '';
+
+            if (data.accounts.length === 0) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td colspan="7" style="text-align: center; color: var(--text-dim); padding: 20px;">لا توجد حسابات مسجلة حالياً</td>`;
+                tableBody.appendChild(tr);
+                return;
+            }
+
+            data.accounts.forEach(reqItem => {
+                const dateStr = reqItem.createdAt ? new Date(reqItem.createdAt).toLocaleDateString(state.currentLanguage === 'ar' ? 'ar-EG' : 'en-US') : '-';
+                const birthStr = reqItem.birthDate ? new Date(reqItem.birthDate).toLocaleDateString(state.currentLanguage === 'ar' ? 'ar-EG' : 'en-US') : '-';
+                const lastLoginStr = reqItem.lastLogin 
+                    ? new Date(reqItem.lastLogin).toLocaleString(state.currentLanguage === 'ar' ? 'ar-EG' : 'en-US', { dateStyle: 'short', timeStyle: 'short' })
+                    : (state.currentLanguage === 'ar' ? 'لم يسجل دخول بعد' : 'Never logged in');
+
+                // Status badge
+                let statusBadge = '';
+                if (reqItem.status === 'approved') {
+                    statusBadge = `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: var(--color-emerald); padding: 4px 8px; border-radius: 6px; font-size: 11px;">نشط</span>`;
+                } else if (reqItem.status === 'pending') {
+                    statusBadge = `<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; padding: 4px 8px; border-radius: 6px; font-size: 11px;">معلق</span>`;
+                } else {
+                    // rejected/suspended
+                    statusBadge = `<span class="badge" style="background: rgba(244, 63, 94, 0.15); color: var(--color-rose); padding: 4px 8px; border-radius: 6px; font-size: 11px;" title="${escapeHTML(reqItem.banReason || '')}">محظور</span>`;
+                }
+
+                // Action buttons based on status
+                let actionButtons = '';
+                if (reqItem.status === 'pending') {
+                    actionButtons = `
+                        <button class="btn btn-primary btn-sm btn-approve-request" data-id="${reqItem._id}" style="margin-inline-end: 6px; font-size: 11px; padding: 4px 10px; background: var(--color-emerald); border-color: var(--color-emerald); color: #09090b !important;">
+                            <i data-lucide="check" style="width: 13px; height: 13px; vertical-align: middle; margin-inline-end: 4px; pointer-events: none;"></i>
+                            موافقة
+                        </button>
+                        <button class="btn btn-danger btn-sm btn-reject-request" data-id="${reqItem._id}" style="font-size: 11px; padding: 4px 10px; background: var(--color-rose); border-color: var(--color-rose); color: #09090b !important;">
+                            <i data-lucide="x" style="width: 13px; height: 13px; vertical-align: middle; margin-inline-end: 4px; pointer-events: none;"></i>
+                            رفض
+                        </button>
+                    `;
+                } else if (reqItem.status === 'approved') {
+                    actionButtons = `
+                        <button class="btn btn-danger btn-sm btn-suspend-request" data-id="${reqItem._id}" style="margin-inline-end: 6px; font-size: 11px; padding: 4px 10px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #f59e0b !important;">
+                            <i data-lucide="ban" style="width: 13px; height: 13px; vertical-align: middle; margin-inline-end: 4px; pointer-events: none;"></i>
+                            حظر/تعليق
+                        </button>
+                        <button class="btn btn-danger btn-sm btn-delete-admin-request" data-id="${reqItem._id}" style="font-size: 11px; padding: 4px 10px; background: var(--color-rose); border-color: var(--color-rose); color: #09090b !important;">
+                            <i data-lucide="trash-2" style="width: 13px; height: 13px; vertical-align: middle; margin-inline-end: 4px; pointer-events: none;"></i>
+                            حذف
+                        </button>
+                    `;
+                } else {
+                    // rejected/suspended
+                    actionButtons = `
+                        <button class="btn btn-primary btn-sm btn-activate-request" data-id="${reqItem._id}" style="margin-inline-end: 6px; font-size: 11px; padding: 4px 10px; background: var(--color-emerald); border-color: var(--color-emerald); color: #09090b !important;">
+                            <i data-lucide="user-check" style="width: 13px; height: 13px; vertical-align: middle; margin-inline-end: 4px; pointer-events: none;"></i>
+                            تنشيط
+                        </button>
+                        <button class="btn btn-danger btn-sm btn-suspend-request" data-id="${reqItem._id}" style="margin-inline-end: 6px; font-size: 11px; padding: 4px 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: #ffffff !important;" title="تعديل سبب الحظر">
+                            <i data-lucide="edit-2" style="width: 13px; height: 13px; vertical-align: middle; margin-inline-end: 4px; pointer-events: none;"></i>
+                            تعديل الرسالة
+                        </button>
+                        <button class="btn btn-danger btn-sm btn-delete-admin-request" data-id="${reqItem._id}" style="font-size: 11px; padding: 4px 10px; background: var(--color-rose); border-color: var(--color-rose); color: #09090b !important;">
+                            <i data-lucide="trash-2" style="width: 13px; height: 13px; vertical-align: middle; margin-inline-end: 4px; pointer-events: none;"></i>
+                            حذف
+                        </button>
+                    `;
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-weight: 700; color: #fff;">${escapeHTML(reqItem.username)}</td>
+                    <td style="font-family: monospace; color: var(--color-primary);">${escapeHTML(reqItem.email || '-')}</td>
+                    <td style="color: var(--text-dim);">${birthStr}</td>
+                    <td style="font-size: 12px; color: var(--text-muted);">${dateStr}</td>
+                    <td style="font-size: 12px; color: var(--text-dim);">${lastLoginStr}</td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            ${actionButtons}
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+            if (window.lucide) window.lucide.createIcons();
+        }
+    } catch (e) {
+        console.error('Error fetching admin accounts:', e);
+        container.style.display = 'none';
+    }
+}
+
+async function handleApproveRequest(userId) {
+    try {
+        const res = await fetch('/api/auth/approve-request', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ userId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(data.message);
+            fetchAndRenderPendingRequests();
+        } else {
+            alert(data.error || 'خطأ أثناء تفعيل الحساب');
+        }
+    } catch (err) {
+        console.error('Approve request error:', err);
+        alert('خطأ في السيرفر');
+    }
+}
+
+async function handleRejectRequest(userId, reason) {
+    try {
+        const res = await fetch('/api/auth/reject-request', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ userId, reason })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(data.message);
+            fetchAndRenderPendingRequests();
+        } else {
+            alert(data.error || 'خطأ أثناء رفض الحساب');
+        }
+    } catch (err) {
+        console.error('Reject request error:', err);
+        alert('خطأ في السيرفر');
+    }
+}
+
+async function handleSuspendRequest(userId, reason) {
+    try {
+        const res = await fetch('/api/auth/suspend-admin-account', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ userId, reason })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(data.message);
+            fetchAndRenderPendingRequests();
+        } else {
+            alert(data.error || 'خطأ أثناء حظر الحساب');
+        }
+    } catch (err) {
+        console.error('Suspend request error:', err);
+        alert('خطأ في السيرفر');
+    }
+}
+
+async function handleActivateRequest(userId) {
+    try {
+        const res = await fetch('/api/auth/activate-admin-account', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ userId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(data.message);
+            fetchAndRenderPendingRequests();
+        } else {
+            alert(data.error || 'خطأ أثناء تفعيل الحساب');
+        }
+    } catch (err) {
+        console.error('Activate request error:', err);
+        alert('خطأ في السيرفر');
+    }
+}
+
+async function handleDeleteAdminRequest(userId) {
+    try {
+        const res = await fetch(`/api/auth/delete-admin-account/${userId}`, {
+            method: 'DELETE',
+            headers: authHeaders()
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(data.message);
+            fetchAndRenderPendingRequests();
+        } else {
+            alert(data.error || 'خطأ أثناء حذف الحساب');
+        }
+    } catch (err) {
+        console.error('Delete admin request error:', err);
+        alert('خطأ في السيرفر');
     }
 }
 
@@ -2061,6 +2312,66 @@ async function handleLogin(username, password) {
     }
 }
 
+async function handleRegister(username, password, email, birthDate) {
+    const errEl = document.getElementById('register-error');
+    if (errEl) errEl.style.display = 'none';
+
+    const registerBtn = document.getElementById('register-submit-btn');
+    const originalBtnHTML = registerBtn ? registerBtn.innerHTML : '';
+
+    if (registerBtn) {
+        registerBtn.disabled = true;
+        const text = state.currentLanguage === 'ar' ? 'جاري إنشاء الحساب...' : 'Creating...';
+        registerBtn.innerHTML = `<span>${text}</span>`;
+    }
+
+    const startTime = Date.now();
+
+    try {
+        const res = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password, email, birthDate })
+        });
+        const data = await res.json();
+
+        const elapsed = Date.now() - startTime;
+        if (elapsed < 700) {
+            await new Promise(r => setTimeout(r, 700 - elapsed));
+        }
+
+        if (data.success) {
+            const registerForm = document.getElementById('register-form');
+            const successCard = document.getElementById('register-success-card');
+            
+            if (registerForm) registerForm.style.display = 'none';
+            if (successCard) {
+                successCard.style.display = 'block';
+                if (window.lucide) window.lucide.createIcons();
+            }
+            return true;
+        } else {
+            if (errEl) {
+                errEl.textContent = data.error || (state.currentLanguage === 'ar' ? 'فشل إنشاء الحساب' : 'Registration failed');
+                errEl.style.display = 'block';
+            }
+            return false;
+        }
+    } catch (e) {
+        if (errEl) {
+            errEl.textContent = state.currentLanguage === 'ar' ? 'حدث خطأ أثناء الاتصال بالسيرفر' : 'Server connection error';
+            errEl.style.display = 'block';
+        }
+        return false;
+    } finally {
+        if (registerBtn) {
+            registerBtn.disabled = false;
+            registerBtn.innerHTML = originalBtnHTML;
+            if (window.lucide) window.lucide.createIcons();
+        }
+    }
+}
+
 function handleLogout() {
     if (inactivityTimer) clearTimeout(inactivityTimer);
     clearAuth();
@@ -2139,6 +2450,11 @@ function applyRoleRestrictions() {
         
         const createAccForm = document.getElementById('create-account-form');
         if (createAccForm && createAccForm.parentElement) createAccForm.parentElement.style.display = '';
+
+        const reviewReqBtn = document.getElementById('review-requests-btn');
+        if (reviewReqBtn) {
+            reviewReqBtn.style.display = (user.tenantId === 'default_tenant') ? '' : 'none';
+        }
     } else if (user.role === 'leader') {
         state.isManagerUnlocked = true;
 
@@ -2168,6 +2484,9 @@ function applyRoleRestrictions() {
 
         const createAccForm = document.getElementById('create-account-form');
         if (createAccForm && createAccForm.parentElement) createAccForm.parentElement.style.display = 'none';
+
+        const reviewReqBtn = document.getElementById('review-requests-btn');
+        if (reviewReqBtn) reviewReqBtn.style.display = 'none';
     } else if (user.role === 'employee') {
         state.isManagerUnlocked = false;
 
@@ -2194,6 +2513,9 @@ function applyRoleRestrictions() {
 
         const addTaskForm = document.getElementById('add-task-form');
         if (addTaskForm) addTaskForm.style.display = 'none';
+
+        const reviewReqBtn = document.getElementById('review-requests-btn');
+        if (reviewReqBtn) reviewReqBtn.style.display = 'none';
     }
 }
 
@@ -2213,6 +2535,88 @@ document.addEventListener('DOMContentLoaded', async () => {
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', handleLogout);
+    }
+
+    // Show register overlay
+    const showRegisterBtn = document.getElementById('show-register-btn');
+    if (showRegisterBtn) {
+        showRegisterBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            
+            // Reset register view components to clean state
+            const registerForm = document.getElementById('register-form');
+            if (registerForm) {
+                registerForm.reset();
+                registerForm.style.display = 'block';
+            }
+            const successCard = document.getElementById('register-success-card');
+            if (successCard) successCard.style.display = 'none';
+            const errEl = document.getElementById('register-error');
+            if (errEl) errEl.style.display = 'none';
+
+            const loginOverlay = document.getElementById('login-overlay');
+            const registerOverlay = document.getElementById('register-overlay');
+            if (loginOverlay) loginOverlay.classList.remove('active');
+            if (registerOverlay) registerOverlay.classList.add('active');
+        });
+    }
+
+    // Back to login from register
+    const backToLoginBtn = document.getElementById('back-to-login-btn');
+    if (backToLoginBtn) {
+        backToLoginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const loginOverlay = document.getElementById('login-overlay');
+            const registerOverlay = document.getElementById('register-overlay');
+            if (registerOverlay) registerOverlay.classList.remove('active');
+            if (loginOverlay) loginOverlay.classList.add('active');
+        });
+    }
+
+    // Success Card back to login
+    const successBackToLoginBtn = document.getElementById('success-back-to-login-btn');
+    if (successBackToLoginBtn) {
+        successBackToLoginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            
+            const registerForm = document.getElementById('register-form');
+            if (registerForm) {
+                registerForm.reset();
+                registerForm.style.display = 'block';
+            }
+            const successCard = document.getElementById('register-success-card');
+            if (successCard) successCard.style.display = 'none';
+
+            const loginOverlay = document.getElementById('login-overlay');
+            const registerOverlay = document.getElementById('register-overlay');
+            if (registerOverlay) registerOverlay.classList.remove('active');
+            if (loginOverlay) loginOverlay.classList.add('active');
+        });
+    }
+
+    // Register Form Handler
+    const registerForm = document.getElementById('register-form');
+    if (registerForm) {
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const u = document.getElementById('register-username').value.trim();
+            const email = document.getElementById('register-email').value.trim();
+            const birthDate = document.getElementById('register-birthdate').value;
+            const p = document.getElementById('register-password').value;
+            const pc = document.getElementById('register-confirm-password').value;
+            const errEl = document.getElementById('register-error');
+
+            if (p !== pc) {
+                if (errEl) {
+                    errEl.textContent = state.currentLanguage === 'ar' 
+                        ? 'كلمتا المرور غير متطابقتين' 
+                        : 'Passwords do not match';
+                    errEl.style.display = 'block';
+                }
+                return;
+            }
+            await handleRegister(u, p, email, birthDate);
+        });
     }
 
     const changePassBtn = document.getElementById('change-password-btn');
@@ -2641,6 +3045,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.getElementById('manager-btn').addEventListener('click', selectManagerPanel);
+    const reviewRequestsBtn = document.getElementById('review-requests-btn');
+    if (reviewRequestsBtn) {
+        reviewRequestsBtn.addEventListener('click', () => {
+            state.selectedEmployeeId = null;
+            state.viewMode = 'review-requests';
+            updateUIVisuals();
+        });
+    }
     document.getElementById('print-global-btn').addEventListener('click', () => {
         window.print();
     });
@@ -2968,6 +3380,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('employee-name').addEventListener('input', (e) => {
         if (!state.tempAvatarUrl) {
             const letter = e.target.value.trim() ? e.target.value.trim().charAt(0).toUpperCase() : '-';
+            document.getElementById('avatar-preview-initials').textContent = letter;
         }
     });
 
@@ -3026,6 +3439,187 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (delBtn) {
                 const username = delBtn.getAttribute('data-username');
                 if (username) window.deleteEmployeeAccount(username);
+            }
+        });
+    }
+
+    let activeApprovalUserId = null;
+    let activeRejectionUserId = null;
+    let activeSuspendUserId = null;
+    let activeDeleteUserId = null;
+    let activeActivateUserId = null;
+
+    // Approval confirm modal close/cancel events
+    const approvalConfirmModal = document.getElementById('approval-confirm-modal');
+    if (approvalConfirmModal) {
+        document.getElementById('close-approval-confirm-modal').addEventListener('click', () => {
+            approvalConfirmModal.classList.remove('active');
+            activeApprovalUserId = null;
+        });
+        document.getElementById('cancel-approval-confirm-modal').addEventListener('click', () => {
+            approvalConfirmModal.classList.remove('active');
+            activeApprovalUserId = null;
+        });
+        document.getElementById('submit-approval-confirm-modal').addEventListener('click', async () => {
+            if (activeApprovalUserId) {
+                approvalConfirmModal.classList.remove('active');
+                await handleApproveRequest(activeApprovalUserId);
+                activeApprovalUserId = null;
+            }
+        });
+    }
+
+    // Activation confirm modal close/cancel events
+    const activationConfirmModal = document.getElementById('activation-confirm-modal');
+    if (activationConfirmModal) {
+        document.getElementById('close-activation-confirm-modal').addEventListener('click', () => {
+            activationConfirmModal.classList.remove('active');
+            activeActivateUserId = null;
+        });
+        document.getElementById('cancel-activation-confirm-modal').addEventListener('click', () => {
+            activationConfirmModal.classList.remove('active');
+            activeActivateUserId = null;
+        });
+        document.getElementById('submit-activation-confirm-modal').addEventListener('click', async () => {
+            if (activeActivateUserId) {
+                activationConfirmModal.classList.remove('active');
+                await handleActivateRequest(activeActivateUserId);
+                activeActivateUserId = null;
+            }
+        });
+    }
+
+    // Rejection prompt modal close/cancel/submit events
+    const rejectionPromptModal = document.getElementById('rejection-prompt-modal');
+    if (rejectionPromptModal) {
+        document.getElementById('close-rejection-prompt-modal').addEventListener('click', () => {
+            rejectionPromptModal.classList.remove('active');
+            activeRejectionUserId = null;
+        });
+        document.getElementById('cancel-rejection-prompt-modal').addEventListener('click', () => {
+            rejectionPromptModal.classList.remove('active');
+            activeRejectionUserId = null;
+        });
+        const rejectionForm = document.getElementById('rejection-prompt-form');
+        if (rejectionForm) {
+            rejectionForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const reason = document.getElementById('rejection-reason-input').value.trim();
+                if (activeRejectionUserId) {
+                    rejectionPromptModal.classList.remove('active');
+                    await handleRejectRequest(activeRejectionUserId, reason);
+                    activeRejectionUserId = null;
+                }
+            });
+        }
+    }
+
+    // Suspend prompt modal close/cancel/submit events
+    const suspendPromptModal = document.getElementById('suspend-prompt-modal');
+    if (suspendPromptModal) {
+        document.getElementById('close-suspend-prompt-modal').addEventListener('click', () => {
+            suspendPromptModal.classList.remove('active');
+            activeSuspendUserId = null;
+        });
+        document.getElementById('cancel-suspend-prompt-modal').addEventListener('click', () => {
+            suspendPromptModal.classList.remove('active');
+            activeSuspendUserId = null;
+        });
+        const suspendForm = document.getElementById('suspend-prompt-form');
+        if (suspendForm) {
+            suspendForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const reason = document.getElementById('suspend-reason-input').value.trim();
+                if (activeSuspendUserId) {
+                    suspendPromptModal.classList.remove('active');
+                    await handleSuspendRequest(activeSuspendUserId, reason);
+                    activeSuspendUserId = null;
+                }
+            });
+        }
+    }
+
+    // Delete admin confirmation modal close/cancel/submit events
+    const deleteAdminConfirmModal = document.getElementById('delete-admin-confirm-modal');
+    if (deleteAdminConfirmModal) {
+        document.getElementById('close-delete-admin-confirm-modal').addEventListener('click', () => {
+            deleteAdminConfirmModal.classList.remove('active');
+            activeDeleteUserId = null;
+        });
+        document.getElementById('cancel-delete-admin-confirm-modal').addEventListener('click', () => {
+            deleteAdminConfirmModal.classList.remove('active');
+            activeDeleteUserId = null;
+        });
+        document.getElementById('submit-delete-admin-confirm-modal').addEventListener('click', async () => {
+            if (activeDeleteUserId) {
+                deleteAdminConfirmModal.classList.remove('active');
+                await handleDeleteAdminRequest(activeDeleteUserId);
+                activeDeleteUserId = null;
+            }
+        });
+    }
+
+    // Event Delegation for Pending Registration Requests
+    const pendingTableBody = document.getElementById('pending-requests-table-body');
+    if (pendingTableBody) {
+        pendingTableBody.addEventListener('click', async (e) => {
+            const approveBtn = e.target.closest('.btn-approve-request');
+            if (approveBtn) {
+                const userId = approveBtn.getAttribute('data-id');
+                if (userId && approvalConfirmModal) {
+                    activeApprovalUserId = userId;
+                    approvalConfirmModal.classList.add('active');
+                }
+                return;
+            }
+
+            const rejectBtn = e.target.closest('.btn-reject-request');
+            if (rejectBtn) {
+                const userId = rejectBtn.getAttribute('data-id');
+                if (userId && rejectionPromptModal) {
+                    activeRejectionUserId = userId;
+                    const reasonInput = document.getElementById('rejection-reason-input');
+                    if (reasonInput) reasonInput.value = '';
+                    rejectionPromptModal.classList.add('active');
+                }
+                return;
+            }
+
+            const suspendBtn = e.target.closest('.btn-suspend-request');
+            if (suspendBtn) {
+                const userId = suspendBtn.getAttribute('data-id');
+                if (userId && suspendPromptModal) {
+                    activeSuspendUserId = userId;
+                    const reasonInput = document.getElementById('suspend-reason-input');
+                    if (reasonInput) {
+                        const row = suspendBtn.closest('tr');
+                        const badge = row ? row.querySelector('.badge') : null;
+                        const currentReason = badge ? badge.getAttribute('title') : '';
+                        reasonInput.value = currentReason || '';
+                    }
+                    suspendPromptModal.classList.add('active');
+                }
+                return;
+            }
+
+            const activateBtn = e.target.closest('.btn-activate-request');
+            if (activateBtn) {
+                const userId = activateBtn.getAttribute('data-id');
+                if (userId && activationConfirmModal) {
+                    activeActivateUserId = userId;
+                    activationConfirmModal.classList.add('active');
+                }
+                return;
+            }
+
+            const deleteAdminBtn = e.target.closest('.btn-delete-admin-request');
+            if (deleteAdminBtn) {
+                const userId = deleteAdminBtn.getAttribute('data-id');
+                if (userId && deleteAdminConfirmModal) {
+                    activeDeleteUserId = userId;
+                    deleteAdminConfirmModal.classList.add('active');
+                }
+                return;
             }
         });
     }

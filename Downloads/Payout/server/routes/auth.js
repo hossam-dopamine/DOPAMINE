@@ -1,14 +1,18 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { verifyToken, requireAdmin } = require('../middleware/auth');
+const Employee = require('../models/Employee');
+const Task = require('../models/Task');
+const AppData = require('../models/AppData');
+const { verifyToken, requireAdmin, invalidateUserCache } = require('../middleware/auth');
 const { authLimiter } = require('../middleware/security');
+const { sendApprovalEmail, sendRejectionEmail } = require('../utils/mailer');
 
 const router = express.Router();
 
 const generateToken = (user) => {
   return jwt.sign(
-    { id: user._id, role: user.role, employeeId: user.employeeId, allowedEmployeeIds: user.allowedEmployeeIds || [] },
+    { id: user._id, role: user.role, employeeId: user.employeeId, allowedEmployeeIds: user.allowedEmployeeIds || [], tenantId: user.tenantId || 'default_tenant' },
     process.env.JWT_SECRET,
     { expiresIn: '24h' }
   );
@@ -35,6 +39,18 @@ router.post('/login', authLimiter, async (req, res) => {
       return res.status(401).json({ success: false, error: 'اسم المستخدم أو كلمة المرور غير صحيحة' });
     }
 
+    // Check account registration approval status
+    if (user.status === 'pending') {
+      return res.status(403).json({ success: false, error: 'حسابك قيد المراجعة حالياً. يرجى الانتظار لحين موافقة الإدارة.' });
+    }
+    if (user.status === 'rejected') {
+      const errMsg = user.banReason || 'تم حظر حسابك أو تعليقه من قبل الإدارة.';
+      return res.status(403).json({ success: false, error: errMsg });
+    }
+
+    user.lastLogin = new Date();
+    await user.save();
+
     const token = generateToken(user);
     res.json({
       success: true,
@@ -44,12 +60,68 @@ router.post('/login', authLimiter, async (req, res) => {
         username: user.username,
         role: user.role,
         employeeId: user.employeeId,
-        allowedEmployeeIds: user.allowedEmployeeIds || []
+        allowedEmployeeIds: user.allowedEmployeeIds || [],
+        tenantId: user.tenantId || 'default_tenant'
       }
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// POST /register - Create an independent admin account (with isolated tenantId)
+router.post('/register', authLimiter, async (req, res) => {
+  try {
+    const { username, password, email, birthDate } = req.body;
+    if (!username || !password || !email || !birthDate) {
+      return res.status(400).json({ success: false, error: 'جميع الحقول مطلوبة (اسم المستخدم، كلمة المرور، البريد الإلكتروني، تاريخ الميلاد)' });
+    }
+
+    const cleanUsername = String(username).toLowerCase().trim();
+    if (cleanUsername.length < 3) {
+      return res.status(400).json({ success: false, error: 'اسم المستخدم يجب أن يكون 3 أحرف على الأقل' });
+    }
+    if (String(password).length < 6) {
+      return res.status(400).json({ success: false, error: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل' });
+    }
+
+    const cleanEmail = String(email).toLowerCase().trim();
+    if (!cleanEmail.includes('@')) {
+      return res.status(400).json({ success: false, error: 'البريد الإلكتروني غير صالح' });
+    }
+
+    const parsedBirthDate = new Date(birthDate);
+    if (isNaN(parsedBirthDate.getTime())) {
+      return res.status(400).json({ success: false, error: 'تاريخ الميلاد غير صالح' });
+    }
+
+    const existingUser = await User.findOne({ username: cleanUsername });
+    if (existingUser) {
+      return res.status(409).json({ success: false, error: 'اسم المستخدم مسجل بالفعل' });
+    }
+
+    const passwordHash = await User.hashPassword(password);
+    const user = new User({
+      username: cleanUsername,
+      passwordHash,
+      role: 'admin',
+      email: cleanEmail,
+      birthDate: parsedBirthDate,
+      status: 'pending'
+    });
+    // Set tenantId to the newly generated user ID to guarantee absolute uniqueness and isolation
+    user.tenantId = String(user._id);
+
+    await user.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'تم إرسال طلب التسجيل بنجاح. برجاء الانتظار لحين مراجعة طلبك من قبل الإدارة وتفعيل حسابك.'
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ success: false, error: 'حدث خطأ داخلي في الخادم' });
   }
 });
 
@@ -57,7 +129,14 @@ router.post('/login', authLimiter, async (req, res) => {
 router.post('/change-password', verifyToken, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, error: 'كلمة المرور الحالية والجديدة مطلوبتان' });
+    }
+    if (String(newPassword).length < 6) {
+      return res.status(400).json({ success: false, error: 'كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل' });
+    }
+
     const user = await User.findById(req.user._id);
     const isMatch = await user.comparePassword(currentPassword);
     
@@ -84,12 +163,15 @@ router.post('/create-employee-account', verifyToken, requireAdmin, async (req, r
       return res.status(400).json({ success: false, error: 'Missing required fields' });
     }
     
-    const existingUser = await User.findOne({ username });
+    const cleanUsername = String(username).toLowerCase().trim();
+    const tenantId = req.user.tenantId || 'default_tenant';
+    
+    const existingUser = await User.findOne({ username: cleanUsername });
     if (existingUser) {
       return res.status(409).json({ success: false, error: 'Username already exists' });
     }
     
-    const existingEmployeeUser = await User.findOne({ employeeId });
+    const existingEmployeeUser = await User.findOne({ employeeId, tenantId });
     if (existingEmployeeUser) {
       return res.status(409).json({ success: false, error: 'Account already exists for this employee' });
     }
@@ -99,11 +181,12 @@ router.post('/create-employee-account', verifyToken, requireAdmin, async (req, r
 
     const passwordHash = await User.hashPassword(password);
     const user = new User({
-      username,
+      username: cleanUsername,
       passwordHash,
       role: userRole,
       employeeId,
-      allowedEmployeeIds: allowedIds
+      allowedEmployeeIds: allowedIds,
+      tenantId
     });
     
     await user.save();
@@ -142,7 +225,8 @@ router.delete('/delete-account/:username', verifyToken, requireAdmin, async (req
       return res.status(400).json({ success: false, error: 'Cannot delete own account' });
     }
     
-    const result = await User.findOneAndDelete({ username: cleanTargetUser });
+    const tenantId = req.user.tenantId || 'default_tenant';
+    const result = await User.findOneAndDelete({ username: cleanTargetUser, tenantId });
     if (!result) {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
@@ -157,7 +241,8 @@ router.delete('/delete-account/:username', verifyToken, requireAdmin, async (req
 // GET /employee-accounts
 router.get('/employee-accounts', verifyToken, requireAdmin, async (req, res) => {
   try {
-    const users = await User.find({ role: { $in: ['employee', 'leader'] } }).select('-passwordHash').lean();
+    const tenantId = req.user.tenantId || 'default_tenant';
+    const users = await User.find({ role: { $in: ['employee', 'leader'] }, tenantId }).select('-passwordHash').lean();
     res.json({ success: true, accounts: users });
   } catch (error) {
     console.error('Get employee accounts error:', error);
@@ -175,9 +260,10 @@ router.put('/update-allowed-employees', authLimiter, verifyToken, requireAdmin, 
 
     const cleanUsername = String(username).toLowerCase().trim();
     const newAllowedIds = Array.isArray(allowedEmployeeIds) ? allowedEmployeeIds.map(String) : [];
+    const tenantId = req.user.tenantId || 'default_tenant';
 
     const updatedUser = await User.findOneAndUpdate(
-      { username: cleanUsername },
+      { username: cleanUsername, tenantId },
       { allowedEmployeeIds: newAllowedIds },
       { new: true }
     ).select('-passwordHash').lean();
@@ -193,6 +279,249 @@ router.put('/update-allowed-employees', authLimiter, verifyToken, requireAdmin, 
     });
   } catch (error) {
     console.error('Update allowed employees error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// GET /pending-requests - Get all pending registrations (Main owner only)
+router.get('/pending-requests', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const tenantId = req.user.tenantId || 'default_tenant';
+    if (tenantId !== 'default_tenant') {
+      return res.status(403).json({ success: false, error: 'غير مصرح للوحات التحكم المستقلة بعرض طلبات التسجيل' });
+    }
+
+    const pendingUsers = await User.find({ status: 'pending' }).select('-passwordHash').lean();
+    res.json({ success: true, requests: pendingUsers });
+  } catch (error) {
+    console.error('Get pending requests error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// POST /approve-request - Approve a pending user (Main owner only)
+router.post('/approve-request', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const tenantId = req.user.tenantId || 'default_tenant';
+    if (tenantId !== 'default_tenant') {
+      return res.status(403).json({ success: false, error: 'غير مصرح بالعملية' });
+    }
+
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ success: false, error: 'معرف المستخدم مطلوب' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'المستخدم غير موجود' });
+    }
+
+    if (user.status !== 'pending') {
+      return res.status(400).json({ success: false, error: 'هذا الحساب تم معالجة طلبه بالفعل' });
+    }
+
+    user.status = 'approved';
+    await user.save();
+    invalidateUserCache(user._id);
+
+    // Send approval email (async, doesn't block response)
+    if (user.email) {
+      sendApprovalEmail(user.email, user.username).catch(err => {
+        console.error('❌ Failed to send approval email:', err.message);
+      });
+    }
+
+    res.json({ success: true, message: 'تم الموافقة على الحساب وتفعيله بنجاح' });
+  } catch (error) {
+    console.error('Approve request error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// POST /reject-request - Reject a pending user (Main owner only)
+router.post('/reject-request', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const tenantId = req.user.tenantId || 'default_tenant';
+    if (tenantId !== 'default_tenant') {
+      return res.status(403).json({ success: false, error: 'غير مصرح بالعملية' });
+    }
+
+    const { userId, reason } = req.body;
+    if (!userId) {
+      return res.status(400).json({ success: false, error: 'معرف المستخدم مطلوب' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'المستخدم غير موجود' });
+    }
+
+    if (user.status !== 'pending') {
+      return res.status(400).json({ success: false, error: 'هذا الحساب تم معالجة طلبه بالفعل' });
+    }
+
+    user.status = 'rejected';
+    user.banReason = reason || 'تم رفض طلب إنشاء الحساب الخاص بك.';
+    await user.save();
+    invalidateUserCache(user._id);
+
+    // Send rejection email (async, doesn't block response)
+    if (user.email) {
+      sendRejectionEmail(user.email, user.username, reason).catch(err => {
+        console.error('❌ Failed to send rejection email:', err.message);
+      });
+    }
+
+    res.json({ success: true, message: 'تم رفض طلب إنشاء الحساب وإشعار المستخدم بالسبب' });
+  } catch (error) {
+    console.error('Reject request error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// GET /admin-accounts - Get all registered tenant admins (Main owner only)
+router.get('/admin-accounts', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const tenantId = req.user.tenantId || 'default_tenant';
+    if (tenantId !== 'default_tenant') {
+      return res.status(403).json({ success: false, error: 'غير مصرح للوحات التحكم المستقلة بعرض هذه البيانات' });
+    }
+
+    const accounts = await User.find({ role: 'admin', tenantId: { $ne: 'default_tenant' } }).select('-passwordHash').lean();
+    res.json({ success: true, accounts });
+  } catch (error) {
+    console.error('Get admin accounts error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// POST /suspend-admin-account - Suspend/Ban an admin account (Main owner only)
+router.post('/suspend-admin-account', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const tenantId = req.user.tenantId || 'default_tenant';
+    if (tenantId !== 'default_tenant') {
+      return res.status(403).json({ success: false, error: 'غير مصرح بالعملية' });
+    }
+
+    const { userId, reason } = req.body;
+    if (!userId || !reason) {
+      return res.status(400).json({ success: false, error: 'معرف المستخدم وسبب الحظر مطلوبان' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'المستخدم غير موجود' });
+    }
+
+    if (user.tenantId === 'default_tenant') {
+      return res.status(400).json({ success: false, error: 'لا يمكن حظر الحساب الرئيسي للمنصة' });
+    }
+
+    user.status = 'rejected';
+    user.banReason = reason.trim();
+    await user.save();
+    invalidateUserCache(user._id);
+
+    // Send suspension email (async)
+    if (user.email) {
+      sendRejectionEmail(user.email, user.username, reason.trim()).catch(err => {
+        console.error('❌ Failed to send suspension email:', err.message);
+      });
+    }
+
+    res.json({ success: true, message: 'تم تعليق وحظر الحساب بنجاح وإشعار المستخدم بالسبب' });
+  } catch (error) {
+    console.error('Suspend admin account error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// POST /activate-admin-account - Re-activate a suspended/pending admin account (Main owner only)
+router.post('/activate-admin-account', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const tenantId = req.user.tenantId || 'default_tenant';
+    if (tenantId !== 'default_tenant') {
+      return res.status(403).json({ success: false, error: 'غير مصرح بالعملية' });
+    }
+
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ success: false, error: 'معرف المستخدم مطلوب' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'المستخدم غير موجود' });
+    }
+
+    if (user.tenantId === 'default_tenant') {
+      return res.status(400).json({ success: false, error: 'لا يمكن تعديل حالة الحساب الرئيسي للمنصة' });
+    }
+
+    user.status = 'approved';
+    user.banReason = '';
+    await user.save();
+    invalidateUserCache(user._id);
+
+    // Send activation email (async)
+    if (user.email) {
+      sendApprovalEmail(user.email, user.username).catch(err => {
+        console.error('❌ Failed to send activation email:', err.message);
+      });
+    }
+
+    res.json({ success: true, message: 'تم تفعيل الحساب بنجاح وتصفير حالة الحظر' });
+  } catch (error) {
+    console.error('Activate admin account error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// DELETE /delete-admin-account/:userId - Permanently delete admin user and all associated tenant data (Main owner only)
+router.delete('/delete-admin-account/:userId', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const tenantId = req.user.tenantId || 'default_tenant';
+    if (tenantId !== 'default_tenant') {
+      return res.status(403).json({ success: false, error: 'غير مصرح بالعملية' });
+    }
+
+    const { userId } = req.params;
+    if (!userId) {
+      return res.status(400).json({ success: false, error: 'معرف المستخدم مطلوب' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'المستخدم غير موجود' });
+    }
+
+    const targetTenantId = user.tenantId;
+    if (!targetTenantId || targetTenantId === 'default_tenant' || String(targetTenantId).trim() === '') {
+      return res.status(400).json({ success: false, error: 'لا يمكن حذف الحساب الرئيسي للمنصة أو حساب مستأجر غير صالح' });
+    }
+
+    console.log(`🗑️ Starting cascade deletion for tenant: ${targetTenantId}`);
+
+    // Cascade Delete everything related to this tenant
+    const deletedEmployees = await Employee.deleteMany({ tenantId: targetTenantId });
+    const deletedTasks = await Task.deleteMany({ tenantId: targetTenantId });
+    const deletedUserAccounts = await User.deleteMany({ tenantId: targetTenantId });
+    const deletedAppData = await AppData.deleteMany({ tenantId: targetTenantId });
+
+    // Also delete the admin user itself
+    await User.findByIdAndDelete(userId);
+
+    console.log(`Cascade delete stats for tenant ${targetTenantId}:`, {
+      employees: deletedEmployees.deletedCount,
+      tasks: deletedTasks.deletedCount,
+      userAccounts: deletedUserAccounts.deletedCount,
+      appData: deletedAppData.deletedCount
+    });
+
+    res.json({ success: true, message: 'تم حذف الحساب بالكامل وحذف كافة البيانات والملفات التابعة له بنجاح' });
+  } catch (error) {
+    console.error('Delete admin account error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });

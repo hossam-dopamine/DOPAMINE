@@ -37,6 +37,12 @@ const employeeSchema = new mongoose.Schema({
     of: mongoose.Schema.Types.Mixed,
     default: {}
   },
+  tenantId: {
+    type: String,
+    required: true,
+    default: 'default_tenant',
+    index: true
+  },
   createdAt: {
     type: Date,
     default: Date.now

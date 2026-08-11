@@ -27,21 +27,82 @@
                 <h1 class="logo-text" style="font-size:28px;margin-top:12px;">DOPAMINE</h1>
                 <p style="color:var(--text-muted);font-size:14px;margin-top:4px;" data-i18n="login-subtitle">تسجيل الدخول للنظام</p>
             </div>
-            <form id="login-form" style="margin-top:24px;">
+            <form id="login-form" style="margin-top:24px;" autocomplete="off">
                 <div class="form-group">
                     <label for="login-username" data-i18n="login-username">اسم المستخدم</label>
-                    <input type="text" id="login-username" required autocomplete="username" placeholder="">
+                    <input type="text" id="login-username" required autocomplete="off" placeholder="">
                 </div>
                 <div class="form-group">
                     <label for="login-password" data-i18n="login-password">كلمة المرور</label>
-                    <input type="password" id="login-password" required autocomplete="current-password">
+                    <input type="password" id="login-password" required autocomplete="new-password">
                 </div>
                 <div id="login-error" style="display:none;color:var(--color-rose);font-size:13px;margin-bottom:12px;text-align:center;" data-i18n="login-error">اسم المستخدم أو كلمة المرور غير صحيحة</div>
                 <button type="submit" class="btn btn-primary btn-block" id="login-btn">
                     <i data-lucide="log-in"></i>
                     <span data-i18n="login-btn">دخول</span>
                 </button>
+                <div style="text-align: center; margin-top: 14px;">
+                    <a href="#" id="show-register-btn" style="color: var(--color-primary); font-size: 13px; text-decoration: none; font-weight: 600;">إنشاء حساب لتجربة الخدمات</a>
+                </div>
             </form>
+            <p style="color:var(--text-dim);font-size:12px;text-align:center;margin-top:20px;">DOPAMINE-SERVICE &copy; 2026</p>
+        </div>
+    </div>
+
+    <!-- Register Overlay (Independent Admin Registration) -->
+    <div id="register-overlay" class="login-overlay">
+        <div class="bg-glow glow-1"></div>
+        <div class="bg-glow glow-2"></div>
+        <div class="login-container glass-panel">
+            <div class="login-header">
+                <i data-lucide="shield-plus" style="width:48px;height:48px;color:#ffffff;filter:drop-shadow(0 0 12px rgba(255,255,255,0.4));"></i>
+                <h1 style="font-size:24px;margin-top:12px;color:#fff;">إنشاء حساب</h1>
+                <p style="color:var(--text-muted);font-size:13px;margin-top:4px;">سجل حسابك لتجربة لوحة تحكم لمشروعك الخاص</p>
+            </div>
+            <form id="register-form" style="margin-top:20px;" autocomplete="off">
+                <div class="form-group">
+                    <label for="register-username">اسم المستخدم (المدير)</label>
+                    <input type="text" id="register-username" required autocomplete="off" placeholder="اسم المستخدم...">
+                </div>
+                <div class="form-group">
+                    <label for="register-email">البريد الإلكتروني</label>
+                    <input type="email" id="register-email" required autocomplete="off" placeholder="البريد الإلكتروني...">
+                </div>
+                <div class="form-group">
+                    <label for="register-birthdate">تاريخ الميلاد</label>
+                    <input type="date" id="register-birthdate" required autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label for="register-password">كلمة المرور</label>
+                    <input type="password" id="register-password" required autocomplete="new-password" placeholder="كلمة المرور...">
+                </div>
+                <div class="form-group">
+                    <label for="register-confirm-password">تأكيد كلمة المرور</label>
+                    <input type="password" id="register-confirm-password" required autocomplete="new-password" placeholder="أعد كتابة كلمة المرور...">
+                </div>
+                <div id="register-error" style="display:none;color:var(--color-rose);font-size:13px;margin-bottom:12px;text-align:center;"></div>
+                <button type="submit" class="btn btn-primary btn-block" id="register-submit-btn">
+                    <i data-lucide="user-plus"></i>
+                    <span>إنشاء الحساب ودخول</span>
+                </button>
+                <div style="text-align: center; margin-top: 14px;">
+                    <a href="#" id="back-to-login-btn" style="color: var(--text-dim); font-size: 13px; text-decoration: none;">العودة لتسجيل الدخول</a>
+                </div>
+            </form>
+
+            <!-- Register Success Card -->
+            <div id="register-success-card" style="display:none; margin-top:20px; text-align:center; padding: 10px 0;">
+                <i data-lucide="check-circle-2" style="width:56px;height:56px;color:var(--color-emerald);filter:drop-shadow(0 0 12px rgba(16,185,129,0.4));margin:0 auto 16px auto;display:block;"></i>
+                <h2 style="font-size:20px;color:#fff;margin-bottom:12px;">تم إرسال طلبك بنجاح</h2>
+                <p style="color:var(--text-muted);font-size:14px;line-height:1.6;margin-bottom:24px; direction:rtl; text-align:center;">
+                    تم إرسال طلب التسجيل بنجاح. برجاء الانتظار لحين مراجعة طلبك من قبل الإدارة وتفعيل حسابك.
+                </p>
+                <button type="button" class="btn btn-secondary btn-block" id="success-back-to-login-btn" style="display:flex; align-items:center; justify-content:center; gap:8px;">
+                    <i data-lucide="arrow-left" style="width: 18px; height: 18px;"></i>
+                    <span>العودة لتسجيل الدخول</span>
+                </button>
+            </div>
+
             <p style="color:var(--text-dim);font-size:12px;text-align:center;margin-top:20px;">DOPAMINE-SERVICE &copy; 2026</p>
         </div>
     </div>
@@ -94,6 +155,10 @@
                 <button id="manager-btn" class="btn btn-secondary btn-block">
                     <i data-lucide="shield-check"></i>
                     <span data-i18n="manager-title">المدير (الحسابات العامة)</span>
+                </button>
+                <button id="review-requests-btn" class="btn btn-secondary btn-block" style="display: none; margin-top: 10px;">
+                    <i data-lucide="user-check"></i>
+                    <span>مراجعة الحسابات المنشأة</span>
                 </button>
 
             </div>
@@ -562,6 +627,7 @@
                                         <tr>
                                             <th>الموظف</th>
                                             <th>اسم المستخدم (Username)</th>
+                                            <th>الصلاحية</th>
                                             <th>تاريخ الإنشاء</th>
                                             <th>إجراءات</th>
                                         </tr>
@@ -572,6 +638,43 @@
                                 </table>
                             </div>
                         </div>
+
+                    </div>
+                </div>
+            </section>
+
+            <!-- Review Registration Requests Section (Hidden initially) -->
+            <section id="review-requests-section" class="manager-panel-section" style="display: none;">
+                <div class="employee-header glass-panel">
+                    <div class="employee-meta">
+                        <div class="avatar-large" style="background: var(--primary-gradient); display: flex; align-items: center; justify-content: center;">
+                            <i data-lucide="user-check" style="width: 28px; height: 28px; color: #fff;"></i>
+                        </div>
+                        <div>
+                            <h2>مراجعة الحسابات المنشأة</h2>
+                            <p class="employee-details-text">مراجعة وتفعيل أو رفض طلبات تسجيل المدراء الجدد في النظام.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="manager-layout glass-panel" style="padding: 24px;">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>اسم المستخدم</th>
+                                    <th>البريد الإلكتروني</th>
+                                    <th>تاريخ الميلاد</th>
+                                    <th>تاريخ الطلب</th>
+                                    <th>آخر تسجيل دخول</th>
+                                    <th>الحالة</th>
+                                    <th>إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pending-requests-table-body">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </section>
@@ -671,6 +774,104 @@
                     <button type="submit" class="btn btn-primary btn-sm" data-i18n="save">دخول</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Approval Confirmation Modal -->
+    <div id="approval-confirm-modal" class="modal-overlay">
+        <div class="modal-content glass-panel" style="width: 380px;">
+            <div class="modal-header">
+                <h3>تأكيد تفعيل الحساب</h3>
+                <button type="button" class="close-modal-btn" id="close-approval-confirm-modal"><i data-lucide="x"></i></button>
+            </div>
+            <div style="margin-top: 16px; text-align: center; color: #fff;">
+                <p style="font-size: 14px; line-height: 1.5; direction: rtl;">هل أنت متأكد من رغبتك في تفعيل هذا الحساب؟</p>
+            </div>
+            <div class="modal-footer" style="margin-top: 24px;">
+                <button type="button" class="btn btn-secondary btn-sm" id="cancel-approval-confirm-modal">إلغاء</button>
+                <button type="button" class="btn btn-primary btn-sm" id="submit-approval-confirm-modal" style="background: var(--color-emerald); border-color: var(--color-emerald); color: #ffffff !important;">تفعيل الحساب</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activation Confirmation Modal -->
+    <div id="activation-confirm-modal" class="modal-overlay">
+        <div class="modal-content glass-panel" style="width: 380px;">
+            <div class="modal-header">
+                <h3>تأكيد تنشيط الحساب</h3>
+                <button type="button" class="close-modal-btn" id="close-activation-confirm-modal"><i data-lucide="x"></i></button>
+            </div>
+            <div style="margin-top: 16px; text-align: center; color: #fff;">
+                <p style="font-size: 14px; line-height: 1.5; direction: rtl;">هل أنت متأكد من رغبتك في تنشيط هذا الحساب؟</p>
+            </div>
+            <div class="modal-footer" style="margin-top: 24px;">
+                <button type="button" class="btn btn-secondary btn-sm" id="cancel-activation-confirm-modal">إلغاء</button>
+                <button type="button" class="btn btn-primary btn-sm" id="submit-activation-confirm-modal" style="background: var(--color-emerald); border-color: var(--color-emerald); color: #ffffff !important;">تنشيط الحساب</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rejection Reason Modal -->
+    <div id="rejection-prompt-modal" class="modal-overlay">
+        <div class="modal-content glass-panel" style="width: 440px;">
+            <div class="modal-header">
+                <h3>رفض طلب التسجيل</h3>
+                <button type="button" class="close-modal-btn" id="close-rejection-prompt-modal"><i data-lucide="x"></i></button>
+            </div>
+            <form id="rejection-prompt-form" style="margin-top: 16px;">
+                <div class="form-group">
+                    <label for="rejection-reason-input" style="direction: rtl; text-align: right; display: block;">أدخل سبب الرفض (سيتم إرساله للمستخدم عبر البريد الإلكتروني):</label>
+                    <textarea id="rejection-reason-input" required placeholder="مثال: تعذر التحقق من البيانات المرسلة أو الحساب مسجل مسبقاً..." style="width: 100%; height: 100px; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; resize: none; font-family: sans-serif; font-size: 14px; margin-top: 8px; direction: rtl;"></textarea>
+                </div>
+                <div class="modal-footer" style="margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary btn-sm" id="cancel-rejection-prompt-modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary btn-sm" style="background: var(--color-rose); border-color: var(--color-rose); color: #ffffff !important;">إرسال الرفض</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Suspend/Ban Reason Modal -->
+    <div id="suspend-prompt-modal" class="modal-overlay">
+        <div class="modal-content glass-panel" style="width: 440px;">
+            <div class="modal-header">
+                <h3>تعليق وحظر الحساب</h3>
+                <button type="button" class="close-modal-btn" id="close-suspend-prompt-modal"><i data-lucide="x"></i></button>
+            </div>
+            <form id="suspend-prompt-form" style="margin-top: 16px;">
+                <div class="form-group">
+                    <label for="suspend-reason-input" style="direction: rtl; text-align: right; display: block;">أدخل رسالة مخصصة تظهر للمستخدم عند محاولة تسجيل الدخول توضح سبب الحظر أو التعليق:</label>
+                    <textarea id="suspend-reason-input" required placeholder="مثال: تم إيقاف حسابك مؤقتاً لعدم استيفاء شروط التسجيل، يرجى التواصل مع الدعم الفني لمشروعك..." style="width: 100%; height: 100px; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: #fff; resize: none; font-family: sans-serif; font-size: 14px; margin-top: 8px; direction: rtl;"></textarea>
+                </div>
+                <div class="modal-footer" style="margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary btn-sm" id="cancel-suspend-prompt-modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary btn-sm" style="background: var(--color-rose); border-color: var(--color-rose); color: #ffffff !important;">تأكيد الحظر</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cascade Delete Admin Account Confirmation Modal -->
+    <div id="delete-admin-confirm-modal" class="modal-overlay">
+        <div class="modal-content glass-panel" style="width: 400px;">
+            <div class="modal-header">
+                <h3 style="color: var(--color-rose); display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="alert-triangle" style="width: 20px; height: 20px;"></i>
+                    حذف الحساب والبيانات نهائياً
+                </h3>
+                <button type="button" class="close-modal-btn" id="close-delete-admin-confirm-modal"><i data-lucide="x"></i></button>
+            </div>
+            <div style="margin-top: 16px; color: #fff; direction: rtl; text-align: right;">
+                <p style="font-size: 14px; line-height: 1.6; font-weight: bold; margin-bottom: 8px;">تحذير أمني هام:</p>
+                <p style="font-size: 13px; line-height: 1.5; color: var(--text-muted);">
+                    سيتم حذف حساب هذا المدير نهائياً من النظام. سيؤدي هذا الإجراء أيضاً إلى **حذف متتالي لجميع حسابات الموظفين المرتبطة به والمهام وسجلات الرواتب والإعدادات الخاصة بمشروعه** من قاعدة البيانات ولن تتمكن من استعادتها.
+                </p>
+                <p style="font-size: 13px; font-weight: bold; margin-top: 12px; color: var(--color-rose);">هل أنت متأكد تماماً وترغب بالاستمرار؟</p>
+            </div>
+            <div class="modal-footer" style="margin-top: 24px;">
+                <button type="button" class="btn btn-secondary btn-sm" id="cancel-delete-admin-confirm-modal">إلغاء الحذف</button>
+                <button type="button" class="btn btn-primary btn-sm" id="submit-delete-admin-confirm-modal" style="background: var(--color-rose); border-color: var(--color-rose); color: #ffffff !important;">تأكيد الحذف النهائي</button>
+            </div>
         </div>
     </div>
 
