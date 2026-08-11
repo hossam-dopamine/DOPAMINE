@@ -2456,7 +2456,7 @@ function applyRoleRestrictions() {
         if (importBtn) importBtn.style.display = '';
 
         const addTaskForm = document.getElementById('add-task-form');
-        if (addTaskForm) addTaskForm.style.display = '';
+        if (addTaskForm && addTaskForm.parentElement) addTaskForm.parentElement.style.display = '';
         
         const createAccForm = document.getElementById('create-account-form');
         if (createAccForm && createAccForm.parentElement) createAccForm.parentElement.style.display = '';
@@ -2496,7 +2496,7 @@ function applyRoleRestrictions() {
         if (importBtn) importBtn.style.display = 'none';
 
         const addTaskForm = document.getElementById('add-task-form');
-        if (addTaskForm) addTaskForm.style.display = '';
+        if (addTaskForm && addTaskForm.parentElement) addTaskForm.parentElement.style.display = '';
 
         const createAccForm = document.getElementById('create-account-form');
         if (createAccForm && createAccForm.parentElement) createAccForm.parentElement.style.display = 'none';
@@ -2534,7 +2534,7 @@ function applyRoleRestrictions() {
         if (importBtn) importBtn.style.display = 'none';
 
         const addTaskForm = document.getElementById('add-task-form');
-        if (addTaskForm) addTaskForm.style.display = 'none';
+        if (addTaskForm && addTaskForm.parentElement) addTaskForm.parentElement.style.display = 'none';
 
         const reviewReqBtn = document.getElementById('review-requests-btn');
         if (reviewReqBtn) reviewReqBtn.style.display = 'none';
