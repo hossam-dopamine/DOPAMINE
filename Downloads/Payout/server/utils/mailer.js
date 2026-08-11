@@ -65,6 +65,38 @@ const sendEmail = async ({ to, subject, text, html }) => {
     return false;
   }
 
+  // 1. Try Resend HTTP API if configured (bypasses Render SMTP port blocking)
+  if (process.env.RESEND_API_KEY) {
+    try {
+      const fromEmail = process.env.RESEND_FROM || 'onboarding@resend.dev';
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: `DOPAMINE Services <${fromEmail}>`,
+          to: [to],
+          subject,
+          text,
+          html
+        })
+      });
+
+      const resData = await response.json();
+      if (response.ok) {
+        console.log('📧 Mailer [Resend]: Email sent successfully! Id:', resData.id);
+        return true;
+      } else {
+        console.error('❌ Mailer [Resend] API Error:', resData);
+      }
+    } catch (err) {
+      console.error('❌ Mailer [Resend] HTTP Error:', err.message);
+    }
+  }
+
+  // 2. Fallback to Nodemailer SMTP
   const mailOptions = {
     from: EMAIL_USER ? `"DOPAMINE Services" <${EMAIL_USER}>` : '"DOPAMINE Services" <no-reply@dopamine-service.com>',
     to,
