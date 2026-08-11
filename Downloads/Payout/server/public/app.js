@@ -2455,6 +2455,11 @@ function applyRoleRestrictions() {
         const importBtn = document.getElementById('import-btn');
         if (importBtn) importBtn.style.display = '';
 
+        const taskFormCol = document.querySelector('.task-form-column');
+        if (taskFormCol) taskFormCol.style.display = '';
+        const taskLayout = document.querySelector('.task-management-layout');
+        if (taskLayout) taskLayout.style.gridTemplateColumns = '';
+
         const addTaskForm = document.getElementById('add-task-form');
         if (addTaskForm && addTaskForm.parentElement) addTaskForm.parentElement.style.display = '';
         
@@ -2495,6 +2500,11 @@ function applyRoleRestrictions() {
         const importBtn = document.getElementById('import-btn');
         if (importBtn) importBtn.style.display = 'none';
 
+        const taskFormCol = document.querySelector('.task-form-column');
+        if (taskFormCol) taskFormCol.style.display = '';
+        const taskLayout = document.querySelector('.task-management-layout');
+        if (taskLayout) taskLayout.style.gridTemplateColumns = '';
+
         const addTaskForm = document.getElementById('add-task-form');
         if (addTaskForm && addTaskForm.parentElement) addTaskForm.parentElement.style.display = '';
 
@@ -2532,6 +2542,11 @@ function applyRoleRestrictions() {
 
         const importBtn = document.getElementById('import-btn');
         if (importBtn) importBtn.style.display = 'none';
+
+        const taskFormCol = document.querySelector('.task-form-column');
+        if (taskFormCol) taskFormCol.style.display = 'none';
+        const taskLayout = document.querySelector('.task-management-layout');
+        if (taskLayout) taskLayout.style.gridTemplateColumns = '1fr';
 
         const addTaskForm = document.getElementById('add-task-form');
         if (addTaskForm && addTaskForm.parentElement) addTaskForm.parentElement.style.display = 'none';
