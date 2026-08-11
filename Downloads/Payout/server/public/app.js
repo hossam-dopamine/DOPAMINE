@@ -652,6 +652,10 @@ async function deleteEmployeeApi(empId) {
 }
 
 function showStorageSyncBadge(isFileSaved) {
+    const user = getAuthUser();
+    if (!user || user.role !== 'admin') {
+        return; // Only show for Admin
+    }
     let badge = document.getElementById('disk-sync-indicator');
     if (!badge) {
         badge = document.createElement('div');
@@ -2441,6 +2445,12 @@ function applyRoleRestrictions() {
 
         const clearDataBtn = document.getElementById('clear-data-btn');
         if (clearDataBtn) clearDataBtn.style.display = '';
+        
+        const exportBtn = document.getElementById('export-btn');
+        if (exportBtn) exportBtn.style.display = '';
+
+        const exportCsvBtn = document.getElementById('export-csv-btn');
+        if (exportCsvBtn) exportCsvBtn.style.display = '';
 
         const importBtn = document.getElementById('import-btn');
         if (importBtn) importBtn.style.display = '';
@@ -2476,6 +2486,12 @@ function applyRoleRestrictions() {
         const clearDataBtn = document.getElementById('clear-data-btn');
         if (clearDataBtn) clearDataBtn.style.display = 'none';
 
+        const exportBtn = document.getElementById('export-btn');
+        if (exportBtn) exportBtn.style.display = 'none';
+
+        const exportCsvBtn = document.getElementById('export-csv-btn');
+        if (exportCsvBtn) exportCsvBtn.style.display = 'none';
+
         const importBtn = document.getElementById('import-btn');
         if (importBtn) importBtn.style.display = 'none';
 
@@ -2507,6 +2523,12 @@ function applyRoleRestrictions() {
 
         const clearDataBtn = document.getElementById('clear-data-btn');
         if (clearDataBtn) clearDataBtn.style.display = 'none';
+
+        const exportBtn = document.getElementById('export-btn');
+        if (exportBtn) exportBtn.style.display = 'none';
+
+        const exportCsvBtn = document.getElementById('export-csv-btn');
+        if (exportCsvBtn) exportCsvBtn.style.display = 'none';
 
         const importBtn = document.getElementById('import-btn');
         if (importBtn) importBtn.style.display = 'none';
