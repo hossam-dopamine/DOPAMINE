@@ -278,13 +278,13 @@ html[dir="ltr"] .employee-item:hover {
     height: 38px;
     border-radius: 50%;
     background: var(--primary-gradient);
-    color: #fff;
+    color: #09090b;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 700;
     font-size: 14px;
-    box-shadow: 0 2px 8px rgba(255, 90, 0, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 .avatar-img {
     width: 38px;
@@ -292,7 +292,7 @@ html[dir="ltr"] .employee-item:hover {
     border-radius: 50%;
     object-fit: cover;
     border: 1px solid var(--color-primary);
-    box-shadow: 0 2px 8px rgba(255, 90, 0, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 .employee-text {
     display: flex;
@@ -317,7 +317,7 @@ html[dir="ltr"] .employee-item:hover {
 }
 .employee-item.active .task-count-badge {
     background: var(--color-primary);
-    color: #fff;
+    color: #09090b;
 }
 
 .sidebar-footer {
