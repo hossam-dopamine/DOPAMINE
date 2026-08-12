@@ -119,7 +119,7 @@ router.get('/', verifyToken, async (req, res) => {
     const eurExchangeRate = meta && meta.eurExchangeRate ? meta.eurExchangeRate : 55;
 
     if (req.user.role === 'admin') {
-      const dbEmployees = await Employee.find({ tenantId }).lean();
+      const dbEmployees = await Employee.find({ tenantId }).sort({ sortOrder: 1, createdAt: 1 }).lean();
       const dbTasks = await Task.find({ tenantId }).lean();
 
       const tasksByEmpId = new Map();
@@ -152,7 +152,7 @@ router.get('/', verifyToken, async (req, res) => {
       if (req.user.employeeId) allowedIds.add(String(req.user.employeeId));
 
       const targetEmpIds = Array.from(allowedIds);
-      const dbEmployees = await Employee.find({ id: { $in: targetEmpIds }, tenantId }).lean();
+      const dbEmployees = await Employee.find({ id: { $in: targetEmpIds }, tenantId }).sort({ sortOrder: 1, createdAt: 1 }).lean();
       const dbTasks = await Task.find({ employeeId: { $in: targetEmpIds }, tenantId }).lean();
 
       const tasksByEmpId = new Map();
@@ -233,7 +233,8 @@ router.post('/', dataMutationLimiter, verifyToken, requireAdmin, async (req, res
       const taskOps = [];
       const allTaskIds = [];
 
-      for (const empData of employees) {
+      for (let index = 0; index < employees.length; index++) {
+        const empData = employees[index];
         const empId = String(empData.id);
         empOps.push({
           updateOne: {
@@ -248,6 +249,7 @@ router.post('/', dataMutationLimiter, verifyToken, requireAdmin, async (req, res
                 paymentDetails: empData.paymentDetails || '',
                 avatarUrl: empData.avatarUrl || '',
                 adjustments: empData.adjustments || {},
+                sortOrder: index,
                 tenantId
               }
             },

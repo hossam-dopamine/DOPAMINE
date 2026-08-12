@@ -37,6 +37,11 @@ const employeeSchema = new mongoose.Schema({
     of: mongoose.Schema.Types.Mixed,
     default: {}
   },
+  sortOrder: {
+    type: Number,
+    default: 0,
+    index: true
+  },
   tenantId: {
     type: String,
     required: true,
