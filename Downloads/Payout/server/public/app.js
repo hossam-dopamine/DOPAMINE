@@ -1036,11 +1036,28 @@ function renderEmployeesList() {
             <div style="display: flex; align-items: center; gap: 8px;">
                 <span class="task-count-badge">${emp.tasks.length}</span>
                 <div class="employee-sort-actions">
-                    <button class="btn-sort" onclick="moveEmployeeUp(event, '${emp.id}')" title="Move Up"><i data-lucide="chevron-up"></i></button>
-                    <button class="btn-sort" onclick="moveEmployeeDown(event, '${emp.id}')" title="Move Down"><i data-lucide="chevron-down"></i></button>
+                    <button class="btn-sort btn-move-up" title="Move Up"><i data-lucide="chevron-up"></i></button>
+                    <button class="btn-sort btn-move-down" title="Move Down"><i data-lucide="chevron-down"></i></button>
                 </div>
             </div>
         `;
+
+        // Attach event listeners programmatically to bypass inline SVG bubbling issues
+        const btnUp = item.querySelector('.btn-move-up');
+        const btnDown = item.querySelector('.btn-move-down');
+        
+        if (btnUp) {
+            btnUp.addEventListener('click', (e) => {
+                e.stopPropagation();
+                moveEmployeeUp(e, emp.id);
+            });
+        }
+        if (btnDown) {
+            btnDown.addEventListener('click', (e) => {
+                e.stopPropagation();
+                moveEmployeeDown(e, emp.id);
+            });
+        }
 
         item.addEventListener('click', () => {
             selectEmployee(emp.id);
