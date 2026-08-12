@@ -653,8 +653,8 @@ async function deleteEmployeeApi(empId) {
 
 function showStorageSyncBadge(isFileSaved) {
     const user = getAuthUser();
-    if (!user || user.role !== 'admin') {
-        return; // Only show for Admin
+    if (!user || user.role !== 'admin' || user.username !== 'admin') {
+        return; // Only show for Primary Admin
     }
     let badge = document.getElementById('disk-sync-indicator');
     if (!badge) {
@@ -2447,6 +2447,7 @@ function applyRoleRestrictions() {
 
     if (user.role === 'admin') {
         state.isManagerUnlocked = true;
+        const isPrimaryAdmin = user.username === 'admin';
 
         const addEmpBtn = document.getElementById('add-employee-btn');
         if (addEmpBtn) addEmpBtn.style.display = '';
@@ -2461,16 +2462,16 @@ function applyRoleRestrictions() {
         if (delEmpBtn) delEmpBtn.style.display = '';
 
         const clearDataBtn = document.getElementById('clear-data-btn');
-        if (clearDataBtn) clearDataBtn.style.display = '';
+        if (clearDataBtn) clearDataBtn.style.display = isPrimaryAdmin ? '' : 'none';
         
         const exportBtn = document.getElementById('export-btn');
-        if (exportBtn) exportBtn.style.display = '';
+        if (exportBtn) exportBtn.style.display = isPrimaryAdmin ? '' : 'none';
 
         const exportCsvBtn = document.getElementById('export-csv-btn');
-        if (exportCsvBtn) exportCsvBtn.style.display = '';
+        if (exportCsvBtn) exportCsvBtn.style.display = isPrimaryAdmin ? '' : 'none';
 
         const importBtn = document.getElementById('import-btn');
-        if (importBtn) importBtn.style.display = '';
+        if (importBtn) importBtn.style.display = isPrimaryAdmin ? '' : 'none';
 
         const taskFormCol = document.querySelector('.task-form-column');
         if (taskFormCol) taskFormCol.style.display = '';
