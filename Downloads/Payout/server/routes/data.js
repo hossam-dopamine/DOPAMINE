@@ -211,6 +211,10 @@ router.post('/', dataMutationLimiter, verifyToken, requireAdmin, async (req, res
     const { employees, exchangeRate } = req.body;
     const tenantId = req.user.tenantId || 'default_tenant';
 
+    if (exchangeRate !== undefined && (typeof exchangeRate !== 'number' || isNaN(exchangeRate) || exchangeRate < 0)) {
+      return res.status(400).json({ success: false, error: 'سعر الصرف غير صالح' });
+    }
+
     if (Array.isArray(employees)) {
       // Sync exchange rate
       if (exchangeRate !== undefined) {

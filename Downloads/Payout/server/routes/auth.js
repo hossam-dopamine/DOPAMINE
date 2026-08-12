@@ -25,6 +25,9 @@ router.post('/login', authLimiter, async (req, res) => {
     if (!username || !password) {
       return res.status(400).json({ success: false, error: 'اسم المستخدم وكلمة المرور مطلوبان' });
     }
+    if (typeof username !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({ success: false, error: 'برجاء إدخال بيانات صحيحة' });
+    }
 
     const cleanUsername = String(username).toLowerCase().trim();
 
@@ -77,6 +80,9 @@ router.post('/register', authLimiter, async (req, res) => {
     if (!username || !password || !email || !birthDate) {
       return res.status(400).json({ success: false, error: 'جميع الحقول مطلوبة (اسم المستخدم، كلمة المرور، البريد الإلكتروني، تاريخ الميلاد)' });
     }
+    if (typeof username !== 'string' || typeof password !== 'string' || typeof email !== 'string' || typeof birthDate !== 'string') {
+      return res.status(400).json({ success: false, error: 'برجاء إدخال بيانات صحيحة' });
+    }
 
     const cleanUsername = String(username).toLowerCase().trim();
     if (cleanUsername.length < 3) {
@@ -87,7 +93,8 @@ router.post('/register', authLimiter, async (req, res) => {
     }
 
     const cleanEmail = String(email).toLowerCase().trim();
-    if (!cleanEmail.includes('@')) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
       return res.status(400).json({ success: false, error: 'البريد الإلكتروني غير صالح' });
     }
 
@@ -133,6 +140,9 @@ router.post('/change-password', verifyToken, async (req, res) => {
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ success: false, error: 'كلمة المرور الحالية والجديدة مطلوبتان' });
     }
+    if (typeof currentPassword !== 'string' || typeof newPassword !== 'string') {
+      return res.status(400).json({ success: false, error: 'برجاء إدخال بيانات صحيحة' });
+    }
     if (String(newPassword).length < 6) {
       return res.status(400).json({ success: false, error: 'كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل' });
     }
@@ -161,6 +171,12 @@ router.post('/create-employee-account', verifyToken, requireAdmin, async (req, r
     
     if (!username || !password || !employeeId) {
       return res.status(400).json({ success: false, error: 'Missing required fields' });
+    }
+    if (typeof username !== 'string' || typeof password !== 'string' || typeof employeeId !== 'string') {
+      return res.status(400).json({ success: false, error: 'Invalid field types' });
+    }
+    if (role && typeof role !== 'string') {
+      return res.status(400).json({ success: false, error: 'Invalid role type' });
     }
     
     const cleanUsername = String(username).toLowerCase().trim();
@@ -256,6 +272,12 @@ router.put('/update-allowed-employees', authLimiter, verifyToken, requireAdmin, 
     const { username, allowedEmployeeIds } = req.body;
     if (!username) {
       return res.status(400).json({ success: false, error: 'اسم المستخدم مطلوب' });
+    }
+    if (typeof username !== 'string') {
+      return res.status(400).json({ success: false, error: 'اسم المستخدم يجب أن يكون نصاً' });
+    }
+    if (allowedEmployeeIds && !Array.isArray(allowedEmployeeIds)) {
+      return res.status(400).json({ success: false, error: 'قائمة الموظفين المسموحين يجب أن تكون مصفوفة' });
     }
 
     const cleanUsername = String(username).toLowerCase().trim();

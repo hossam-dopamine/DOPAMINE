@@ -25,12 +25,15 @@ const applySecurityMiddleware = (app) => {
     : [];
   app.use(cors({
     origin: (origin, callback) => {
-      // Allow same-origin requests (no origin header) and configured origins
-      if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
+      // Allow same-origin requests (no origin header)
+      if (!origin) {
+        return callback(null, true);
       }
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      // If not same-origin and not in allowed list, reject
+      callback(new Error('Not allowed by CORS'));
     },
     credentials: true
   }));
@@ -48,6 +51,7 @@ const applySecurityMiddleware = (app) => {
     max: 200,
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => process.env.NODE_ENV !== 'production',
     message: { success: false, error: 'Too many requests, please try again later.' }
   });
   app.use(generalLimiter);
@@ -58,6 +62,7 @@ const authLimiter = rateLimit({
   max: 15,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => process.env.NODE_ENV !== 'production',
   message: { success: false, error: 'Too many authentication attempts, please try again later.' }
 });
 
@@ -66,6 +71,7 @@ const dataMutationLimiter = rateLimit({
   max: 60,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => process.env.NODE_ENV !== 'production',
   message: { success: false, error: 'Too many data modification requests, please try again later.' }
 });
 
