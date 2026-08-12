@@ -277,13 +277,15 @@ html[dir="ltr"] .employee-item:hover {
     width: 38px;
     height: 38px;
     border-radius: 50%;
-    background: var(--primary-gradient);
-    color: #09090b;
+    background: var(--primary-gradient) !important;
+    color: #09090b !important;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 700;
     font-size: 14px;
+    line-height: 1;
+    overflow: hidden;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 .avatar-img {
@@ -316,8 +318,8 @@ html[dir="ltr"] .employee-item:hover {
     font-weight: 600;
 }
 .employee-item.active .task-count-badge {
-    background: var(--color-primary);
-    color: #09090b;
+    background: var(--color-primary) !important;
+    color: #09090b !important;
 }
 
 .sidebar-footer {
