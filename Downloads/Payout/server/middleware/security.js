@@ -19,23 +19,24 @@ const applySecurityMiddleware = (app) => {
     }
   }));
 
-  // CORS Configuration — restrict to known origins
-  const allowedOrigins = process.env.APP_URL
-    ? [process.env.APP_URL.replace(/\/+$/, '')]
-    : [];
-  app.use(cors({
-    origin: (origin, callback) => {
-      // Allow same-origin requests (no origin header)
-      if (!origin) {
-        return callback(null, true);
-      }
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      // If not same-origin and not in allowed list, reject
-      callback(new Error('Not allowed by CORS'));
-    },
-    credentials: true
+  // CORS Configuration — restrict to same-origin and configured origins
+  app.use(cors((req, callback) => {
+    const selfOrigin = `${req.protocol}://${req.headers.host}`;
+    const allowed = [
+      selfOrigin,
+      ...(process.env.APP_URL ? [process.env.APP_URL.replace(/\/+$/, '')] : [])
+    ];
+    
+    callback(null, {
+      origin: (origin, cb) => {
+        if (!origin || allowed.includes(origin)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Not allowed by CORS'));
+        }
+      },
+      credentials: true
+    });
   }));
 
   // Compression

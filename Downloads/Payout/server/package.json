@@ -1,6 +1,6 @@
 {
   "name": "dopamine-service-backend",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Backend for DOPAMINE-SERVICE",
   "main": "server.js",
   "scripts": {
