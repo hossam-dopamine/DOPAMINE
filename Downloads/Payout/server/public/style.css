@@ -1553,14 +1553,34 @@ html[dir="rtl"] .employee-sort-actions {
     right: 0;
     bottom: 0;
     background: var(--bg-base);
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     z-index: 9999;
     opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.4s ease;
+    visibility: hidden;
+    pointer-events: none !important;
+    transition: opacity 0.4s ease, visibility 0.4s ease;
     overflow: hidden;
+}
+
+.login-overlay.active {
+    display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+}
+
+.login-overlay:not(.active) {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+}
+
+.login-overlay:not(.active) * {
+    pointer-events: none !important;
+    display: none !important;
 }
 
 .login-bg-layer {
@@ -1591,11 +1611,6 @@ html[dir="rtl"] .employee-sort-actions {
     height: 100%;
     pointer-events: none;
     z-index: 2;
-}
-
-.login-overlay.active {
-    opacity: 1;
-    pointer-events: auto;
 }
 
 /* Login Footer Widgets Bar */
