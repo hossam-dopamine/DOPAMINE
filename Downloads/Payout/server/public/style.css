@@ -1556,22 +1556,21 @@ html[dir="rtl"] .employee-sort-actions {
 
 .login-bg-layer {
     position: absolute;
-    top: -10%;
-    left: -10%;
-    width: 120%;
-    height: 120%;
+    top: -8%;
+    left: -8%;
+    width: 116%;
+    height: 116%;
     background: linear-gradient(rgba(9, 9, 11, 0.78), rgba(9, 9, 11, 0.78)), url('login-bg.jpg') no-repeat center center;
     background-size: cover;
     z-index: 1;
     pointer-events: none;
-    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    animation: bgFloatDrift 60s ease-in-out infinite alternate;
+    animation: bgSlowFloat 40s ease-in-out infinite alternate;
 }
 
-@keyframes bgFloatDrift {
-    0% { background-position: 50% 50%; }
-    50% { background-position: 52% 48%; }
-    100% { background-position: 48% 52%; }
+@keyframes bgSlowFloat {
+    0% { transform: scale(1.0) translate(0, 0); }
+    50% { transform: scale(1.05) translate(-1.5%, 1%); }
+    100% { transform: scale(1.0) translate(1.5%, -1%); }
 }
 
 .login-overlay.active {
