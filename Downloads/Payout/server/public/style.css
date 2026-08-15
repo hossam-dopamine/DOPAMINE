@@ -1589,11 +1589,11 @@ html[dir="rtl"] .employee-sort-actions {
     left: -4%;
     width: 108%;
     height: 108%;
-    background: linear-gradient(rgba(10, 10, 16, 0.62), rgba(10, 10, 16, 0.72)), url('login-bg-galaxy-hd.jpg?v=1.4.0') no-repeat center center;
+    background: linear-gradient(rgba(6, 6, 10, 0.55), rgba(6, 6, 10, 0.68)), url('login-bg-galaxy-hd.jpg?v=1.4.1') no-repeat center center;
     background-size: cover;
     z-index: 1;
     pointer-events: none;
-    filter: contrast(1.22) brightness(0.96) saturate(1.15) url(#warp-filter);
+    filter: grayscale(100%) contrast(1.35) brightness(1.08) url(#warp-filter);
     animation: gentleWarpWave 25s ease-in-out infinite alternate;
 }
 
