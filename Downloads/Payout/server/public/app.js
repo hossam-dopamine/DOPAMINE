@@ -3863,19 +3863,20 @@ window.initSmokeEffect = function() {
             initAmbientStars();
         }
 
-        // 1. Initialize Ambient Twinkling Cosmic Stars
+        // 1. Initialize Ambient Twinkling Cosmic Stars & Stardust
         function initAmbientStars() {
             ambientStars = [];
-            const starCount = Math.floor((width * height) / 8000) + 70;
+            const starCount = Math.floor((width * height) / 5000) + 110;
             for (let i = 0; i < starCount; i++) {
                 ambientStars.push({
                     x: Math.random() * width,
                     y: Math.random() * height,
-                    size: Math.random() * 1.8 + 0.6,
-                    baseAlpha: Math.random() * 0.55 + 0.2,
-                    twinkleSpeed: Math.random() * 0.03 + 0.008,
+                    size: Math.random() * 2.2 + 0.6,
+                    baseAlpha: Math.random() * 0.65 + 0.25,
+                    twinkleSpeed: Math.random() * 0.035 + 0.01,
                     twinklePhase: Math.random() * Math.PI * 2,
-                    isBig: Math.random() > 0.90
+                    isBig: Math.random() > 0.88,
+                    color: Math.random() > 0.7 ? '255, 220, 240' : (Math.random() > 0.4 ? '200, 230, 255' : '255, 255, 255')
                 });
             }
         }
