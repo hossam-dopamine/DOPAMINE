@@ -55,6 +55,15 @@ html[dir="ltr"] {
     box-sizing: border-box;
 }
 
+/* Custom Flame Logo Cursor */
+*, html, body, a, button, input, select, textarea, label, div, span, i, svg, .btn, .employee-item {
+    cursor: url('cursor-logo.svg?v=1.2.0') 4 4, auto !important;
+}
+
+a, button, select, input[type="submit"], .btn, .employee-item, [role="button"] {
+    cursor: url('cursor-logo.svg?v=1.2.0') 4 4, pointer !important;
+}
+
 html, body {
     min-height: 100vh;
     margin: 0;
