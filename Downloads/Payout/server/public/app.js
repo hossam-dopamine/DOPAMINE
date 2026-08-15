@@ -3848,69 +3848,137 @@ window.initSmokeEffect = function() {
         const canvas = overlay.querySelector('.smoke-canvas');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
-        let particles = [];
-        
+        let tendrils = [];
+        let sparks = [];
+
         function resize() {
             canvas.width = overlay.clientWidth || window.innerWidth;
             canvas.height = overlay.clientHeight || window.innerHeight;
         }
         resize();
         window.addEventListener('resize', resize);
-        
-        function addSmoke(x, y) {
-            for (let i = 0; i < 3; i++) {
-                particles.push({
-                    x: x + (Math.random() - 0.5) * 15,
-                    y: y + (Math.random() - 0.5) * 15,
-                    size: Math.random() * 12 + 12,
-                    maxSize: Math.random() * 30 + 35,
-                    vx: (Math.random() - 0.5) * 1.0,
+
+        function addArtElements(x, y) {
+            // Add 2 fine line tendrils (derived from artwork linework & wolf fur)
+            for (let i = 0; i < 2; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const length = Math.random() * 25 + 20;
+                tendrils.push({
+                    x: x,
+                    y: y,
+                    cp1x: x + Math.cos(angle) * (length * 0.5) + (Math.random() - 0.5) * 20,
+                    cp1y: y + Math.sin(angle) * (length * 0.5) - Math.random() * 15,
+                    cp2x: x + Math.cos(angle + 0.5) * length + (Math.random() - 0.5) * 30,
+                    cp2y: y + Math.sin(angle + 0.5) * length - Math.random() * 30,
+                    endX: x + Math.cos(angle + 1) * (length * 1.4),
+                    endY: y + Math.sin(angle + 1) * (length * 1.4) - Math.random() * 40,
+                    width: Math.random() * 1.5 + 0.8,
+                    alpha: Math.random() * 0.6 + 0.3,
+                    decay: Math.random() * 0.015 + 0.01,
+                    color: Math.random() > 0.3 ? '255, 255, 255' : '210, 225, 245'
+                });
+            }
+
+            // Add 2 glowing star sparks (derived from sword highlights)
+            for (let i = 0; i < 2; i++) {
+                sparks.push({
+                    x: x + (Math.random() - 0.5) * 16,
+                    y: y + (Math.random() - 0.5) * 16,
+                    size: Math.random() * 2 + 1,
+                    maxSize: Math.random() * 4 + 3,
+                    vx: (Math.random() - 0.5) * 0.8,
                     vy: -Math.random() * 1.2 - 0.4,
-                    alpha: Math.random() * 0.35 + 0.25,
-                    decay: Math.random() * 0.009 + 0.006,
-                    angle: Math.random() * Math.PI * 2,
-                    spin: (Math.random() - 0.5) * 0.04
+                    alpha: Math.random() * 0.8 + 0.2,
+                    decay: Math.random() * 0.02 + 0.012
                 });
             }
         }
-        
+
+        let lastX = 0, lastY = 0;
         overlay.addEventListener('mousemove', (e) => {
             const rect = overlay.getBoundingClientRect();
-            addSmoke(e.clientX - rect.left, e.clientY - rect.top);
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const dist = Math.hypot(x - lastX, y - lastY);
+            if (dist > 5) {
+                addArtElements(x, y);
+                lastX = x;
+                lastY = y;
+            }
         });
-        
+
+        function drawSparkStar(ctx, cx, cy, spikes, outerRadius, innerRadius, alpha) {
+            let rot = Math.PI / 2 * 3;
+            let x = cx;
+            let y = cy;
+            let step = Math.PI / spikes;
+
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - outerRadius);
+            for (let i = 0; i < spikes; i++) {
+                x = cx + Math.cos(rot) * outerRadius;
+                y = cy + Math.sin(rot) * outerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+
+                x = cx + Math.cos(rot) * innerRadius;
+                y = cy + Math.sin(rot) * innerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+            }
+            ctx.lineTo(cx, cy - outerRadius);
+            ctx.closePath();
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.9)';
+            ctx.shadowBlur = 6;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
         function render() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            for (let i = particles.length - 1; i >= 0; i--) {
-                const p = particles[i];
-                p.x += p.vx;
-                p.y += p.vy;
-                p.size += (p.maxSize - p.size) * 0.04;
-                p.alpha -= p.decay;
-                p.angle += p.spin;
-                
-                if (p.alpha <= 0) {
-                    particles.splice(i, 1);
+
+            // 1. Render Line Tendrils
+            for (let i = tendrils.length - 1; i >= 0; i--) {
+                const t = tendrils[i];
+                t.alpha -= t.decay;
+                t.cp1y -= 0.6;
+                t.cp2y -= 0.9;
+                t.endY -= 1.2;
+
+                if (t.alpha <= 0) {
+                    tendrils.splice(i, 1);
                     continue;
                 }
-                
+
                 ctx.save();
-                ctx.translate(p.x, p.y);
-                ctx.rotate(p.angle);
-                
-                const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, p.size);
-                grad.addColorStop(0, `rgba(235, 240, 250, ${p.alpha * 0.55})`);
-                grad.addColorStop(0.5, `rgba(180, 190, 205, ${p.alpha * 0.25})`);
-                grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-                
-                ctx.fillStyle = grad;
                 ctx.beginPath();
-                ctx.arc(0, 0, p.size, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.moveTo(t.x, t.y);
+                ctx.bezierCurveTo(t.cp1x, t.cp1y, t.cp2x, t.cp2y, t.endX, t.endY);
+                ctx.strokeStyle = `rgba(${t.color}, ${t.alpha})`;
+                ctx.lineWidth = t.width;
+                ctx.lineCap = 'round';
+                ctx.shadowColor = `rgba(${t.color}, ${t.alpha * 0.8})`;
+                ctx.shadowBlur = 5;
+                ctx.stroke();
                 ctx.restore();
             }
-            
+
+            // 2. Render Star Sparks
+            for (let i = sparks.length - 1; i >= 0; i--) {
+                const s = sparks[i];
+                s.x += s.vx;
+                s.y += s.vy;
+                s.alpha -= s.decay;
+
+                if (s.alpha <= 0) {
+                    sparks.splice(i, 1);
+                    continue;
+                }
+
+                drawSparkStar(ctx, s.x, s.y, 4, s.maxSize, s.size * 0.3, s.alpha);
+            }
+
             requestAnimationFrame(render);
         }
         render();
