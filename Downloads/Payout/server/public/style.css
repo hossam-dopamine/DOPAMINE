@@ -1560,7 +1560,7 @@ html[dir="rtl"] .employee-sort-actions {
     left: -5%;
     width: 110%;
     height: 110%;
-    background: linear-gradient(rgba(9, 9, 11, 0.8), rgba(9, 9, 11, 0.8)), url('login-bg.jpg?v=1.1.2') no-repeat center center;
+    background: linear-gradient(rgba(9, 9, 11, 0.8), rgba(9, 9, 11, 0.8)), url('login-bg-v2.jpg?v=1.1.5') no-repeat center center;
     background-size: 100% 100%;
     z-index: 1;
     pointer-events: none;
