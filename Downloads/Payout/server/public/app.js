@@ -2576,6 +2576,9 @@ function applyRoleRestrictions() {
 
 // --- Set Up Event Listeners ---
 document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize interactive background parallax
+    if (window.initLoginParallax) window.initLoginParallax();
+
     // Auth Event Handlers
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
@@ -3837,5 +3840,30 @@ window.togglePassVisibility = function(elementId, realValue) {
     } else {
         el.textContent = '••••••••';
     }
+};
+
+window.initLoginParallax = function() {
+    const overlays = document.querySelectorAll('.login-overlay');
+    overlays.forEach(overlay => {
+        const bgLayer = overlay.querySelector('.login-bg-layer');
+        if (!bgLayer) return;
+        
+        overlay.addEventListener('mousemove', (e) => {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            
+            const mouseX = (e.clientX / width) - 0.5;
+            const mouseY = (e.clientY / height) - 0.5;
+            
+            const moveX = mouseX * 25; // 25px max movement
+            const moveY = mouseY * 25;
+            
+            bgLayer.style.transform = `translate(${moveX}px, ${moveY}px) scale(1.03)`;
+        });
+        
+        overlay.addEventListener('mouseleave', () => {
+            bgLayer.style.transform = 'translate(0px, 0px) scale(1)';
+        });
+    });
 };
 

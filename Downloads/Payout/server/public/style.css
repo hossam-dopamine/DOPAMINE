@@ -1543,8 +1543,7 @@ html[dir="rtl"] .employee-sort-actions {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(rgba(9, 9, 11, 0.75), rgba(9, 9, 11, 0.75)), url('login-bg.jpg') no-repeat center center fixed;
-    background-size: cover;
+    background: var(--bg-base);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1552,6 +1551,27 @@ html[dir="rtl"] .employee-sort-actions {
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.4s ease;
+    overflow: hidden;
+}
+
+.login-bg-layer {
+    position: absolute;
+    top: -10%;
+    left: -10%;
+    width: 120%;
+    height: 120%;
+    background: linear-gradient(rgba(9, 9, 11, 0.78), rgba(9, 9, 11, 0.78)), url('login-bg.jpg') no-repeat center center;
+    background-size: cover;
+    z-index: 1;
+    pointer-events: none;
+    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    animation: bgFloatDrift 60s ease-in-out infinite alternate;
+}
+
+@keyframes bgFloatDrift {
+    0% { background-position: 50% 50%; }
+    50% { background-position: 52% 48%; }
+    100% { background-position: 48% 52%; }
 }
 
 .login-overlay.active {
