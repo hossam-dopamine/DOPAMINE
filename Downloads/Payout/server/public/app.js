@@ -2576,6 +2576,9 @@ function applyRoleRestrictions() {
 
 // --- Set Up Event Listeners ---
 document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize interactive canvas smoke effect
+    if (window.initSmokeEffect) window.initSmokeEffect();
+
     // Auth Event Handlers
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
@@ -3837,5 +3840,80 @@ window.togglePassVisibility = function(elementId, realValue) {
     } else {
         el.textContent = '••••••••';
     }
+};
+
+window.initSmokeEffect = function() {
+    const overlays = document.querySelectorAll('.login-overlay');
+    overlays.forEach(overlay => {
+        const canvas = overlay.querySelector('.smoke-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        
+        function resize() {
+            canvas.width = overlay.clientWidth || window.innerWidth;
+            canvas.height = overlay.clientHeight || window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+        
+        function addSmoke(x, y) {
+            for (let i = 0; i < 3; i++) {
+                particles.push({
+                    x: x + (Math.random() - 0.5) * 15,
+                    y: y + (Math.random() - 0.5) * 15,
+                    size: Math.random() * 12 + 12,
+                    maxSize: Math.random() * 30 + 35,
+                    vx: (Math.random() - 0.5) * 1.0,
+                    vy: -Math.random() * 1.2 - 0.4,
+                    alpha: Math.random() * 0.35 + 0.25,
+                    decay: Math.random() * 0.009 + 0.006,
+                    angle: Math.random() * Math.PI * 2,
+                    spin: (Math.random() - 0.5) * 0.04
+                });
+            }
+        }
+        
+        overlay.addEventListener('mousemove', (e) => {
+            const rect = overlay.getBoundingClientRect();
+            addSmoke(e.clientX - rect.left, e.clientY - rect.top);
+        });
+        
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.size += (p.maxSize - p.size) * 0.04;
+                p.alpha -= p.decay;
+                p.angle += p.spin;
+                
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+                
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.angle);
+                
+                const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, p.size);
+                grad.addColorStop(0, `rgba(235, 240, 250, ${p.alpha * 0.55})`);
+                grad.addColorStop(0.5, `rgba(180, 190, 205, ${p.alpha * 0.25})`);
+                grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+            
+            requestAnimationFrame(render);
+        }
+        render();
+    });
 };
 
