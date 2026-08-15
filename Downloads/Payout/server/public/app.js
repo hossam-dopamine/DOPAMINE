@@ -2579,6 +2579,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize interactive canvas smoke effect
     if (window.initSmokeEffect) window.initSmokeEffect();
 
+    // Initialize login reviews carousel
+    if (window.initReviewsSlider) window.initReviewsSlider();
+
     // Auth Event Handlers
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
@@ -3963,6 +3966,20 @@ window.initSmokeEffect = function() {
             requestAnimationFrame(render);
         }
         render();
+    });
+};
+
+window.initReviewsSlider = function() {
+    const sliders = document.querySelectorAll('.reviews-slider');
+    sliders.forEach(slider => {
+        const slides = slider.querySelectorAll('.review-slide');
+        if (slides.length <= 1) return;
+        let current = 0;
+        setInterval(() => {
+            slides[current].classList.remove('active');
+            current = (current + 1) % slides.length;
+            slides[current].classList.add('active');
+        }, 4500);
     });
 };
 
