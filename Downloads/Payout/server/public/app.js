@@ -3851,44 +3851,78 @@ window.initSmokeEffect = function() {
         const canvas = overlay.querySelector('.smoke-canvas');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
-        let flames = [];
-        let embers = [];
+
+        let width = 0, height = 0;
+        let ambientStars = [];
+        let shootingStars = [];
+        let mouseTrail = [];
 
         function resize() {
-            canvas.width = overlay.clientWidth || window.innerWidth;
-            canvas.height = overlay.clientHeight || window.innerHeight;
+            width = canvas.width = overlay.clientWidth || window.innerWidth;
+            height = canvas.height = overlay.clientHeight || window.innerHeight;
+            initAmbientStars();
         }
+
+        // 1. Initialize Ambient Twinkling Cosmic Stars
+        function initAmbientStars() {
+            ambientStars = [];
+            const starCount = Math.floor((width * height) / 8000) + 70;
+            for (let i = 0; i < starCount; i++) {
+                ambientStars.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    size: Math.random() * 1.8 + 0.6,
+                    baseAlpha: Math.random() * 0.55 + 0.2,
+                    twinkleSpeed: Math.random() * 0.03 + 0.008,
+                    twinklePhase: Math.random() * Math.PI * 2,
+                    isBig: Math.random() > 0.90
+                });
+            }
+        }
+
         resize();
         window.addEventListener('resize', resize);
 
-        function addFlameTrail(x, y) {
-            // 1. Radiant Flame Core Puffs
-            for (let i = 0; i < 3; i++) {
-                flames.push({
-                    x: x + (Math.random() - 0.5) * 8,
-                    y: y + (Math.random() - 0.5) * 8,
-                    size: Math.random() * 6 + 6,
-                    maxSize: Math.random() * 18 + 22,
-                    vx: (Math.random() - 0.5) * 0.9,
-                    vy: -Math.random() * 1.8 - 0.8,
-                    alpha: Math.random() * 0.55 + 0.4,
-                    decay: Math.random() * 0.02 + 0.014,
-                    angle: Math.random() * Math.PI * 2,
-                    spin: (Math.random() - 0.5) * 0.06
-                });
-            }
+        // 2. Spawn Falling Shooting Star / Meteor
+        function spawnShootingStar() {
+            const startX = Math.random() * (width * 0.8) + (width * 0.1);
+            const startY = Math.random() * (height * 0.4);
+            const speed = Math.random() * 7 + 7;
+            const angle = (Math.PI / 180) * (Math.random() * 15 + 25); // 25-40 deg diagonal
+            shootingStars.push({
+                x: startX,
+                y: startY,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                length: Math.random() * 80 + 70,
+                alpha: 1.0,
+                decay: Math.random() * 0.015 + 0.01,
+                thickness: Math.random() * 1.5 + 1.2
+            });
+        }
 
-            // 2. Rising Fiery Embers & Sparks
-            for (let i = 0; i < 2; i++) {
-                embers.push({
+        // Spawn shooting star every 2.2 seconds
+        setInterval(() => {
+            if (overlay.classList.contains('active')) {
+                spawnShootingStar();
+                if (Math.random() > 0.6) {
+                    setTimeout(spawnShootingStar, 400);
+                }
+            }
+        }, 2200);
+
+        // 3. Interactive Mouse Stardust Trail
+        function addMouseStardust(x, y) {
+            for (let i = 0; i < 3; i++) {
+                mouseTrail.push({
                     x: x + (Math.random() - 0.5) * 12,
                     y: y + (Math.random() - 0.5) * 12,
-                    size: Math.random() * 2.2 + 1,
-                    vx: (Math.random() - 0.5) * 1.4,
-                    vy: -Math.random() * 2.2 - 0.8,
-                    alpha: Math.random() * 0.85 + 0.15,
-                    decay: Math.random() * 0.022 + 0.012,
-                    color: Math.random() > 0.4 ? '255, 255, 255' : '255, 225, 175'
+                    size: Math.random() * 2 + 1,
+                    vx: (Math.random() - 0.5) * 1.2,
+                    vy: (Math.random() - 0.5) * 1.2 - 0.4,
+                    alpha: Math.random() * 0.8 + 0.2,
+                    decay: Math.random() * 0.02 + 0.015,
+                    color: Math.random() > 0.4 ? '255, 255, 255' : '200, 225, 255'
                 });
             }
         }
@@ -3899,66 +3933,103 @@ window.initSmokeEffect = function() {
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             const dist = Math.hypot(x - lastX, y - lastY);
-            if (dist > 4) {
-                addFlameTrail(x, y);
+            if (dist > 5) {
+                addMouseStardust(x, y);
                 lastX = x;
                 lastY = y;
             }
         });
 
+        // 4. Render Loop
         function render() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.globalCompositeOperation = 'lighter'; // Additive thermal glow!
+            ctx.clearRect(0, 0, width, height);
 
-            // 1. Render Flame Puffs
-            for (let i = flames.length - 1; i >= 0; i--) {
-                const f = flames[i];
-                f.x += f.vx;
-                f.y += f.vy;
-                f.size += (f.maxSize - f.size) * 0.06;
-                f.alpha -= f.decay;
-                f.angle += f.spin;
+            // A. Draw Ambient Twinkling Stars
+            for (let i = 0; i < ambientStars.length; i++) {
+                const s = ambientStars[i];
+                s.twinklePhase += s.twinkleSpeed;
+                const alpha = Math.max(0.1, s.baseAlpha + Math.sin(s.twinklePhase) * 0.35);
 
-                if (f.alpha <= 0) {
-                    flames.splice(i, 1);
+                ctx.save();
+                ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Lens flare for big stars
+                if (s.isBig && alpha > 0.5) {
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.4})`;
+                    ctx.lineWidth = 0.8;
+                    const flareLen = s.size * 3.5;
+                    ctx.beginPath();
+                    ctx.moveTo(s.x - flareLen, s.y);
+                    ctx.lineTo(s.x + flareLen, s.y);
+                    ctx.moveTo(s.x, s.y - flareLen);
+                    ctx.lineTo(s.x, s.y + flareLen);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+            // B. Draw Falling Shooting Stars / Meteors
+            for (let i = shootingStars.length - 1; i >= 0; i--) {
+                const m = shootingStars[i];
+                m.x += m.vx;
+                m.y += m.vy;
+                m.alpha -= m.decay;
+
+                if (m.alpha <= 0 || m.x > width || m.y > height) {
+                    shootingStars.splice(i, 1);
                     continue;
                 }
 
+                const headX = m.x;
+                const headY = m.y;
+                const dist = Math.hypot(m.vx, m.vy);
+                const tailX = m.x - (m.vx / dist) * m.length;
+                const tailY = m.y - (m.vy / dist) * m.length;
+
                 ctx.save();
-                ctx.translate(f.x, f.y);
-                ctx.rotate(f.angle);
+                const grad = ctx.createLinearGradient(headX, headY, tailX, tailY);
+                grad.addColorStop(0, `rgba(255, 255, 255, ${m.alpha})`);
+                grad.addColorStop(0.3, `rgba(220, 235, 255, ${m.alpha * 0.7})`);
+                grad.addColorStop(1, 'rgba(180, 200, 240, 0)');
 
-                const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, f.size);
-                grad.addColorStop(0, `rgba(255, 255, 255, ${f.alpha * 0.9})`);
-                grad.addColorStop(0.35, `rgba(255, 230, 200, ${f.alpha * 0.6})`);
-                grad.addColorStop(0.7, `rgba(200, 215, 240, ${f.alpha * 0.25})`);
-                grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-
-                ctx.fillStyle = grad;
+                ctx.strokeStyle = grad;
+                ctx.lineWidth = m.thickness;
+                ctx.lineCap = 'round';
                 ctx.beginPath();
-                ctx.arc(0, 0, f.size, 0, Math.PI * 2);
+                ctx.moveTo(headX, headY);
+                ctx.lineTo(tailX, tailY);
+                ctx.stroke();
+
+                ctx.fillStyle = `rgba(255, 255, 255, ${m.alpha})`;
+                ctx.shadowColor = 'rgba(255, 255, 255, 0.9)';
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.arc(headX, headY, m.thickness * 1.2, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.restore();
             }
 
-            // 2. Render Rising Embers
-            for (let i = embers.length - 1; i >= 0; i--) {
-                const e = embers[i];
-                e.x += e.vx;
-                e.y += e.vy;
-                e.alpha -= e.decay;
+            // C. Draw Interactive Mouse Stardust
+            for (let i = mouseTrail.length - 1; i >= 0; i--) {
+                const p = mouseTrail[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= p.decay;
 
-                if (e.alpha <= 0) {
-                    embers.splice(i, 1);
+                if (p.alpha <= 0) {
+                    mouseTrail.splice(i, 1);
                     continue;
                 }
 
                 ctx.save();
+                ctx.fillStyle = `rgba(${p.color}, ${p.alpha})`;
+                ctx.shadowColor = `rgba(${p.color}, ${p.alpha * 0.8})`;
+                ctx.shadowBlur = 6;
                 ctx.beginPath();
-                ctx.arc(e.x, e.y, e.size, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(${e.color}, ${e.alpha})`;
-                ctx.shadowColor = `rgba(${e.color}, ${e.alpha})`;
-                ctx.shadowBlur = 8;
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.restore();
             }
