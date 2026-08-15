@@ -3848,8 +3848,8 @@ window.initSmokeEffect = function() {
         const canvas = overlay.querySelector('.smoke-canvas');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
-        let tendrils = [];
-        let sparks = [];
+        let flames = [];
+        let embers = [];
 
         function resize() {
             canvas.width = overlay.clientWidth || window.innerWidth;
@@ -3858,38 +3858,34 @@ window.initSmokeEffect = function() {
         resize();
         window.addEventListener('resize', resize);
 
-        function addArtElements(x, y) {
-            // Add 2 fine line tendrils (derived from artwork linework & wolf fur)
-            for (let i = 0; i < 2; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const length = Math.random() * 25 + 20;
-                tendrils.push({
-                    x: x,
-                    y: y,
-                    cp1x: x + Math.cos(angle) * (length * 0.5) + (Math.random() - 0.5) * 20,
-                    cp1y: y + Math.sin(angle) * (length * 0.5) - Math.random() * 15,
-                    cp2x: x + Math.cos(angle + 0.5) * length + (Math.random() - 0.5) * 30,
-                    cp2y: y + Math.sin(angle + 0.5) * length - Math.random() * 30,
-                    endX: x + Math.cos(angle + 1) * (length * 1.4),
-                    endY: y + Math.sin(angle + 1) * (length * 1.4) - Math.random() * 40,
-                    width: Math.random() * 1.5 + 0.8,
-                    alpha: Math.random() * 0.6 + 0.3,
-                    decay: Math.random() * 0.015 + 0.01,
-                    color: Math.random() > 0.3 ? '255, 255, 255' : '210, 225, 245'
+        function addFlameTrail(x, y) {
+            // 1. Radiant Flame Core Puffs
+            for (let i = 0; i < 3; i++) {
+                flames.push({
+                    x: x + (Math.random() - 0.5) * 8,
+                    y: y + (Math.random() - 0.5) * 8,
+                    size: Math.random() * 6 + 6,
+                    maxSize: Math.random() * 18 + 22,
+                    vx: (Math.random() - 0.5) * 0.9,
+                    vy: -Math.random() * 1.8 - 0.8,
+                    alpha: Math.random() * 0.55 + 0.4,
+                    decay: Math.random() * 0.02 + 0.014,
+                    angle: Math.random() * Math.PI * 2,
+                    spin: (Math.random() - 0.5) * 0.06
                 });
             }
 
-            // Add 2 glowing star sparks (derived from sword highlights)
+            // 2. Rising Fiery Embers & Sparks
             for (let i = 0; i < 2; i++) {
-                sparks.push({
-                    x: x + (Math.random() - 0.5) * 16,
-                    y: y + (Math.random() - 0.5) * 16,
-                    size: Math.random() * 2 + 1,
-                    maxSize: Math.random() * 4 + 3,
-                    vx: (Math.random() - 0.5) * 0.8,
-                    vy: -Math.random() * 1.2 - 0.4,
-                    alpha: Math.random() * 0.8 + 0.2,
-                    decay: Math.random() * 0.02 + 0.012
+                embers.push({
+                    x: x + (Math.random() - 0.5) * 12,
+                    y: y + (Math.random() - 0.5) * 12,
+                    size: Math.random() * 2.2 + 1,
+                    vx: (Math.random() - 0.5) * 1.4,
+                    vy: -Math.random() * 2.2 - 0.8,
+                    alpha: Math.random() * 0.85 + 0.15,
+                    decay: Math.random() * 0.022 + 0.012,
+                    color: Math.random() > 0.4 ? '255, 255, 255' : '255, 225, 175'
                 });
             }
         }
@@ -3900,83 +3896,68 @@ window.initSmokeEffect = function() {
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             const dist = Math.hypot(x - lastX, y - lastY);
-            if (dist > 5) {
-                addArtElements(x, y);
+            if (dist > 4) {
+                addFlameTrail(x, y);
                 lastX = x;
                 lastY = y;
             }
         });
 
-        function drawSparkStar(ctx, cx, cy, spikes, outerRadius, innerRadius, alpha) {
-            let rot = Math.PI / 2 * 3;
-            let x = cx;
-            let y = cy;
-            let step = Math.PI / spikes;
-
-            ctx.beginPath();
-            ctx.moveTo(cx, cy - outerRadius);
-            for (let i = 0; i < spikes; i++) {
-                x = cx + Math.cos(rot) * outerRadius;
-                y = cy + Math.sin(rot) * outerRadius;
-                ctx.lineTo(x, y);
-                rot += step;
-
-                x = cx + Math.cos(rot) * innerRadius;
-                y = cy + Math.sin(rot) * innerRadius;
-                ctx.lineTo(x, y);
-                rot += step;
-            }
-            ctx.lineTo(cx, cy - outerRadius);
-            ctx.closePath();
-            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-            ctx.shadowColor = 'rgba(255, 255, 255, 0.9)';
-            ctx.shadowBlur = 6;
-            ctx.fill();
-            ctx.shadowBlur = 0;
-        }
-
         function render() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.globalCompositeOperation = 'lighter'; // Additive thermal glow!
 
-            // 1. Render Line Tendrils
-            for (let i = tendrils.length - 1; i >= 0; i--) {
-                const t = tendrils[i];
-                t.alpha -= t.decay;
-                t.cp1y -= 0.6;
-                t.cp2y -= 0.9;
-                t.endY -= 1.2;
+            // 1. Render Flame Puffs
+            for (let i = flames.length - 1; i >= 0; i--) {
+                const f = flames[i];
+                f.x += f.vx;
+                f.y += f.vy;
+                f.size += (f.maxSize - f.size) * 0.06;
+                f.alpha -= f.decay;
+                f.angle += f.spin;
 
-                if (t.alpha <= 0) {
-                    tendrils.splice(i, 1);
+                if (f.alpha <= 0) {
+                    flames.splice(i, 1);
+                    continue;
+                }
+
+                ctx.save();
+                ctx.translate(f.x, f.y);
+                ctx.rotate(f.angle);
+
+                const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, f.size);
+                grad.addColorStop(0, `rgba(255, 255, 255, ${f.alpha * 0.9})`);
+                grad.addColorStop(0.35, `rgba(255, 230, 200, ${f.alpha * 0.6})`);
+                grad.addColorStop(0.7, `rgba(200, 215, 240, ${f.alpha * 0.25})`);
+                grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(0, 0, f.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // 2. Render Rising Embers
+            for (let i = embers.length - 1; i >= 0; i--) {
+                const e = embers[i];
+                e.x += e.vx;
+                e.y += e.vy;
+                e.alpha -= e.decay;
+
+                if (e.alpha <= 0) {
+                    embers.splice(i, 1);
                     continue;
                 }
 
                 ctx.save();
                 ctx.beginPath();
-                ctx.moveTo(t.x, t.y);
-                ctx.bezierCurveTo(t.cp1x, t.cp1y, t.cp2x, t.cp2y, t.endX, t.endY);
-                ctx.strokeStyle = `rgba(${t.color}, ${t.alpha})`;
-                ctx.lineWidth = t.width;
-                ctx.lineCap = 'round';
-                ctx.shadowColor = `rgba(${t.color}, ${t.alpha * 0.8})`;
-                ctx.shadowBlur = 5;
-                ctx.stroke();
+                ctx.arc(e.x, e.y, e.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${e.color}, ${e.alpha})`;
+                ctx.shadowColor = `rgba(${e.color}, ${e.alpha})`;
+                ctx.shadowBlur = 8;
+                ctx.fill();
                 ctx.restore();
-            }
-
-            // 2. Render Star Sparks
-            for (let i = sparks.length - 1; i >= 0; i--) {
-                const s = sparks[i];
-                s.x += s.vx;
-                s.y += s.vy;
-                s.alpha -= s.decay;
-
-                if (s.alpha <= 0) {
-                    sparks.splice(i, 1);
-                    continue;
-                }
-
-                drawSparkStar(ctx, s.x, s.y, 4, s.maxSize, s.size * 0.3, s.alpha);
             }
 
             requestAnimationFrame(render);
