@@ -1543,7 +1543,8 @@ html[dir="rtl"] .employee-sort-actions {
     left: 0;
     right: 0;
     bottom: 0;
-    background: var(--bg-base);
+    background: linear-gradient(rgba(9, 9, 11, 0.75), rgba(9, 9, 11, 0.75)), url('login-bg.jpg') no-repeat center center fixed;
+    background-size: cover;
     display: flex;
     align-items: center;
     justify-content: center;
