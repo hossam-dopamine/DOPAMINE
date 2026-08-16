@@ -1583,24 +1583,121 @@ html[dir="rtl"] .employee-sort-actions {
     display: none !important;
 }
 
-.login-bg-layer {
-    position: absolute;
-    top: -4%;
-    left: -4%;
-    width: 108%;
-    height: 108%;
-    background: linear-gradient(rgba(6, 6, 10, 0.52), rgba(6, 6, 10, 0.65)), url('login-bg-galaxy-v2.jpg?v=1.5.0') no-repeat center center;
-    background-size: cover;
-    z-index: 1;
-    pointer-events: none;
-    filter: contrast(1.28) brightness(1.05) url(#warp-filter);
-    animation: gentleWarpWave 25s ease-in-out infinite alternate;
+/* Minimalist White Line-Art Animated Background (Dark Mode) */
+.login-overlay {
+    background: linear-gradient(135deg, #121620 0%, #080a0e 100%) !important;
 }
 
-@keyframes gentleWarpWave {
-    0% { transform: scale(1.0) rotate(0deg) translate(0, 0); }
-    50% { transform: scale(1.025) rotate(0.3deg) translate(-0.8%, 0.4%); }
-    100% { transform: scale(1.01) rotate(-0.2deg) translate(0.8%, -0.4%); }
+.login-animated-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none !important;
+    background: linear-gradient(135deg, #121620 0%, #080a0e 100%);
+    overflow: hidden;
+}
+
+.line-art-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    pointer-events: none;
+}
+
+/* Continuous Black Ink Path Animation */
+.continuous-ink-line {
+    stroke-dasharray: 2400;
+    stroke-dashoffset: 2400;
+    animation: strokeDrawLoop 28s ease-in-out infinite alternate;
+}
+
+.continuous-ink-line-secondary {
+    stroke-dasharray: 2400;
+    stroke-dashoffset: 2400;
+    animation: strokeDrawLoop 34s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes strokeDrawLoop {
+    0% {
+        stroke-dashoffset: 2400;
+        opacity: 0.15;
+    }
+    30% {
+        opacity: 0.95;
+    }
+    100% {
+        stroke-dashoffset: 0;
+        opacity: 0.85;
+    }
+}
+
+/* Floating Artwork Nodes Motion */
+.artwork-node {
+    animation: gentleFloat 14s ease-in-out infinite alternate;
+    transform-origin: center center;
+}
+
+.node-employee { animation-delay: 0s; }
+.node-task { animation-delay: 2s; }
+.node-checkmark { animation-delay: 4s; }
+.node-calendar { animation-delay: 1s; }
+.node-payroll { animation-delay: 3s; }
+.node-folder { animation-delay: 2.5s; }
+.node-document { animation-delay: 4.5s; }
+.node-badge { animation-delay: 1.5s; }
+
+@keyframes gentleFloat {
+    0% {
+        transform: translate(0, 0) scale(1);
+    }
+    50% {
+        transform: translate(0, -9px) scale(1.02);
+    }
+    100% {
+        transform: translate(0, 9px) scale(0.99);
+    }
+}
+
+/* Floating Ink Dots */
+.ink-dot {
+    animation: dotPulse 6s ease-in-out infinite alternate;
+}
+
+@keyframes dotPulse {
+    0% { opacity: 0.25; transform: scale(0.8); }
+    100% { opacity: 0.9; transform: scale(1.2); }
+}
+
+/* Accessibility: Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    .continuous-ink-line,
+    .continuous-ink-line-secondary {
+        stroke-dashoffset: 0 !important;
+        animation: none !important;
+        opacity: 0.6 !important;
+    }
+
+    .artwork-node,
+    .ink-dot {
+        animation: none !important;
+    }
+}
+
+/* Responsive: Reduced Density on Small Screens */
+@media (max-width: 768px) {
+    .node-folder,
+    .node-badge,
+    .continuous-ink-line-secondary {
+        display: none !important;
+    }
+
+    .artwork-node {
+        transform: scale(0.75);
+    }
+}
+
+.login-bg-layer {
+    display: none !important;
 }
 
 .smoke-canvas {
@@ -1762,10 +1859,150 @@ html[dir="rtl"] .employee-sort-actions {
 }
 
 .social-btn.gmail:hover {
-    background: #ea4335;
-    border-color: #ea4335;
-    box-shadow: 0 0 16px rgba(234, 67, 53, 0.6);
-    transform: translateY(-3px) scale(1.1);
+    color: #ea4335;
+    border-color: rgba(234, 67, 53, 0.5);
+    box-shadow: 0 0 16px rgba(234, 67, 53, 0.35);
+}
+
+/* Sleek Glass Doors Assembly System - Charcoal Slate Gray & Arabesque */
+.central-logo-core {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 25;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.6s ease, transform 0.6s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-overlay.intro-mode .central-logo-core {
+    opacity: 1 !important;
+    display: flex !important;
+}
+
+.login-overlay.merged .central-logo-core {
+    opacity: 0 !important;
+    transform: translate(-50%, -50%) scale(1.35);
+}
+
+.login-overlay:not(.intro-mode) .central-logo-core {
+    display: none !important;
+    opacity: 0 !important;
+}
+
+.login-container {
+    position: relative;
+    overflow: hidden;
+    transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.card-inner-body {
+    transition: opacity 0.5s ease;
+}
+
+.login-overlay.intro-mode .card-inner-body {
+    opacity: 0 !important;
+}
+
+.login-overlay.merged .card-inner-body {
+    opacity: 1 !important;
+}
+
+/* Glass Doors - Deep Dark Charcoal Slate Gray & Arabesque Ornamentation */
+.glass-door {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 50.5%;
+    background: linear-gradient(135deg, rgba(22, 26, 34, 0.97) 0%, rgba(11, 14, 19, 0.97) 100%);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid rgba(150, 165, 185, 0.26);
+    z-index: 20;
+    transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s ease;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85);
+    opacity: 0;
+}
+
+.door-ornament {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    opacity: 0.85;
+}
+
+.login-overlay.intro-mode .glass-door {
+    opacity: 1;
+}
+
+.door-left {
+    left: 0;
+    border-radius: 20px 0 0 20px;
+    border-right: 1px solid rgba(255, 255, 255, 0.3);
+    transform: translateX(0);
+}
+
+.door-right {
+    right: 0;
+    border-radius: 0 20px 20px 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.3);
+    transform: translateX(0);
+}
+
+/* Unlocking State: Doors split open outwards from center */
+.login-overlay.unlocking .door-left {
+    transform: translateX(-108%);
+}
+
+.login-overlay.unlocking .door-right {
+    transform: translateX(108%);
+}
+
+.login-overlay.merged .glass-door {
+    opacity: 0;
+    pointer-events: none !important;
+}
+
+.login-overlay:not(.intro-mode) .glass-door,
+.login-overlay:not(.intro-mode) .central-logo-core {
+    display: none !important;
+    pointer-events: none !important;
+}
+
+.login-overlay:not(.intro-mode) .login-container {
+    opacity: 1 !important;
+    transform: scale(1) translateY(0) !important;
+    pointer-events: auto !important;
+}
+
+.login-overlay:not(.intro-mode) .login-container * {
+    pointer-events: auto !important;
+}
+
+.login-overlay.pulling .login-container::before {
+    transform: translateX(0) rotate(0deg);
+}
+
+.login-overlay.pulling .login-container::after {
+    transform: translateX(0) rotate(0deg);
+}
+
+.login-overlay.merged .login-container::before,
+.login-overlay.merged .login-container::after {
+    opacity: 0;
+}
+
+.login-overlay:not(.intro-mode) .login-container {
+    opacity: 1 !important;
+    transform: scale(1) translateY(0) !important;
+    pointer-events: auto !important;
 }
 
 @media (max-width: 820px) {

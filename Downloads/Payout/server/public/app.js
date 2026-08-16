@@ -4055,3 +4055,56 @@ window.initReviewsSlider = function() {
     });
 };
 
+window.playSplitCardIntro = function() {
+    const overlay = document.getElementById('login-overlay');
+    if (!overlay) return;
+
+    // Reset Classes
+    overlay.classList.remove('unlocking', 'merged');
+    overlay.classList.add('intro-mode');
+
+    // Step 1: Doors split open outwards from center (0.45s)
+    setTimeout(() => {
+        overlay.classList.add('unlocking');
+    }, 450);
+
+    // Step 2: Doors fully open to reveal main card form content (1.35s)
+    setTimeout(() => {
+        overlay.classList.add('merged');
+    }, 1350);
+
+    // Step 3: Complete Intro & focus username input (2.0s)
+    setTimeout(() => {
+        overlay.classList.remove('intro-mode', 'unlocking', 'merged');
+        const userInput = document.getElementById('login-username');
+        if (userInput) {
+            userInput.removeAttribute('disabled');
+            userInput.style.pointerEvents = 'auto';
+            userInput.focus();
+        }
+        const passInput = document.getElementById('login-password');
+        if (passInput) {
+            passInput.removeAttribute('disabled');
+            passInput.style.pointerEvents = 'auto';
+        }
+    }, 2000);
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.initSmokeEffect) window.initSmokeEffect();
+    if (window.initReviewsSlider) window.initReviewsSlider();
+
+    const replayBtn = document.getElementById('replay-intro-btn');
+    if (replayBtn) {
+        replayBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.playSplitCardIntro();
+        });
+    }
+
+    const loginOverlay = document.getElementById('login-overlay');
+    if (loginOverlay && loginOverlay.classList.contains('active')) {
+        setTimeout(window.playSplitCardIntro, 350);
+    }
+});
+
