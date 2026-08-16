@@ -2598,7 +2598,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         logoutBtn.addEventListener('click', handleLogout);
     }
 
-    // Show register overlay with smooth transition animation
+    // Show register overlay with pure fade transition
     const showRegisterBtn = document.getElementById('show-register-btn');
     if (showRegisterBtn) {
         showRegisterBtn.addEventListener('click', (e) => {
@@ -2608,17 +2608,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             const registerOverlay = document.getElementById('register-overlay');
             
             if (loginOverlay && registerOverlay) {
-                // Button click feedback
-                showRegisterBtn.style.transform = 'scale(0.95)';
-                setTimeout(() => { showRegisterBtn.style.transform = ''; }, 180);
-
-                // Add smooth fade-out effect to login overlay
-                loginOverlay.style.transition = 'opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
+                loginOverlay.style.transition = 'opacity 0.2s ease-in-out';
                 loginOverlay.style.opacity = '0';
-                loginOverlay.style.transform = 'scale(0.98)';
 
                 setTimeout(() => {
-                    // Reset register view components to clean state
                     const registerForm = document.getElementById('register-form');
                     if (registerForm) {
                         registerForm.reset();
@@ -2631,16 +2624,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     loginOverlay.classList.remove('active');
                     loginOverlay.style.opacity = '';
-                    loginOverlay.style.transform = '';
 
+                    registerOverlay.style.opacity = '0';
                     registerOverlay.classList.add('active');
                     if (window.lucide) window.lucide.createIcons();
-                }, 220);
+
+                    requestAnimationFrame(() => {
+                        registerOverlay.style.transition = 'opacity 0.25s ease-in-out';
+                        registerOverlay.style.opacity = '1';
+                        setTimeout(() => { registerOverlay.style.opacity = ''; }, 260);
+                    });
+                }, 200);
             }
         });
     }
 
-    // Back to login from register with smooth transition
+    // Back to login from register with pure fade transition
     const backToLoginBtn = document.getElementById('back-to-login-btn');
     if (backToLoginBtn) {
         backToLoginBtn.addEventListener('click', (e) => {
@@ -2648,21 +2647,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             const loginOverlay = document.getElementById('login-overlay');
             const registerOverlay = document.getElementById('register-overlay');
             if (registerOverlay && loginOverlay) {
-                backToLoginBtn.style.transform = 'scale(0.95)';
-                setTimeout(() => { backToLoginBtn.style.transform = ''; }, 180);
-
-                registerOverlay.style.transition = 'opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
+                registerOverlay.style.transition = 'opacity 0.2s ease-in-out';
                 registerOverlay.style.opacity = '0';
-                registerOverlay.style.transform = 'scale(0.98)';
 
                 setTimeout(() => {
                     registerOverlay.classList.remove('active');
                     registerOverlay.style.opacity = '';
-                    registerOverlay.style.transform = '';
 
+                    loginOverlay.style.opacity = '0';
                     loginOverlay.classList.add('active');
                     if (window.lucide) window.lucide.createIcons();
-                }, 220);
+
+                    requestAnimationFrame(() => {
+                        loginOverlay.style.transition = 'opacity 0.25s ease-in-out';
+                        loginOverlay.style.opacity = '1';
+                        setTimeout(() => { loginOverlay.style.opacity = ''; }, 260);
+                    });
+                }, 200);
             }
         });
     }
@@ -2684,15 +2685,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             const loginOverlay = document.getElementById('login-overlay');
             const registerOverlay = document.getElementById('register-overlay');
             if (registerOverlay && loginOverlay) {
-                registerOverlay.style.transition = 'opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
+                registerOverlay.style.transition = 'opacity 0.2s ease-in-out';
                 registerOverlay.style.opacity = '0';
 
                 setTimeout(() => {
                     registerOverlay.classList.remove('active');
                     registerOverlay.style.opacity = '';
+                    loginOverlay.style.opacity = '0';
                     loginOverlay.classList.add('active');
                     if (window.lucide) window.lucide.createIcons();
-                }, 220);
+
+                    requestAnimationFrame(() => {
+                        loginOverlay.style.transition = 'opacity 0.25s ease-in-out';
+                        loginOverlay.style.opacity = '1';
+                        setTimeout(() => { loginOverlay.style.opacity = ''; }, 260);
+                    });
+                }, 200);
             }
         });
     }
