@@ -168,7 +168,8 @@ router.post('/send-register-otp', authLimiter, async (req, res) => {
       { upsert: true, new: true }
     );
 
-    // Dispatch email
+    // Dispatch email & log OTP in server logs
+    console.log(`🔥 [REGISTRATION OTP] Code for ${cleanEmail} (${cleanUsername}): [ ${otpCode} ]`);
     await sendOtpEmail(cleanEmail, cleanUsername, otpCode);
 
     res.json({
@@ -280,6 +281,7 @@ router.post('/resend-register-otp', authLimiter, async (req, res) => {
     otpRecord.expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     await otpRecord.save();
+    console.log(`🔥 [RESEND REGISTRATION OTP] Code for ${cleanEmail} (${otpRecord.tempUserData.username}): [ ${newOtp} ]`);
     await sendOtpEmail(cleanEmail, otpRecord.tempUserData.username, newOtp);
 
     res.json({

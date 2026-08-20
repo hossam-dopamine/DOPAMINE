@@ -92,8 +92,75 @@ const sendEmail = async ({ to, subject, text, html }) => {
     return false;
   }
 
+  const senderEmail = EMAIL_USER || 'adorehk2@gmail.com';
+  const senderName = 'DOPAMINE Services';
+
+  // 1. Try Brevo HTTPS API (Port 443 - 100% Free: 300 emails/day, completely unblocked on Render)
+  const brevoKey = process.env.BREVO_API_KEY;
+  if (brevoKey && brevoKey.trim().length > 10) {
+    try {
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': brevoKey.trim(),
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          sender: { name: senderName, email: senderEmail },
+          to: [{ email: to }],
+          subject,
+          htmlContent: html || `<pre>${text}</pre>`,
+          textContent: text
+        })
+      });
+
+      const resData = await response.json();
+      if (response.ok) {
+        console.log('📧 Mailer [Brevo HTTPS]: Email sent successfully! MessageId:', resData.messageId);
+        return true;
+      } else {
+        console.warn('⚠️ Mailer [Brevo HTTPS] API Error:', resData);
+      }
+    } catch (err) {
+      console.warn('⚠️ Mailer [Brevo HTTPS] HTTP Error:', err.message);
+    }
+  }
+
+  // 2. Try Resend HTTPS API (Port 443 - 100% Free: 3,000 emails/month, completely unblocked on Render)
+  const resendKey = process.env.RESEND_API_KEY;
+  if (resendKey && resendKey.startsWith('re_') && resendKey.length > 20) {
+    try {
+      const fromEmail = process.env.RESEND_FROM || 'onboarding@resend.dev';
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendKey.trim()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: `${senderName} <${fromEmail}>`,
+          to: [to],
+          subject,
+          text,
+          html
+        })
+      });
+
+      const resData = await response.json();
+      if (response.ok) {
+        console.log('📧 Mailer [Resend HTTPS]: Email sent successfully! Id:', resData.id);
+        return true;
+      } else {
+        console.warn('⚠️ Mailer [Resend HTTPS] API Error:', resData);
+      }
+    } catch (err) {
+      console.warn('⚠️ Mailer [Resend HTTPS] HTTP Error:', err.message);
+    }
+  }
+
   const mailOptions = {
-    from: EMAIL_USER ? `"DOPAMINE Services" <${EMAIL_USER}>` : '"DOPAMINE Services" <no-reply@dopamine-service.com>',
+    from: EMAIL_USER ? `"${senderName}" <${EMAIL_USER}>` : `"${senderName}" <no-reply@dopamine-service.com>`,
     to,
     subject,
     text,
@@ -104,7 +171,7 @@ const sendEmail = async ({ to, subject, text, html }) => {
     }
   };
 
-  // 1. Try Gmail SMTP Port 465 (Forced IPv4)
+  // 3. Try Gmail SMTP Port 465 (IPv4)
   if (transporter) {
     try {
       const info = await transporter.sendMail(mailOptions);
@@ -115,7 +182,7 @@ const sendEmail = async ({ to, subject, text, html }) => {
     }
   }
 
-  // 2. Try Gmail SMTP Port 587 (Forced IPv4)
+  // 4. Try Gmail SMTP Port 587 (IPv4)
   if (transporter587) {
     try {
       const info587 = await transporter587.sendMail(mailOptions);
@@ -126,39 +193,7 @@ const sendEmail = async ({ to, subject, text, html }) => {
     }
   }
 
-  // 2. Try Resend HTTP API as fallback if configured with a real API key
-  const resendKey = process.env.RESEND_API_KEY;
-  if (resendKey && resendKey.startsWith('re_') && resendKey.length > 20) {
-    try {
-      const fromEmail = process.env.RESEND_FROM || 'onboarding@resend.dev';
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resendKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          from: `DOPAMINE Services <${fromEmail}>`,
-          to: [to],
-          subject,
-          text,
-          html
-        })
-      });
-
-      const resData = await response.json();
-      if (response.ok) {
-        console.log('📧 Mailer [Resend]: Email sent successfully! Id:', resData.id);
-        return true;
-      } else {
-        console.error('❌ Mailer [Resend] API Error:', resData);
-      }
-    } catch (err) {
-      console.error('❌ Mailer [Resend] HTTP Error:', err.message);
-    }
-  }
-
-  // 3. Fallback to mock log
+  // 5. Fallback to mock log
   console.log('⚠️ Mailer: Falling back to local simulated mock delivery.');
   return sendMailMock(mailOptions);
 };
