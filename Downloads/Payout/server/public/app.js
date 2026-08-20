@@ -2543,8 +2543,6 @@ async function handleRegister(username, password, email, birthDate, termsAccepte
         registerBtn.innerHTML = `<span>${text}</span>`;
     }
 
-    const startTime = Date.now();
-
     try {
         const res = await fetch('/api/auth/send-register-otp', {
             method: 'POST',
@@ -2552,11 +2550,6 @@ async function handleRegister(username, password, email, birthDate, termsAccepte
             body: JSON.stringify({ username, password, email, birthDate, termsAccepted: true })
         });
         const data = await res.json();
-
-        const elapsed = Date.now() - startTime;
-        if (elapsed < 600) {
-            await new Promise(r => setTimeout(r, 600 - elapsed));
-        }
 
         if (data.success) {
             currentRegisterEmail = email;

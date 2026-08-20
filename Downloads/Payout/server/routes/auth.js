@@ -168,13 +168,15 @@ router.post('/send-register-otp', authLimiter, async (req, res) => {
       { upsert: true, new: true }
     );
 
-    // Dispatch email & log OTP in server logs
+    // Dispatch email in background & log OTP in server logs immediately
     console.log(`🔥 [REGISTRATION OTP] Code for ${cleanEmail} (${cleanUsername}): [ ${otpCode} ]`);
-    await sendOtpEmail(cleanEmail, cleanUsername, otpCode);
+    sendOtpEmail(cleanEmail, cleanUsername, otpCode).catch(err => {
+      console.error('Async sendOtpEmail error:', err);
+    });
 
-    res.json({
+    return res.json({
       success: true,
-      message: 'تم إرسال كود التحقق المكون من 6 أرقام إلى بريدك الإلكتروني بنجاح.',
+      message: 'تم إنشاء رمز التحقق المكون من 6 أرقام بنجاح.',
       email: cleanEmail
     });
   } catch (error) {
@@ -282,9 +284,11 @@ router.post('/resend-register-otp', authLimiter, async (req, res) => {
 
     await otpRecord.save();
     console.log(`🔥 [RESEND REGISTRATION OTP] Code for ${cleanEmail} (${otpRecord.tempUserData.username}): [ ${newOtp} ]`);
-    await sendOtpEmail(cleanEmail, otpRecord.tempUserData.username, newOtp);
+    sendOtpEmail(cleanEmail, otpRecord.tempUserData.username, newOtp).catch(err => {
+      console.error('Async resendOtpEmail error:', err);
+    });
 
-    res.json({
+    return res.json({
       success: true,
       message: 'تمت إعادة إرسال رمز التحقق إلى بريدك الإلكتروني بنجاح.'
     });
