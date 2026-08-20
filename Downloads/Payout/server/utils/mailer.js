@@ -13,15 +13,25 @@ const escapeHTML = (str) => {
     .replace(/'/g, '&#039;');
 };
 
+const dns = require('dns');
+if (dns.setDefaultResultOrder) {
+  try { dns.setDefaultResultOrder('ipv4first'); } catch (e) {}
+}
+
 const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
 
 let transporter = null;
+let transporter587 = null;
 
 if (EMAIL_USER && EMAIL_PASS) {
   try {
+    // Primary: Port 465 SSL with forced IPv4
     transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      family: 4, // Force IPv4 to eliminate Linux container ENETUNREACH IPv6 errors
       auth: {
         user: EMAIL_USER,
         pass: EMAIL_PASS
@@ -30,7 +40,23 @@ if (EMAIL_USER && EMAIL_PASS) {
         rejectUnauthorized: false
       }
     });
-    console.log('📧 Mailer: Gmail SMTP transporter configured successfully for:', EMAIL_USER);
+
+    // Secondary Fallback: Port 587 STARTTLS with forced IPv4
+    transporter587 = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      family: 4,
+      auth: {
+        user: EMAIL_USER,
+        pass: EMAIL_PASS
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    });
+
+    console.log('📧 Mailer: Gmail IPv4 transporters (ports 465 & 587) configured for:', EMAIL_USER);
   } catch (err) {
     console.error('❌ Mailer configuration error:', err.message);
   }
@@ -78,14 +104,25 @@ const sendEmail = async ({ to, subject, text, html }) => {
     }
   };
 
-  // 1. Try Gmail SMTP first if configured
+  // 1. Try Gmail SMTP Port 465 (Forced IPv4)
   if (transporter) {
     try {
       const info = await transporter.sendMail(mailOptions);
-      console.log('📧 Mailer [Gmail]: Email sent successfully! MessageId:', info.messageId);
+      console.log('📧 Mailer [Gmail:465]: Email sent successfully! MessageId:', info.messageId);
       return true;
     } catch (err) {
-      console.error('⚠️ Mailer [Gmail] SMTP send failed:', err.message);
+      console.warn('⚠️ Mailer [Gmail:465] attempt failed:', err.message);
+    }
+  }
+
+  // 2. Try Gmail SMTP Port 587 (Forced IPv4)
+  if (transporter587) {
+    try {
+      const info587 = await transporter587.sendMail(mailOptions);
+      console.log('📧 Mailer [Gmail:587]: Email sent successfully! MessageId:', info587.messageId);
+      return true;
+    } catch (err) {
+      console.warn('⚠️ Mailer [Gmail:587] attempt failed:', err.message);
     }
   }
 
