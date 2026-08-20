@@ -173,7 +173,52 @@ const sendRejectionEmail = async (userEmail, username, reason) => {
   return await sendEmail({ to: userEmail, subject, text, html });
 };
 
+const sendOtpEmail = async (userEmail, username, otpCode) => {
+  const safeUsername = escapeHTML(username);
+  const safeOtp = escapeHTML(otpCode);
+  const subject = `رمز التحقق الخاص بك: ${safeOtp} - DOPAMINE`;
+  const text = `مرحباً ${username}،\n\nرمز التحقق لتأكيد بريدك الإلكتروني وإنشاء الحساب في DOPAMINE هو:\n\n${otpCode}\n\nهذا الرمز صالح لمدة 10 دقائق فقط.\nبرجاء عدم مشاركة هذا الرمز مع أي شخص للحفاظ على أمان حسابك.\n\nمع تحيات إدارة DOPAMINE.`;
+  const html = `
+    <div style="direction: rtl; text-align: right; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 32px 24px; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; max-width: 540px; margin: 20px auto; background: #0f131a; color: #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="display: inline-block; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.2); margin-bottom: 12px;">
+          <span style="font-size: 28px;">🔥</span>
+        </div>
+        <h2 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 0.5px;">DOPAMINE-SERVICE</h2>
+        <p style="color: #94a3b8; font-size: 13px; margin-top: 4px;">تأكيد البريد الإلكتروني وإنشاء الحساب</p>
+      </div>
+
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 20px;">
+        <p style="font-size: 14px; color: #cbd5e1; margin-top: 0; margin-bottom: 16px;">
+          مرحباً <strong>${safeUsername}</strong>، استخدم رمز التحقق التالي لإتمام تسجيل حسابك:
+        </p>
+        <div style="background: #18202c; border: 1px dashed #10b981; border-radius: 10px; padding: 14px 24px; display: inline-block; letter-spacing: 8px; font-size: 32px; font-weight: 800; color: #10b981; font-family: monospace;">
+          ${safeOtp}
+        </div>
+        <p style="font-size: 12px; color: #64748b; margin-top: 14px; margin-bottom: 0;">
+          ⏳ الرمز صالح لمدة <strong>10 دقائق</strong> فقط.
+        </p>
+      </div>
+
+      <div style="background: rgba(239, 68, 68, 0.08); border-right: 3px solid #ef4444; border-radius: 6px; padding: 10px 14px; margin-bottom: 20px;">
+        <p style="margin: 0; font-size: 12px; color: #fca5a5; line-height: 1.5;">
+          ⚠️ <strong>تنبيه أمني:</strong> لا تشارك هذا الرمز مع أي شخص. لن تطلب منك إدارة DOPAMINE هذا الرمز أبداً.
+        </p>
+      </div>
+
+      <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 20px 0;">
+      <p style="font-size: 11px; color: #64748b; text-align: center; margin: 0;">
+        إذا لم تقم بطلب هذا الرمز، يمكنك تجاهل هذا البريد بأمان.<br>
+        DOPAMINE-SERVICE &copy; 2026
+      </p>
+    </div>
+  `;
+  return await sendEmail({ to: userEmail, subject, text, html });
+};
+
 module.exports = {
   sendApprovalEmail,
-  sendRejectionEmail
+  sendRejectionEmail,
+  sendOtpEmail
 };
+

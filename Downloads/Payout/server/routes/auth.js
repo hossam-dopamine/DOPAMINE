@@ -1,12 +1,14 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const User = require('../models/User');
+const OtpToken = require('../models/OtpToken');
 const Employee = require('../models/Employee');
 const Task = require('../models/Task');
 const AppData = require('../models/AppData');
 const { verifyToken, requireAdmin, invalidateUserCache } = require('../middleware/auth');
 const { authLimiter } = require('../middleware/security');
-const { sendApprovalEmail, sendRejectionEmail } = require('../utils/mailer');
+const { sendApprovalEmail, sendRejectionEmail, sendOtpEmail } = require('../utils/mailer');
 
 const router = express.Router();
 
@@ -73,7 +75,224 @@ router.post('/login', authLimiter, async (req, res) => {
   }
 });
 
-// POST /register - Create an independent admin account (with isolated tenantId)
+// POST /send-register-otp - Validates registration data and dispatches a 6-digit OTP to Gmail
+router.post('/send-register-otp', authLimiter, async (req, res) => {
+  try {
+    const { username, password, email, birthDate, termsAccepted } = req.body;
+    if (!username || !password || !email || !birthDate) {
+      return res.status(400).json({ success: false, error: 'جميع الحقول مطلوبة (اسم المستخدم، كلمة المرور، البريد الإلكتروني، تاريخ الميلاد)' });
+    }
+    if (typeof username !== 'string' || typeof password !== 'string' || typeof email !== 'string' || typeof birthDate !== 'string') {
+      return res.status(400).json({ success: false, error: 'برجاء إدخال بيانات صحيحة' });
+    }
+
+    if (!termsAccepted) {
+      return res.status(400).json({ success: false, error: 'يجب الموافقة على الشروط والأحكام وتأكيد بلوغ السن القانوني (18+)' });
+    }
+
+    const cleanUsername = String(username).toLowerCase().trim();
+    if (cleanUsername.length < 3) {
+      return res.status(400).json({ success: false, error: 'اسم المستخدم يجب أن يكون 3 أحرف على الأقل' });
+    }
+    if (String(password).length < 6) {
+      return res.status(400).json({ success: false, error: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل' });
+    }
+
+    const cleanEmail = String(email).toLowerCase().trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      return res.status(400).json({ success: false, error: 'البريد الإلكتروني غير صالح' });
+    }
+
+    const parsedBirthDate = new Date(birthDate);
+    if (isNaN(parsedBirthDate.getTime())) {
+      return res.status(400).json({ success: false, error: 'تاريخ الميلاد غير صالح' });
+    }
+
+    // Validate that user is at least 18 years old
+    const today = new Date();
+    let age = today.getFullYear() - parsedBirthDate.getFullYear();
+    const monthDiff = today.getMonth() - parsedBirthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < parsedBirthDate.getDate())) {
+      age--;
+    }
+    if (age < 18) {
+      return res.status(400).json({ success: false, error: 'يجب أن يكون عمرك 18 عاماً أو أكثر للتسجيل في النظام' });
+    }
+
+    const existingUser = await User.findOne({ username: cleanUsername });
+    if (existingUser) {
+      return res.status(409).json({ success: false, error: 'اسم المستخدم مسجل بالفعل' });
+    }
+
+    const existingEmail = await User.findOne({ email: cleanEmail });
+    if (existingEmail) {
+      return res.status(409).json({ success: false, error: 'البريد الإلكتروني مسجل بالفعل بحساب آخر' });
+    }
+
+    // Check if an OTP was recently sent (within 60 seconds)
+    const existingOtp = await OtpToken.findOne({ email: cleanEmail });
+    if (existingOtp && existingOtp.lastSentAt) {
+      const elapsed = Date.now() - new Date(existingOtp.lastSentAt).getTime();
+      if (elapsed < 60000) {
+        const waitSec = Math.ceil((60000 - elapsed) / 1000);
+        return res.status(429).json({ 
+          success: false, 
+          error: `يرجى الانتظار ${waitSec} ثانية قبل طلب رمز جديد.` 
+        });
+      }
+    }
+
+    // Generate secure 6-digit random code
+    const otpCode = crypto.randomInt(100000, 1000000).toString();
+    const otpHash = await OtpToken.hashOtp(otpCode);
+    const passwordHash = await User.hashPassword(password);
+
+    // Save/Update temporary OTP token with 10 minutes expiry
+    await OtpToken.findOneAndUpdate(
+      { email: cleanEmail },
+      {
+        email: cleanEmail,
+        otpHash,
+        tempUserData: {
+          username: cleanUsername,
+          passwordHash,
+          email: cleanEmail,
+          birthDate: parsedBirthDate,
+          termsAccepted: true
+        },
+        attempts: 0,
+        lastSentAt: new Date(),
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000)
+      },
+      { upsert: true, new: true }
+    );
+
+    // Dispatch email
+    await sendOtpEmail(cleanEmail, cleanUsername, otpCode);
+
+    res.json({
+      success: true,
+      message: 'تم إرسال كود التحقق المكون من 6 أرقام إلى بريدك الإلكتروني بنجاح.',
+      email: cleanEmail
+    });
+  } catch (error) {
+    console.error('Send OTP error:', error);
+    res.status(500).json({ success: false, error: 'حدث خطأ أثناء إرسال رمز التحقق' });
+  }
+});
+
+// POST /verify-register-otp - Validates 6-digit OTP and creates the pending admin account
+router.post('/verify-register-otp', authLimiter, async (req, res) => {
+  try {
+    const { email, otpCode } = req.body;
+    if (!email || !otpCode) {
+      return res.status(400).json({ success: false, error: 'البريد الإلكتروني ورمز التحقق مطلوبان' });
+    }
+
+    const cleanEmail = String(email).toLowerCase().trim();
+    const cleanOtp = String(otpCode).trim();
+
+    if (!/^\d{6}$/.test(cleanOtp)) {
+      return res.status(400).json({ success: false, error: 'رمز التحقق يجب أن يتكون من 6 أرقام' });
+    }
+
+    const otpRecord = await OtpToken.findOne({ email: cleanEmail });
+    if (!otpRecord || otpRecord.expiresAt < new Date()) {
+      return res.status(400).json({ success: false, error: 'انتهت صلاحية رمز التحقق، يرجى طلب رمز جديد.' });
+    }
+
+    if (otpRecord.attempts >= 5) {
+      await OtpToken.deleteOne({ _id: otpRecord._id });
+      return res.status(429).json({ success: false, error: 'تم تجاوز الحد الأقصى للمحاولات الخاطئة. يرجى طلب رمز جديد.' });
+    }
+
+    const isMatch = await otpRecord.compareOtp(cleanOtp);
+    if (!isMatch) {
+      otpRecord.attempts += 1;
+      await otpRecord.save();
+      const remaining = 5 - otpRecord.attempts;
+      return res.status(400).json({ 
+        success: false, 
+        error: `رمز التحقق غير صحيح. المتبقي: ${remaining} ${remaining === 1 ? 'محاولة' : 'محاولات'}.` 
+      });
+    }
+
+    // Check if username was taken in the meantime
+    const existingUser = await User.findOne({ username: otpRecord.tempUserData.username });
+    if (existingUser) {
+      await OtpToken.deleteOne({ _id: otpRecord._id });
+      return res.status(409).json({ success: false, error: 'اسم المستخدم مسجل بالفعل' });
+    }
+
+    // Create the new User
+    const user = new User({
+      username: otpRecord.tempUserData.username,
+      passwordHash: otpRecord.tempUserData.passwordHash,
+      role: 'admin',
+      email: otpRecord.tempUserData.email,
+      birthDate: otpRecord.tempUserData.birthDate,
+      termsAccepted: true,
+      termsAcceptedAt: new Date(),
+      status: 'pending'
+    });
+    user.tenantId = String(user._id);
+
+    await user.save();
+    await OtpToken.deleteOne({ _id: otpRecord._id });
+
+    res.status(201).json({
+      success: true,
+      message: 'تم تأكيد البريد الإلكتروني وإرسال طلب التسجيل بنجاح. برجاء الانتظار لحين مراجعة طلبك من قبل الإدارة وتفعيل حسابك.'
+    });
+  } catch (error) {
+    console.error('Verify OTP error:', error);
+    res.status(500).json({ success: false, error: 'حدث خطأ أثناء التحقق من الرمز' });
+  }
+});
+
+// POST /resend-register-otp - Resends a new OTP with a 60-second cooldown
+router.post('/resend-register-otp', authLimiter, async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'البريد الإلكتروني مطلوب' });
+    }
+
+    const cleanEmail = String(email).toLowerCase().trim();
+    const otpRecord = await OtpToken.findOne({ email: cleanEmail });
+
+    if (!otpRecord) {
+      return res.status(404).json({ success: false, error: 'لا يوجد طلب تسجيل نشط لهذا البريد. يرجى إعادة إدخال بياناتك.' });
+    }
+
+    // Cooldown check: 60 seconds
+    const elapsed = Date.now() - new Date(otpRecord.lastSentAt).getTime();
+    if (elapsed < 60000) {
+      const waitSec = Math.ceil((60000 - elapsed) / 1000);
+      return res.status(429).json({ success: false, error: `يرجى الانتظار ${waitSec} ثانية قبل إعادة إرسال الرمز.` });
+    }
+
+    const newOtp = crypto.randomInt(100000, 1000000).toString();
+    otpRecord.otpHash = await OtpToken.hashOtp(newOtp);
+    otpRecord.attempts = 0;
+    otpRecord.lastSentAt = new Date();
+    otpRecord.expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await otpRecord.save();
+    await sendOtpEmail(cleanEmail, otpRecord.tempUserData.username, newOtp);
+
+    res.json({
+      success: true,
+      message: 'تمت إعادة إرسال رمز التحقق إلى بريدك الإلكتروني بنجاح.'
+    });
+  } catch (error) {
+    console.error('Resend OTP error:', error);
+    res.status(500).json({ success: false, error: 'حدث خطأ أثناء إعادة إرسال رمز التحقق' });
+  }
+});
+
+// POST /register - Direct fallback registration
 router.post('/register', authLimiter, async (req, res) => {
   try {
     const { username, password, email, birthDate, termsAccepted } = req.body;
@@ -85,7 +304,7 @@ router.post('/register', authLimiter, async (req, res) => {
     }
 
     if (!termsAccepted) {
-      return res.status(400).json({ success: false, error: 'يجب الموافقة على الشروط والأحكام وإخلاء المسؤولية وتأكيد بلوغ السن القانوني (18+)' });
+      return res.status(400).json({ success: false, error: 'يجب الموافقة على الشروط والأحكام وتأكيد بلوغ السن القانوني (18+)' });
     }
 
     const cleanUsername = String(username).toLowerCase().trim();
@@ -145,7 +364,7 @@ router.post('/register', authLimiter, async (req, res) => {
     });
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({ success: false, error: 'حدث خطأ داخلي في الخادم' });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 

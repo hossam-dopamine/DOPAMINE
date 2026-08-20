@@ -2343,6 +2343,162 @@ async function handleLogin(username, password) {
     }
 }
 
+let currentRegisterEmail = '';
+let otpCountdownTimer = null;
+
+function clearOtpInputs() {
+    const inputs = document.querySelectorAll('.otp-digit-input');
+    inputs.forEach(input => {
+        input.value = '';
+        input.classList.remove('filled');
+    });
+    const errEl = document.getElementById('register-otp-error');
+    if (errEl) {
+        errEl.textContent = '';
+        errEl.style.display = 'none';
+    }
+}
+
+function getEnteredOtp() {
+    const inputs = document.querySelectorAll('.otp-digit-input');
+    let code = '';
+    inputs.forEach(input => {
+        code += input.value.trim();
+    });
+    return code;
+}
+
+function focusFirstOtpInput() {
+    setTimeout(() => {
+        const firstInput = document.querySelector('.otp-digit-input[data-index="0"]');
+        if (firstInput) firstInput.focus();
+    }, 100);
+}
+
+function startOtpCountdown(seconds = 60) {
+    if (otpCountdownTimer) clearInterval(otpCountdownTimer);
+    
+    const resendBtn = document.getElementById('resend-otp-btn');
+    const timerSpan = document.getElementById('resend-otp-timer');
+    if (!resendBtn || !timerSpan) return;
+
+    resendBtn.disabled = true;
+    let remaining = seconds;
+    timerSpan.textContent = `(${remaining}s)`;
+    timerSpan.style.display = 'inline';
+
+    otpCountdownTimer = setInterval(() => {
+        remaining -= 1;
+        if (remaining <= 0) {
+            clearInterval(otpCountdownTimer);
+            otpCountdownTimer = null;
+            resendBtn.disabled = false;
+            timerSpan.style.display = 'none';
+        } else {
+            timerSpan.textContent = `(${remaining}s)`;
+        }
+    }, 1000);
+}
+
+async function handleVerifyOtp() {
+    const otpCode = getEnteredOtp();
+    const errEl = document.getElementById('register-otp-error');
+    if (errEl) errEl.style.display = 'none';
+
+    if (otpCode.length !== 6 || !/^\d{6}$/.test(otpCode)) {
+        if (errEl) {
+            errEl.textContent = state.currentLanguage === 'ar'
+                ? 'يرجى إدخال رمز التحقق كاملاً (6 أرقام)'
+                : 'Please enter the complete 6-digit verification code';
+            errEl.style.display = 'block';
+        }
+        return;
+    }
+
+    const verifyBtn = document.getElementById('verify-otp-submit-btn');
+    const origHTML = verifyBtn ? verifyBtn.innerHTML : '';
+    if (verifyBtn) {
+        verifyBtn.disabled = true;
+        const text = state.currentLanguage === 'ar' ? 'جاري التحقق...' : 'Verifying...';
+        verifyBtn.innerHTML = `<span>${text}</span>`;
+    }
+
+    try {
+        const res = await fetch('/api/auth/verify-register-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: currentRegisterEmail, otpCode })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            if (otpCountdownTimer) clearInterval(otpCountdownTimer);
+            const otpCard = document.getElementById('register-otp-card');
+            const successCard = document.getElementById('register-success-card');
+
+            if (otpCard) otpCard.style.display = 'none';
+            if (successCard) {
+                successCard.style.display = 'block';
+                if (window.lucide) window.lucide.createIcons();
+            }
+        } else {
+            if (errEl) {
+                errEl.textContent = data.error || (state.currentLanguage === 'ar' ? 'رمز التحقق غير صحيح' : 'Invalid code');
+                errEl.style.display = 'block';
+            }
+        }
+    } catch (e) {
+        if (errEl) {
+            errEl.textContent = state.currentLanguage === 'ar' ? 'حدث خطأ أثناء الاتصال بالسيرفر' : 'Connection error';
+            errEl.style.display = 'block';
+        }
+    } finally {
+        if (verifyBtn) {
+            verifyBtn.disabled = false;
+            verifyBtn.innerHTML = origHTML;
+            if (window.lucide) window.lucide.createIcons();
+        }
+    }
+}
+
+async function handleResendOtp() {
+    const resendBtn = document.getElementById('resend-otp-btn');
+    const errEl = document.getElementById('register-otp-error');
+    if (errEl) errEl.style.display = 'none';
+
+    if (!currentRegisterEmail) return;
+
+    if (resendBtn) resendBtn.disabled = true;
+
+    try {
+        const res = await fetch('/api/auth/resend-register-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: currentRegisterEmail })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            clearOtpInputs();
+            startOtpCountdown(60);
+            focusFirstOtpInput();
+            showToast(state.currentLanguage === 'ar' ? 'تمت إعادة إرسال رمز التحقق' : 'Verification code resent');
+        } else {
+            if (errEl) {
+                errEl.textContent = data.error || (state.currentLanguage === 'ar' ? 'فشل إعادة إرسال الرمز' : 'Failed to resend');
+                errEl.style.display = 'block';
+            }
+            if (resendBtn) resendBtn.disabled = false;
+        }
+    } catch (e) {
+        if (errEl) {
+            errEl.textContent = state.currentLanguage === 'ar' ? 'حدث خطأ أثناء الاتصال بالسيرفر' : 'Connection error';
+            errEl.style.display = 'block';
+        }
+        if (resendBtn) resendBtn.disabled = false;
+    }
+}
+
 async function handleRegister(username, password, email, birthDate, termsAccepted) {
     const errEl = document.getElementById('register-error');
     if (errEl) errEl.style.display = 'none';
@@ -2351,7 +2507,7 @@ async function handleRegister(username, password, email, birthDate, termsAccepte
     if (!termsAccepted) {
         if (errEl) {
             errEl.textContent = state.currentLanguage === 'ar'
-                ? (i18n.ar["terms-agree-error"] || 'يجب تأكيد بلوغ سن 18 عاماً والموافقة على الشروط والأحكام وإخلاء المسؤولية.')
+                ? (i18n.ar["terms-agree-error"] || 'يجب تأكيد بلوغ سن 18 عاماً والموافقة على الشروط والأحكام.')
                 : (i18n.en["terms-agree-error"] || 'You must confirm you are 18+ and agree to the Terms & Disclaimer.');
             errEl.style.display = 'block';
         }
@@ -2383,14 +2539,14 @@ async function handleRegister(username, password, email, birthDate, termsAccepte
 
     if (registerBtn) {
         registerBtn.disabled = true;
-        const text = state.currentLanguage === 'ar' ? 'جاري إنشاء الحساب...' : 'Creating...';
+        const text = state.currentLanguage === 'ar' ? 'جاري إرسال رمز التحقق...' : 'Sending Code...';
         registerBtn.innerHTML = `<span>${text}</span>`;
     }
 
     const startTime = Date.now();
 
     try {
-        const res = await fetch('/api/auth/register', {
+        const res = await fetch('/api/auth/send-register-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password, email, birthDate, termsAccepted: true })
@@ -2398,23 +2554,29 @@ async function handleRegister(username, password, email, birthDate, termsAccepte
         const data = await res.json();
 
         const elapsed = Date.now() - startTime;
-        if (elapsed < 700) {
-            await new Promise(r => setTimeout(r, 700 - elapsed));
+        if (elapsed < 600) {
+            await new Promise(r => setTimeout(r, 600 - elapsed));
         }
 
         if (data.success) {
+            currentRegisterEmail = email;
             const registerForm = document.getElementById('register-form');
-            const successCard = document.getElementById('register-success-card');
+            const otpCard = document.getElementById('register-otp-card');
+            const targetEmailEl = document.getElementById('otp-target-email');
             
+            if (targetEmailEl) targetEmailEl.textContent = email;
             if (registerForm) registerForm.style.display = 'none';
-            if (successCard) {
-                successCard.style.display = 'block';
+            if (otpCard) {
+                otpCard.style.display = 'block';
+                clearOtpInputs();
+                startOtpCountdown(60);
+                focusFirstOtpInput();
                 if (window.lucide) window.lucide.createIcons();
             }
             return true;
         } else {
             if (errEl) {
-                errEl.textContent = data.error || (state.currentLanguage === 'ar' ? 'فشل إنشاء الحساب' : 'Registration failed');
+                errEl.textContent = data.error || (state.currentLanguage === 'ar' ? 'فشل إرسال رمز التحقق' : 'Failed to send OTP');
                 errEl.style.display = 'block';
             }
             return false;
@@ -2658,6 +2820,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                         registerForm.reset();
                         registerForm.style.display = 'block';
                     }
+                    const otpCard = document.getElementById('register-otp-card');
+                    if (otpCard) otpCard.style.display = 'none';
+                    if (otpCountdownTimer) clearInterval(otpCountdownTimer);
+                    clearOtpInputs();
+
                     const successCard = document.getElementById('register-success-card');
                     if (successCard) successCard.style.display = 'none';
                     const errEl = document.getElementById('register-error');
@@ -2685,6 +2852,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (backToLoginBtn) {
         backToLoginBtn.addEventListener('click', (e) => {
             e.preventDefault();
+            if (otpCountdownTimer) clearInterval(otpCountdownTimer);
             const loginOverlay = document.getElementById('login-overlay');
             const registerOverlay = document.getElementById('register-overlay');
             if (registerOverlay && loginOverlay) {
@@ -2694,6 +2862,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 setTimeout(() => {
                     registerOverlay.classList.remove('active');
                     registerOverlay.style.opacity = '';
+
+                    const otpCard = document.getElementById('register-otp-card');
+                    if (otpCard) otpCard.style.display = 'none';
+                    clearOtpInputs();
 
                     loginOverlay.style.opacity = '0';
                     loginOverlay.classList.add('active');
@@ -2714,12 +2886,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (successBackToLoginBtn) {
         successBackToLoginBtn.addEventListener('click', (e) => {
             e.preventDefault();
+            if (otpCountdownTimer) clearInterval(otpCountdownTimer);
             
             const registerForm = document.getElementById('register-form');
             if (registerForm) {
                 registerForm.reset();
                 registerForm.style.display = 'block';
             }
+            const otpCard = document.getElementById('register-otp-card');
+            if (otpCard) otpCard.style.display = 'none';
+            clearOtpInputs();
+
             const successCard = document.getElementById('register-success-card');
             if (successCard) successCard.style.display = 'none';
 
@@ -2773,7 +2950,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!termsAccepted) {
                 if (errEl) {
                     errEl.textContent = state.currentLanguage === 'ar' 
-                        ? (i18n.ar["terms-agree-error"] || 'يجب تأكيد بلوغ سن 18 عاماً والموافقة على الشروط والأحكام وإخلاء المسؤولية.')
+                        ? (i18n.ar["terms-agree-error"] || 'يجب تأكيد بلوغ سن 18 عاماً والموافقة على الشروط والأحكام.')
                         : (i18n.en["terms-agree-error"] || 'You must confirm you are 18+ and agree to the Terms & Disclaimer.');
                     errEl.style.display = 'block';
                 }
@@ -2781,6 +2958,92 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             await handleRegister(u, p, email, birthDate, termsAccepted);
+        });
+    }
+
+    // OTP Inputs Auto-Navigation & Paste Handling
+    const otpInputs = document.querySelectorAll('.otp-digit-input');
+    otpInputs.forEach((input, idx) => {
+        input.addEventListener('input', (e) => {
+            const val = e.target.value;
+            if (!/^\d*$/.test(val)) {
+                e.target.value = '';
+                return;
+            }
+            if (val) {
+                e.target.classList.add('filled');
+                if (idx < otpInputs.length - 1) {
+                    otpInputs[idx + 1].focus();
+                } else {
+                    const fullOtp = getEnteredOtp();
+                    if (fullOtp.length === 6) {
+                        const verifyBtn = document.getElementById('verify-otp-submit-btn');
+                        if (verifyBtn) verifyBtn.focus();
+                    }
+                }
+            } else {
+                e.target.classList.remove('filled');
+            }
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+                otpInputs[idx - 1].focus();
+            }
+        });
+
+        input.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const pastedData = (e.clipboardData || window.clipboardData).getData('text').trim();
+            if (!pastedData) return;
+            const digits = pastedData.replace(/\D/g, '').slice(0, 6);
+            if (digits.length > 0) {
+                digits.split('').forEach((digit, dIdx) => {
+                    if (otpInputs[dIdx]) {
+                        otpInputs[dIdx].value = digit;
+                        otpInputs[dIdx].classList.add('filled');
+                    }
+                });
+                const nextFocus = Math.min(digits.length, 5);
+                otpInputs[nextFocus].focus();
+            }
+        });
+    });
+
+    // Verify OTP Button Handler
+    const verifyOtpSubmitBtn = document.getElementById('verify-otp-submit-btn');
+    if (verifyOtpSubmitBtn) {
+        verifyOtpSubmitBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleVerifyOtp();
+        });
+    }
+
+    // Resend OTP Button Handler
+    const resendOtpBtn = document.getElementById('resend-otp-btn');
+    if (resendOtpBtn) {
+        resendOtpBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!resendOtpBtn.disabled) {
+                handleResendOtp();
+            }
+        });
+    }
+
+    // Edit Registration Data Handler
+    const editRegisterDataBtn = document.getElementById('edit-register-data-btn');
+    if (editRegisterDataBtn) {
+        editRegisterDataBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (otpCountdownTimer) clearInterval(otpCountdownTimer);
+            const registerForm = document.getElementById('register-form');
+            const otpCard = document.getElementById('register-otp-card');
+            if (otpCard) otpCard.style.display = 'none';
+            if (registerForm) {
+                registerForm.style.display = 'block';
+                const firstInput = document.getElementById('register-username');
+                if (firstInput) firstInput.focus();
+            }
         });
     }
 

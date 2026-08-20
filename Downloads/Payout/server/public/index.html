@@ -14,7 +14,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z'/></svg>">
-    <link rel="stylesheet" href="style.css?v=1.6.0">
+    <link rel="stylesheet" href="style.css?v=1.7.0">
 </head>
 <body>
     <!-- SVG Warp Filter for Background Wave Motion -->
@@ -295,6 +295,47 @@
                     <a href="#" id="back-to-login-btn" style="color: var(--text-dim); font-size: 13px; text-decoration: none;">العودة لتسجيل الدخول</a>
                 </div>
             </form>
+
+            <!-- Register OTP Verification Card -->
+            <div id="register-otp-card" style="display:none; margin-top:20px; text-align:center;">
+                <div style="width: 52px; height: 52px; border-radius: 14px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px auto;">
+                    <i data-lucide="mail-check" style="width: 28px; height: 28px; color: var(--color-emerald);"></i>
+                </div>
+                <h2 style="font-size:20px;color:#fff;margin-bottom:6px;">تأكيد البريد الإلكتروني</h2>
+                <p style="color:var(--text-muted);font-size:13px;line-height:1.5;margin-bottom:18px;">
+                    تم إرسال رمز تحقق مكون من 6 أرقام إلى:<br>
+                    <strong id="otp-target-email" style="color:var(--color-primary);font-size:13.5px;direction:ltr;display:inline-block;margin-top:4px;"></strong>
+                </p>
+
+                <!-- 6 Digits OTP Input Container -->
+                <div class="otp-inputs-container" style="display:flex; justify-content:center; gap:8px; direction:ltr; margin-bottom:18px;">
+                    <input type="text" maxlength="1" inputmode="numeric" class="otp-digit-input" data-index="0" autocomplete="one-time-code">
+                    <input type="text" maxlength="1" inputmode="numeric" class="otp-digit-input" data-index="1">
+                    <input type="text" maxlength="1" inputmode="numeric" class="otp-digit-input" data-index="2">
+                    <input type="text" maxlength="1" inputmode="numeric" class="otp-digit-input" data-index="3">
+                    <input type="text" maxlength="1" inputmode="numeric" class="otp-digit-input" data-index="4">
+                    <input type="text" maxlength="1" inputmode="numeric" class="otp-digit-input" data-index="5">
+                </div>
+
+                <div id="register-otp-error" style="display:none;color:var(--color-rose);font-size:13px;margin-bottom:14px;text-align:center;"></div>
+
+                <button type="button" class="btn btn-primary btn-block" id="verify-otp-submit-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;">
+                    <i data-lucide="shield-check"></i>
+                    <span>تأكيد الرمز وإتمام التسجيل</span>
+                </button>
+
+                <!-- Resend & Edit Email Controls -->
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; font-size:12.5px; padding: 0 4px;">
+                    <button type="button" id="resend-otp-btn" disabled style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:4px 0; font-size:12.5px; display:flex; align-items:center; gap:4px; transition:color var(--transition-fast);">
+                        <i data-lucide="rotate-cw" style="width:14px; height:14px;"></i>
+                        <span id="resend-otp-text">إعادة إرسال الرمز</span>
+                        <span id="resend-otp-timer" style="color:var(--color-primary); font-weight:700;">(60s)</span>
+                    </button>
+                    <a href="#" id="edit-register-data-btn" style="color:var(--text-dim); text-decoration:none; transition:color var(--transition-fast);">
+                        تعديل البيانات
+                    </a>
+                </div>
+            </div>
 
             <!-- Register Success Card -->
             <div id="register-success-card" style="display:none; margin-top:20px; text-align:center; padding: 10px 0;">
@@ -1392,7 +1433,7 @@
         }
     </script>
     <!-- App JavaScript Logic -->
-    <script src="app.js?v=1.6.0"></script>
+    <script src="app.js?v=1.7.0"></script>
 </body>
 </html>
 

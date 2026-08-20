@@ -2153,5 +2153,56 @@ html[dir="rtl"] .employee-sort-actions {
     line-height: 1.6;
 }
 
+/* OTP 6-Digit Input Styles */
+.otp-inputs-container {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    direction: ltr;
+}
+
+.otp-digit-input {
+    width: 44px;
+    height: 52px;
+    background: rgba(15, 18, 25, 0.85);
+    border: 1.5px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    text-align: center;
+    font-size: 24px;
+    font-weight: 800;
+    font-family: monospace, var(--font-english);
+    color: #ffffff;
+    outline: none;
+    transition: all var(--transition-fast);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.otp-digit-input:focus {
+    border-color: var(--color-primary);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 14px rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+.otp-digit-input.filled {
+    border-color: var(--color-emerald);
+    background: rgba(16, 185, 129, 0.08);
+    color: var(--color-emerald);
+}
+
+#resend-otp-btn:not(:disabled):hover {
+    color: #ffffff !important;
+}
+
+#resend-otp-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+#edit-register-data-btn:hover {
+    color: #ffffff !important;
+}
+
+
 
 
