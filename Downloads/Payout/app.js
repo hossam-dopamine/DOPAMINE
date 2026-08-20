@@ -141,7 +141,11 @@ const i18n = {
         "remove-image": "حذف",
         "tasks-list": "سجل المهام",
         "edit-task-modal-title": "تعديل بيانات المهمة",
-        "toast-duplicate-task-id": "رقم التاسك مسجل مسبقاً! يرجى استخدام رقم مختلف للمهمة."
+        "toast-duplicate-task-id": "رقم التاسك مسجل مسبقاً! يرجى استخدام رقم مختلف للمهمة.",
+        "terms-modal-title": "شروط الخدمة وإخلاء المسؤولية القانونية",
+        "terms-modal-subtitle": "اتفاقية الاستخدام والمسؤولية الكاملة للمشترك",
+        "terms-age-error": "يجب أن يكون عمرك 18 عاماً أو أكثر للتسجيل في النظام.",
+        "terms-agree-error": "يجب تأكيد بلوغ سن 18 عاماً والموافقة على الشروط والأحكام وإخلاء المسؤولية."
     },
     en: {
         "app-title": "DOPAMINE-SERVICE",
@@ -277,6 +281,10 @@ const i18n = {
         "tasks-list": "Tasks Record",
         "edit-task-modal-title": "Edit Task Details",
         "toast-duplicate-task-id": "Task ID already exists! Please use a unique Task ID.",
+        "terms-modal-title": "Terms of Service & Legal Disclaimer",
+        "terms-modal-subtitle": "Terms of Use & Sole User Liability Agreement",
+        "terms-age-error": "You must be at least 18 years old to register.",
+        "terms-agree-error": "You must confirm you are 18+ and agree to the Terms & Disclaimer.",
         "login-subtitle": "Login to System",
         "login-username": "Username",
         "login-password": "Password",
@@ -2335,9 +2343,40 @@ async function handleLogin(username, password) {
     }
 }
 
-async function handleRegister(username, password, email, birthDate) {
+async function handleRegister(username, password, email, birthDate, termsAccepted) {
     const errEl = document.getElementById('register-error');
     if (errEl) errEl.style.display = 'none';
+
+    // Validate terms agreement checkbox
+    if (!termsAccepted) {
+        if (errEl) {
+            errEl.textContent = state.currentLanguage === 'ar'
+                ? (i18n.ar["terms-agree-error"] || 'يجب تأكيد بلوغ سن 18 عاماً والموافقة على الشروط والأحكام وإخلاء المسؤولية.')
+                : (i18n.en["terms-agree-error"] || 'You must confirm you are 18+ and agree to the Terms & Disclaimer.');
+            errEl.style.display = 'block';
+        }
+        return false;
+    }
+
+    // Validate age is at least 18 years
+    if (birthDate) {
+        const birth = new Date(birthDate);
+        const today = new Date();
+        let age = today.getFullYear() - birth.getFullYear();
+        const m = today.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+            age--;
+        }
+        if (isNaN(age) || age < 18) {
+            if (errEl) {
+                errEl.textContent = state.currentLanguage === 'ar'
+                    ? (i18n.ar["terms-age-error"] || 'يجب أن يكون عمرك 18 عاماً أو أكثر للتسجيل في النظام.')
+                    : (i18n.en["terms-age-error"] || 'You must be at least 18 years old to register.');
+                errEl.style.display = 'block';
+            }
+            return false;
+        }
+    }
 
     const registerBtn = document.getElementById('register-submit-btn');
     const originalBtnHTML = registerBtn ? registerBtn.innerHTML : '';
@@ -2354,7 +2393,7 @@ async function handleRegister(username, password, email, birthDate) {
         const res = await fetch('/api/auth/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password, email, birthDate })
+            body: JSON.stringify({ username, password, email, birthDate, termsAccepted: true })
         });
         const data = await res.json();
 
@@ -2717,6 +2756,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const birthDate = document.getElementById('register-birthdate').value;
             const p = document.getElementById('register-password').value;
             const pc = document.getElementById('register-confirm-password').value;
+            const termsAgreeCheckbox = document.getElementById('register-terms-agree');
+            const termsAccepted = termsAgreeCheckbox ? termsAgreeCheckbox.checked : false;
             const errEl = document.getElementById('register-error');
 
             if (p !== pc) {
@@ -2728,7 +2769,64 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
                 return;
             }
-            await handleRegister(u, p, email, birthDate);
+
+            if (!termsAccepted) {
+                if (errEl) {
+                    errEl.textContent = state.currentLanguage === 'ar' 
+                        ? (i18n.ar["terms-agree-error"] || 'يجب تأكيد بلوغ سن 18 عاماً والموافقة على الشروط والأحكام وإخلاء المسؤولية.')
+                        : (i18n.en["terms-agree-error"] || 'You must confirm you are 18+ and agree to the Terms & Disclaimer.');
+                    errEl.style.display = 'block';
+                }
+                return;
+            }
+
+            await handleRegister(u, p, email, birthDate, termsAccepted);
+        });
+    }
+
+    // Terms of Service & Disclaimer Modal Handlers
+    const openTermsModalBtn = document.getElementById('open-terms-modal-btn');
+    const termsModal = document.getElementById('terms-modal');
+    const closeTermsModalX = document.getElementById('close-terms-modal-x');
+    const closeTermsModalBtn = document.getElementById('close-terms-modal-btn');
+    const acceptAndCloseTermsBtn = document.getElementById('accept-and-close-terms-btn');
+
+    if (openTermsModalBtn && termsModal) {
+        openTermsModalBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            termsModal.classList.add('active');
+            if (window.lucide) window.lucide.createIcons();
+        });
+    }
+
+    if (closeTermsModalX && termsModal) {
+        closeTermsModalX.addEventListener('click', () => {
+            termsModal.classList.remove('active');
+        });
+    }
+
+    if (closeTermsModalBtn && termsModal) {
+        closeTermsModalBtn.addEventListener('click', () => {
+            termsModal.classList.remove('active');
+        });
+    }
+
+    if (acceptAndCloseTermsBtn && termsModal) {
+        acceptAndCloseTermsBtn.addEventListener('click', () => {
+            const termsAgreeCheckbox = document.getElementById('register-terms-agree');
+            if (termsAgreeCheckbox) {
+                termsAgreeCheckbox.checked = true;
+            }
+            termsModal.classList.remove('active');
+            showToast(state.currentLanguage === 'ar' ? 'تمت الموافقة على الشروط وإخلاء المسؤولية' : 'Terms accepted');
+        });
+    }
+
+    if (termsModal) {
+        termsModal.addEventListener('click', (e) => {
+            if (e.target === termsModal) {
+                termsModal.classList.remove('active');
+            }
         });
     }
 

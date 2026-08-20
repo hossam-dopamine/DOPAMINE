@@ -76,12 +76,16 @@ router.post('/login', authLimiter, async (req, res) => {
 // POST /register - Create an independent admin account (with isolated tenantId)
 router.post('/register', authLimiter, async (req, res) => {
   try {
-    const { username, password, email, birthDate } = req.body;
+    const { username, password, email, birthDate, termsAccepted } = req.body;
     if (!username || !password || !email || !birthDate) {
       return res.status(400).json({ success: false, error: 'جميع الحقول مطلوبة (اسم المستخدم، كلمة المرور، البريد الإلكتروني، تاريخ الميلاد)' });
     }
     if (typeof username !== 'string' || typeof password !== 'string' || typeof email !== 'string' || typeof birthDate !== 'string') {
       return res.status(400).json({ success: false, error: 'برجاء إدخال بيانات صحيحة' });
+    }
+
+    if (!termsAccepted) {
+      return res.status(400).json({ success: false, error: 'يجب الموافقة على الشروط والأحكام وإخلاء المسؤولية وتأكيد بلوغ السن القانوني (18+)' });
     }
 
     const cleanUsername = String(username).toLowerCase().trim();
@@ -103,6 +107,17 @@ router.post('/register', authLimiter, async (req, res) => {
       return res.status(400).json({ success: false, error: 'تاريخ الميلاد غير صالح' });
     }
 
+    // Validate that user is at least 18 years old
+    const today = new Date();
+    let age = today.getFullYear() - parsedBirthDate.getFullYear();
+    const monthDiff = today.getMonth() - parsedBirthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < parsedBirthDate.getDate())) {
+      age--;
+    }
+    if (age < 18) {
+      return res.status(400).json({ success: false, error: 'يجب أن يكون عمرك 18 عاماً أو أكثر للتسجيل في النظام' });
+    }
+
     const existingUser = await User.findOne({ username: cleanUsername });
     if (existingUser) {
       return res.status(409).json({ success: false, error: 'اسم المستخدم مسجل بالفعل' });
@@ -115,6 +130,8 @@ router.post('/register', authLimiter, async (req, res) => {
       role: 'admin',
       email: cleanEmail,
       birthDate: parsedBirthDate,
+      termsAccepted: true,
+      termsAcceptedAt: new Date(),
       status: 'pending'
     });
     // Set tenantId to the newly generated user ID to guarantee absolute uniqueness and isolation
