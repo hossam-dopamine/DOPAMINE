@@ -96,13 +96,16 @@ const sendEmail = async ({ to, subject, text, html }) => {
   const senderName = 'DOPAMINE Services';
 
   // 1. Try Brevo HTTPS API (Port 443 - 100% Free: 300 emails/day, completely unblocked on Render)
-  const brevoKey = process.env.BREVO_API_KEY;
-  if (brevoKey && brevoKey.trim().length > 10) {
+  const brevoKey = process.env.BREVO_API_KEY ? process.env.BREVO_API_KEY.trim() : '';
+  if (brevoKey.startsWith('xsmtpsib-')) {
+    console.warn('⚠️ Mailer [Brevo]: المفتاح المدخل هو مفتاح SMTP (xsmtpsib-) وليس مفتاح API (xkeysib-). يرجى إنشاء مفتاح من تبويب "API Keys" في Brevo.');
+  }
+  if (brevoKey && brevoKey.length > 10) {
     try {
       const response = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: {
-          'api-key': brevoKey.trim(),
+          'api-key': brevoKey,
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
