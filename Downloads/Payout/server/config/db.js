@@ -7,11 +7,16 @@ try {
 
 let isListenersAttached = false;
 
-const connectDB = async (retries = 5, delay = 5000) => {
+const connectDB = async (retries = 3, delay = 2000) => {
+  if (mongoose.connection.readyState >= 1) {
+    return;
+  }
+
   const uri = process.env.MONGODB_URI;
   if (!uri) {
     console.error('MONGODB_URI is not defined in environment variables');
-    process.exit(1);
+    if (!process.env.VERCEL) process.exit(1);
+    return;
   }
 
   if (!isListenersAttached) {
