@@ -2099,4 +2099,59 @@ html[dir="rtl"] .employee-sort-actions {
     transform: none !important;
 }
 
+/* Terms and Conditions & 18+ Checkbox Styles */
+.terms-agreement-group {
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.terms-agreement-group:hover {
+    border-color: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.terms-content-scrollable {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.terms-content-scrollable::-webkit-scrollbar {
+    width: 6px;
+}
+
+.terms-content-scrollable::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.terms-content-scrollable::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.terms-content-scrollable::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.35);
+}
+
+.terms-clause {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    padding: 12px 14px;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.terms-clause:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.terms-clause ul {
+    list-style-type: disc;
+}
+
+.terms-clause li {
+    margin-bottom: 6px;
+    line-height: 1.6;
+}
+
+
 

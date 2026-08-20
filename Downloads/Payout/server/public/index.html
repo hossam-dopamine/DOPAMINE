@@ -14,7 +14,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z'/></svg>">
-    <link rel="stylesheet" href="style.css?v=1.5.0">
+    <link rel="stylesheet" href="style.css?v=1.6.0">
 </head>
 <body>
     <!-- SVG Warp Filter for Background Wave Motion -->
@@ -275,6 +275,17 @@
                 <div class="form-group">
                     <label for="register-confirm-password">تأكيد كلمة المرور</label>
                     <input type="password" id="register-confirm-password" required autocomplete="new-password" placeholder="أعد كتابة كلمة المرور...">
+                </div>
+                <!-- Terms & 18+ Agreement Checkbox -->
+                <div class="form-group terms-agreement-group" style="margin-top: 14px; margin-bottom: 16px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px;">
+                    <label class="checkbox-container" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 12.5px; color: var(--text-color); line-height: 1.55; text-align: start; margin-bottom: 0;">
+                        <input type="checkbox" id="register-terms-agree" required style="width: 18px; height: 18px; margin-top: 2px; accent-color: var(--color-primary); cursor: pointer; flex-shrink: 0;">
+                        <span>
+                            أقر بأن عمري <strong style="color: #fff;">18 عاماً أو أكثر</strong>، وأوافق بكامل إرادتي على 
+                            <a href="#" id="open-terms-modal-btn" style="color: var(--color-primary); text-decoration: underline; font-weight: 700;">الشروط والأحكام وإخلاء المسؤولية التام</a> 
+                            للموقع، وأتحمل منفرداً كامل المسؤولية عن كافة أنشطتي والبيانات والمهام والأخطاء المسجلة بحسابي.
+                        </span>
+                    </label>
                 </div>
                 <div id="register-error" style="display:none;color:var(--color-rose);font-size:13px;margin-bottom:12px;text-align:center;"></div>
                 <button type="submit" class="btn btn-primary btn-block" id="register-submit-btn">
@@ -1258,6 +1269,114 @@
         </div>
     </div>
 
+    <!-- Terms of Service & Disclaimer Modal -->
+    <div id="terms-modal" class="modal-overlay">
+        <div class="modal-content glass-panel" style="max-width: 720px; width: 95%; max-height: 88vh; display: flex; flex-direction: column; padding: 24px;">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 14px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(255, 255, 255, 0.06); display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-color);">
+                        <i data-lucide="scale" style="width: 20px; height: 20px; color: var(--color-primary);"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 17px; color: #fff;" data-i18n="terms-modal-title">شروط الخدمة وإخلاء المسؤولية القانونية</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-muted);" data-i18n="terms-modal-subtitle">اتفاقية الاستخدام والمسؤولية الكاملة للمشترك</p>
+                    </div>
+                </div>
+                <button class="modal-close close-modal-btn" id="close-terms-modal-x">&times;</button>
+            </div>
+
+            <!-- Scrollable Terms Body -->
+            <div class="terms-content-scrollable" style="flex: 1; overflow-y: auto; padding-inline-end: 8px; font-size: 13px; line-height: 1.7; color: var(--text-color);">
+                <!-- Warning / Highlight Box -->
+                <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; display: flex; gap: 10px; align-items: flex-start;">
+                    <i data-lucide="alert-triangle" style="width: 20px; height: 20px; color: var(--color-rose); flex-shrink: 0; margin-top: 2px;"></i>
+                    <p style="margin: 0; font-size: 12.5px; color: #fecdd3;">
+                        <strong>تنبيه قانوني هام:</strong> استخدامك للمنصة أو إنشائك لحساب يُعد إقراراً صريحاً وموافقة غير مشروطة على كافة البنود الواردة أدناه، وتتحمل وحدك كامل المسؤولية القانونية والمالية عن كافة العمليات والأخطاء والبيانات المسجلة.
+                    </p>
+                </div>
+
+                <!-- Clause 1 -->
+                <div class="terms-clause" style="margin-bottom: 16px;">
+                    <h4 style="color: #fff; font-size: 14px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                        <span style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 6px; background: rgba(255,255,255,0.1); font-size: 12px; color: var(--color-primary);">1</span>
+                        <span>أهلية الاستخدام وشرط السن القانوني (18+ عاماً)</span>
+                    </h4>
+                    <p style="margin: 0; color: var(--text-muted); padding-inline-start: 28px;">
+                        يُشترط لإنشاء حساب أو استخدام المنصة أن يكون المشترك قد بلغ من العمر <strong>ثمانية عشر (18) عاماً ميلادياً كاملاً</strong> أو أكثر، وأن يتمتع بالأهلية القانونية الكاملة واللازمة لإبرام العقود والالتزام بهذه الشروط. يحظر تماماً تسجيل أي شخص دون هذا السن.
+                    </p>
+                </div>
+
+                <!-- Clause 2 -->
+                <div class="terms-clause" style="margin-bottom: 16px;">
+                    <h4 style="color: #fff; font-size: 14px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                        <span style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 6px; background: rgba(255,255,255,0.1); font-size: 12px; color: var(--color-primary);">2</span>
+                        <span>إخلاء المسؤولية التام للمنصة والإدارة (Complete Disclaimer of Liability)</span>
+                    </h4>
+                    <p style="margin: 0; color: var(--text-muted); padding-inline-start: 28px;">
+                        تُقدَّم منصة <strong>DOPAMINE-SERVICE</strong> وخدماتها البرمجية وأدواتها "كما هي" دون أي ضمانات من أي نوع، صريحة كانت أو ضمنية. تخلي المنصة وإدارتها ومطوروها مسؤوليتهم التامة والمطلقة عن:
+                    </p>
+                    <ul style="margin: 6px 0 0 0; padding-inline-start: 48px; color: var(--text-muted);">
+                        <li>أي خسائر مالية أو أرباح فائتة أو أضرار مادية أو معنوية ناتجة عن استخدام المنصة أو الاعتماد على حساباتها.</li>
+                        <li>أي أخطاء في إدخال الأرقام، النسب، الخصومات، أسعار الصرف، أو المهام المسجلة من قبل المستخدمين أو موظفيهم.</li>
+                        <li>أي نزاعات مالية أو تعاقدية بين المشترك (المدير) وبين موظفيه أو عملائه أو أي أطراف ثالثة.</li>
+                        <li>أي انقطاع للخدمة، خلل تقني، فقدان بيانات، أو تعطل ناجم عن ظروف قاهرة أو أعمال صيانة أو تحديثات.</li>
+                    </ul>
+                </div>
+
+                <!-- Clause 3 -->
+                <div class="terms-clause" style="margin-bottom: 16px;">
+                    <h4 style="color: #fff; font-size: 14px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                        <span style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 6px; background: rgba(255,255,255,0.1); font-size: 12px; color: var(--color-primary);">3</span>
+                        <span>المسؤولية الحصرية والكاملة للمشترك (Sole User Liability)</span>
+                    </h4>
+                    <p style="margin: 0; color: var(--text-muted); padding-inline-start: 28px;">
+                        يتحمل المشترك (صاحب الحساب) <strong>وحده وبشكل كامل ومنفرد</strong> كافة المسؤوليات المدنية، الجنائية، والمالية عن:
+                    </p>
+                    <ul style="margin: 6px 0 0 0; padding-inline-start: 48px; color: var(--text-muted);">
+                        <li>كافة الأنشطة والبيانات والمهام والعمليات والمدفوعات والمستحقات المسجلة تحت حسابه أو حسابات المستخدمين التابعين له.</li>
+                        <li>أي خطأ، سهو، أو إساءة استخدام تصدر من حسابه أو من الموظفين والمشرفين المضافين لديه.</li>
+                        <li>صحة ودقة وقانونية جميع البيانات والمهام والتفاصيل المدخلة في النظام.</li>
+                        <li>الامتثال للقوانين واللوائح السارية محلياً ودولياً في كل ما يتعلق بأنشطته وعملياته.</li>
+                    </ul>
+                </div>
+
+                <!-- Clause 4 -->
+                <div class="terms-clause" style="margin-bottom: 16px;">
+                    <h4 style="color: #fff; font-size: 14px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                        <span style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 6px; background: rgba(255,255,255,0.1); font-size: 12px; color: var(--color-primary);">4</span>
+                        <span>سرية الحساب وبيانات الدخول</span>
+                    </h4>
+                    <p style="margin: 0; color: var(--text-muted); padding-inline-start: 28px;">
+                        المشترك مسؤول مسؤولية تامة عن الحفاظ على سرية اسم المستخدم وكلمة المرور، وعن أي استخدام أو نشاط يحدث نتيجة إفشاء هذه البيانات لأي طرف آخر. يجب إخطار الإدارة فوراً في حال الاشتباه بأي اختراق أو وصول غير مصرح به.
+                    </p>
+                </div>
+
+                <!-- Clause 5 -->
+                <div class="terms-clause" style="margin-bottom: 16px;">
+                    <h4 style="color: #fff; font-size: 14px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                        <span style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 6px; background: rgba(255,255,255,0.1); font-size: 12px; color: var(--color-primary);">5</span>
+                        <span>حقوق المنصة في التعليق والإنهاء والتعديل</span>
+                    </h4>
+                    <p style="margin: 0; color: var(--text-muted); padding-inline-start: 28px;">
+                        تحتفظ إدارة المنصة بالحق الكامل في تعديل هذه الشروط في أي وقت، كما يحق لها إيقاف، تعليق، أو حظر أي حساب دون إشعار مسبق في حال مخالفة أي بند من هذه الشروط، أو استخدام المنصة في أنشطة مشبوهة أو غير قانونية.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Modal Footer with Action Buttons -->
+            <div class="modal-footer" style="border-top: 1px solid var(--border-color); padding-top: 14px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 12px; color: var(--text-dim);">آخر تحديث: 2026</span>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" class="btn btn-secondary" id="close-terms-modal-btn" data-i18n="close">إغلاق</button>
+                    <button type="button" class="btn btn-primary" id="accept-and-close-terms-btn" style="display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="check"></i>
+                        <span>موافق وقبول الشروط</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Notification Toast -->
     <div id="toast" class="toast">
         <span id="toast-message">تمت العملية بنجاح!</span>
@@ -1274,7 +1393,7 @@
         }
     </script>
     <!-- App JavaScript Logic -->
-    <script src="app.js?v=1.5.0"></script>
+    <script src="app.js?v=1.6.0"></script>
 </body>
 </html>
 

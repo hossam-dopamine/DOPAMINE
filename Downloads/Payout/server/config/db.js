@@ -15,8 +15,7 @@ const connectDB = async (retries = 3, delay = 2000) => {
   const uri = process.env.MONGODB_URI;
   if (!uri) {
     console.error('MONGODB_URI is not defined in environment variables');
-    if (!process.env.VERCEL) process.exit(1);
-    return;
+    process.exit(1);
   }
 
   if (!isListenersAttached) {

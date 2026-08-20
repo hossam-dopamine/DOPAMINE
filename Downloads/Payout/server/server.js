@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const connectDB = require('./config/db');
 const { applySecurityMiddleware } = require('./middleware/security');
 const authRoutes = require('./routes/auth');
@@ -26,8 +27,13 @@ applySecurityMiddleware(app);
 app.use('/api/auth', authRoutes);
 app.use('/api/data', dataRoutes);
 
+// Determine static files directory (server/public or root)
+const publicDir = fs.existsSync(path.join(__dirname, 'public', 'index.html'))
+  ? path.join(__dirname, 'public')
+  : path.join(__dirname, '..');
+
 // Static files with optimized HTTP caching
-app.use(express.static(path.join(__dirname, 'public'), {
+app.use(express.static(publicDir, {
   maxAge: '1d',
   etag: true
 }));
@@ -37,7 +43,7 @@ app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) {
     return next();
   }
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(publicDir, 'index.html'));
 });
 
 // Global Error Handler
