@@ -454,6 +454,24 @@ router.post('/tasks', dataMutationLimiter, verifyToken, requireAdminOrLeader, as
     }
 
     const taskId = taskData.id || ('task_' + Date.now());
+
+    // Validate duplicate taskNumber for this employee
+    const taskNum = String(taskData.taskNumber || '').trim();
+    if (taskNum) {
+      const duplicateFilter = {
+        tenantId,
+        employeeId: String(taskData.employeeId),
+        taskNumber: { $regex: new RegExp(`^${taskNum.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
+      };
+      if (taskData.id) {
+        duplicateFilter.id = { $ne: String(taskData.id) };
+      }
+      const duplicateTask = await Task.findOne(duplicateFilter);
+      if (duplicateTask) {
+        return res.status(400).json({ success: false, error: 'رقم المهمة مسجل مسبقاً لهذا الموظف' });
+      }
+    }
+
     const encryptedT = encryptTaskFields(taskData);
 
     const newTask = await Task.findOneAndUpdate(

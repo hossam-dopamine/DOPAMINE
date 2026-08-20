@@ -140,7 +140,8 @@ const i18n = {
         "select-image": "اختر صورة",
         "remove-image": "حذف",
         "tasks-list": "سجل المهام",
-        "edit-task-modal-title": "تعديل بيانات المهمة"
+        "edit-task-modal-title": "تعديل بيانات المهمة",
+        "toast-duplicate-task-id": "رقم التاسك مسجل مسبقاً! يرجى استخدام رقم مختلف للمهمة."
     },
     en: {
         "app-title": "DOPAMINE-SERVICE",
@@ -275,6 +276,7 @@ const i18n = {
         "remove-image": "Remove",
         "tasks-list": "Tasks Record",
         "edit-task-modal-title": "Edit Task Details",
+        "toast-duplicate-task-id": "Task ID already exists! Please use a unique Task ID.",
         "login-subtitle": "Login to System",
         "login-username": "Username",
         "login-password": "Password",
@@ -2961,6 +2963,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!emp) return;
 
         const taskNum = document.getElementById('task-number').value.trim();
+
+        // Check if task ID/number already exists in this employee's tasks
+        if (taskNum && Array.isArray(emp.tasks)) {
+            const isDuplicate = emp.tasks.some(t => t.taskNumber && t.taskNumber.trim().toLowerCase() === taskNum.toLowerCase());
+            if (isDuplicate) {
+                showToast('toast-duplicate-task-id');
+                const taskNumInput = document.getElementById('task-number');
+                if (taskNumInput) {
+                    taskNumInput.focus();
+                    taskNumInput.style.outline = '2px solid var(--color-rose)';
+                    setTimeout(() => { taskNumInput.style.outline = ''; }, 2500);
+                }
+                return;
+            }
+        }
+
         const title = document.getElementById('task-title').value.trim();
         const gross = parseFloat(document.getElementById('task-gross').value);
         const currency = document.getElementById('task-currency').value;
@@ -3148,6 +3166,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const type = document.getElementById('edit-task-type').value;
             const taskNum = document.getElementById('edit-task-number').value.trim();
+
+            // Check if task ID/number already exists on another task for this employee
+            if (taskNum && Array.isArray(emp.tasks)) {
+                const isDuplicate = emp.tasks.some(t => String(t.id) !== String(taskId) && t.taskNumber && t.taskNumber.trim().toLowerCase() === taskNum.toLowerCase());
+                if (isDuplicate) {
+                    showToast('toast-duplicate-task-id');
+                    const editTaskNumInput = document.getElementById('edit-task-number');
+                    if (editTaskNumInput) {
+                        editTaskNumInput.focus();
+                        editTaskNumInput.style.outline = '2px solid var(--color-rose)';
+                        setTimeout(() => { editTaskNumInput.style.outline = ''; }, 2500);
+                    }
+                    return;
+                }
+            }
+
             const title = document.getElementById('edit-task-title').value.trim();
             const gross = parseFloat(document.getElementById('edit-task-gross').value) || 0;
             const currency = document.getElementById('edit-task-currency').value;
