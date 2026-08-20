@@ -202,7 +202,7 @@ const sendEmail = async ({ to, subject, text, html }) => {
 };
 
 const sendApprovalEmail = async (userEmail, username) => {
-  const appUrl = process.env.APP_URL || 'https://dopamine-service.com';
+  const appUrl = process.env.APP_URL || 'https://dopamine-c06w.onrender.com';
   const safeUsername = escapeHTML(username);
   const subject = 'تفعيل حسابك في خدمات DOPAMINE';
   const text = `مرحباً ${username}،\n\nيسعدنا إبلاغك بأنه قد تمت مراجعة طلبك والموافقة على تفعيل حسابك بنجاح.\nيمكنك الآن تسجيل الدخول واستخدم كافة الخدمات من خلال لوحة التحكم الخاصة بك.\n\nرابط تسجيل الدخول: ${appUrl}\n\nمع تحيات إدارة DOPAMINE.`;
@@ -225,7 +225,7 @@ const sendApprovalEmail = async (userEmail, username) => {
 };
 
 const sendRejectionEmail = async (userEmail, username, reason) => {
-  const appUrl = process.env.APP_URL || 'https://dopamine-service.com';
+  const appUrl = process.env.APP_URL || 'https://dopamine-c06w.onrender.com';
   const safeUsername = escapeHTML(username);
   const safeReason = escapeHTML(reason);
   const subject = 'بخصوص طلب انضمامك لخدمات DOPAMINE';
