@@ -19,22 +19,29 @@ const applySecurityMiddleware = (app) => {
     }
   }));
 
-  // CORS Configuration — restrict to same-origin and configured origins
+  // CORS Configuration — robust matching for same-origin, proxies, and custom domains
   app.use(cors((req, callback) => {
-    const selfOrigin = `${req.protocol}://${req.headers.host}`;
-    const allowed = [
-      selfOrigin,
-      ...(process.env.APP_URL ? [process.env.APP_URL.replace(/\/+$/, '')] : [])
-    ];
-    
-    callback(null, {
-      origin: (origin, cb) => {
-        if (!origin || allowed.includes(origin)) {
-          cb(null, true);
-        } else {
-          cb(new Error('Not allowed by CORS'));
+    const host = req.headers.host;
+    const origin = req.headers.origin;
+
+    let isAllowed = false;
+    if (!origin) {
+      isAllowed = true;
+    } else {
+      try {
+        const originHost = new URL(origin).host;
+        if (originHost === host || (process.env.APP_URL && origin.startsWith(process.env.APP_URL.replace(/\/+$/, '')))) {
+          isAllowed = true;
+        } else if (process.env.NODE_ENV !== 'production' || origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('onrender.com')) {
+          isAllowed = true;
         }
-      },
+      } catch (e) {
+        isAllowed = false;
+      }
+    }
+
+    callback(null, {
+      origin: isAllowed,
       credentials: true
     });
   }));
