@@ -655,8 +655,8 @@ async function deleteEmployeeApi(empId) {
 
 function showStorageSyncBadge(isFileSaved) {
     const user = getAuthUser();
-    if (!user || user.role !== 'admin') {
-        return; // Only show for Admin
+    if (!user || user.role !== 'admin' || user.username !== 'admin') {
+        return; // Only show for Primary Admin
     }
     let badge = document.getElementById('disk-sync-indicator');
     if (!badge) {
@@ -1038,11 +1038,28 @@ function renderEmployeesList() {
             <div style="display: flex; align-items: center; gap: 8px;">
                 <span class="task-count-badge">${emp.tasks.length}</span>
                 <div class="employee-sort-actions">
-                    <button class="btn-sort" onclick="moveEmployeeUp(event, '${emp.id}')" title="Move Up"><i data-lucide="chevron-up"></i></button>
-                    <button class="btn-sort" onclick="moveEmployeeDown(event, '${emp.id}')" title="Move Down"><i data-lucide="chevron-down"></i></button>
+                    <button class="btn-sort btn-move-up" title="Move Up"><i data-lucide="chevron-up"></i></button>
+                    <button class="btn-sort btn-move-down" title="Move Down"><i data-lucide="chevron-down"></i></button>
                 </div>
             </div>
         `;
+
+        // Attach event listeners programmatically to bypass inline SVG bubbling issues
+        const btnUp = item.querySelector('.btn-move-up');
+        const btnDown = item.querySelector('.btn-move-down');
+        
+        if (btnUp) {
+            btnUp.addEventListener('click', (e) => {
+                e.stopPropagation();
+                moveEmployeeUp(e, emp.id);
+            });
+        }
+        if (btnDown) {
+            btnDown.addEventListener('click', (e) => {
+                e.stopPropagation();
+                moveEmployeeDown(e, emp.id);
+            });
+        }
 
         item.addEventListener('click', () => {
             selectEmployee(emp.id);
@@ -2432,6 +2449,7 @@ function applyRoleRestrictions() {
 
     if (user.role === 'admin') {
         state.isManagerUnlocked = true;
+        const isPrimaryAdmin = user.username === 'admin';
 
         const addEmpBtn = document.getElementById('add-employee-btn');
         if (addEmpBtn) addEmpBtn.style.display = '';
@@ -2446,16 +2464,16 @@ function applyRoleRestrictions() {
         if (delEmpBtn) delEmpBtn.style.display = '';
 
         const clearDataBtn = document.getElementById('clear-data-btn');
-        if (clearDataBtn) clearDataBtn.style.display = '';
+        if (clearDataBtn) clearDataBtn.style.display = isPrimaryAdmin ? '' : 'none';
         
         const exportBtn = document.getElementById('export-btn');
-        if (exportBtn) exportBtn.style.display = '';
+        if (exportBtn) exportBtn.style.display = isPrimaryAdmin ? '' : 'none';
 
         const exportCsvBtn = document.getElementById('export-csv-btn');
-        if (exportCsvBtn) exportCsvBtn.style.display = '';
+        if (exportCsvBtn) exportCsvBtn.style.display = isPrimaryAdmin ? '' : 'none';
 
         const importBtn = document.getElementById('import-btn');
-        if (importBtn) importBtn.style.display = '';
+        if (importBtn) importBtn.style.display = isPrimaryAdmin ? '' : 'none';
 
         const taskFormCol = document.querySelector('.task-form-column');
         if (taskFormCol) taskFormCol.style.display = '';
@@ -2560,6 +2578,12 @@ function applyRoleRestrictions() {
 
 // --- Set Up Event Listeners ---
 document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize interactive canvas smoke effect
+    if (window.initSmokeEffect) window.initSmokeEffect();
+
+    // Initialize login reviews carousel
+    if (window.initReviewsSlider) window.initReviewsSlider();
+
     // Auth Event Handlers
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
@@ -2576,39 +2600,73 @@ document.addEventListener('DOMContentLoaded', async () => {
         logoutBtn.addEventListener('click', handleLogout);
     }
 
-    // Show register overlay
+    // Show register overlay with pure fade transition
     const showRegisterBtn = document.getElementById('show-register-btn');
     if (showRegisterBtn) {
         showRegisterBtn.addEventListener('click', (e) => {
             e.preventDefault();
             
-            // Reset register view components to clean state
-            const registerForm = document.getElementById('register-form');
-            if (registerForm) {
-                registerForm.reset();
-                registerForm.style.display = 'block';
-            }
-            const successCard = document.getElementById('register-success-card');
-            if (successCard) successCard.style.display = 'none';
-            const errEl = document.getElementById('register-error');
-            if (errEl) errEl.style.display = 'none';
-
             const loginOverlay = document.getElementById('login-overlay');
             const registerOverlay = document.getElementById('register-overlay');
-            if (loginOverlay) loginOverlay.classList.remove('active');
-            if (registerOverlay) registerOverlay.classList.add('active');
+            
+            if (loginOverlay && registerOverlay) {
+                loginOverlay.style.transition = 'opacity 0.2s ease-in-out';
+                loginOverlay.style.opacity = '0';
+
+                setTimeout(() => {
+                    const registerForm = document.getElementById('register-form');
+                    if (registerForm) {
+                        registerForm.reset();
+                        registerForm.style.display = 'block';
+                    }
+                    const successCard = document.getElementById('register-success-card');
+                    if (successCard) successCard.style.display = 'none';
+                    const errEl = document.getElementById('register-error');
+                    if (errEl) errEl.style.display = 'none';
+
+                    loginOverlay.classList.remove('active');
+                    loginOverlay.style.opacity = '';
+
+                    registerOverlay.style.opacity = '0';
+                    registerOverlay.classList.add('active');
+                    if (window.lucide) window.lucide.createIcons();
+
+                    requestAnimationFrame(() => {
+                        registerOverlay.style.transition = 'opacity 0.25s ease-in-out';
+                        registerOverlay.style.opacity = '1';
+                        setTimeout(() => { registerOverlay.style.opacity = ''; }, 260);
+                    });
+                }, 200);
+            }
         });
     }
 
-    // Back to login from register
+    // Back to login from register with pure fade transition
     const backToLoginBtn = document.getElementById('back-to-login-btn');
     if (backToLoginBtn) {
         backToLoginBtn.addEventListener('click', (e) => {
             e.preventDefault();
             const loginOverlay = document.getElementById('login-overlay');
             const registerOverlay = document.getElementById('register-overlay');
-            if (registerOverlay) registerOverlay.classList.remove('active');
-            if (loginOverlay) loginOverlay.classList.add('active');
+            if (registerOverlay && loginOverlay) {
+                registerOverlay.style.transition = 'opacity 0.2s ease-in-out';
+                registerOverlay.style.opacity = '0';
+
+                setTimeout(() => {
+                    registerOverlay.classList.remove('active');
+                    registerOverlay.style.opacity = '';
+
+                    loginOverlay.style.opacity = '0';
+                    loginOverlay.classList.add('active');
+                    if (window.lucide) window.lucide.createIcons();
+
+                    requestAnimationFrame(() => {
+                        loginOverlay.style.transition = 'opacity 0.25s ease-in-out';
+                        loginOverlay.style.opacity = '1';
+                        setTimeout(() => { loginOverlay.style.opacity = ''; }, 260);
+                    });
+                }, 200);
+            }
         });
     }
 
@@ -2628,8 +2686,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const loginOverlay = document.getElementById('login-overlay');
             const registerOverlay = document.getElementById('register-overlay');
-            if (registerOverlay) registerOverlay.classList.remove('active');
-            if (loginOverlay) loginOverlay.classList.add('active');
+            if (registerOverlay && loginOverlay) {
+                registerOverlay.style.transition = 'opacity 0.2s ease-in-out';
+                registerOverlay.style.opacity = '0';
+
+                setTimeout(() => {
+                    registerOverlay.classList.remove('active');
+                    registerOverlay.style.opacity = '';
+                    loginOverlay.style.opacity = '0';
+                    loginOverlay.classList.add('active');
+                    if (window.lucide) window.lucide.createIcons();
+
+                    requestAnimationFrame(() => {
+                        loginOverlay.style.transition = 'opacity 0.25s ease-in-out';
+                        loginOverlay.style.opacity = '1';
+                        setTimeout(() => { loginOverlay.style.opacity = ''; }, 260);
+                    });
+                }, 200);
+            }
         });
     }
 
@@ -3854,4 +3928,267 @@ window.togglePassVisibility = function(elementId, realValue) {
         el.textContent = '••••••••';
     }
 };
+
+window.initSmokeEffect = function() {
+    const overlays = document.querySelectorAll('.login-overlay');
+    overlays.forEach(overlay => {
+        const canvas = overlay.querySelector('.smoke-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+
+        let width = 0, height = 0;
+        let ambientStars = [];
+        let shootingStars = [];
+        let mouseTrail = [];
+
+        function resize() {
+            width = canvas.width = overlay.clientWidth || window.innerWidth;
+            height = canvas.height = overlay.clientHeight || window.innerHeight;
+            initAmbientStars();
+        }
+
+        // 1. Initialize Ambient Twinkling Cosmic Stars & Stardust
+        function initAmbientStars() {
+            ambientStars = [];
+            const starCount = Math.floor((width * height) / 5000) + 110;
+            for (let i = 0; i < starCount; i++) {
+                ambientStars.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    size: Math.random() * 2.2 + 0.6,
+                    baseAlpha: Math.random() * 0.65 + 0.25,
+                    twinkleSpeed: Math.random() * 0.035 + 0.01,
+                    twinklePhase: Math.random() * Math.PI * 2,
+                    isBig: Math.random() > 0.88,
+                    color: Math.random() > 0.7 ? '255, 220, 240' : (Math.random() > 0.4 ? '200, 230, 255' : '255, 255, 255')
+                });
+            }
+        }
+
+        resize();
+        window.addEventListener('resize', resize);
+
+        // 2. Spawn Falling Shooting Star / Meteor
+        function spawnShootingStar() {
+            const startX = Math.random() * (width * 0.8) + (width * 0.1);
+            const startY = Math.random() * (height * 0.4);
+            const speed = Math.random() * 7 + 7;
+            const angle = (Math.PI / 180) * (Math.random() * 15 + 25); // 25-40 deg diagonal
+            shootingStars.push({
+                x: startX,
+                y: startY,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                length: Math.random() * 80 + 70,
+                alpha: 1.0,
+                decay: Math.random() * 0.015 + 0.01,
+                thickness: Math.random() * 1.5 + 1.2
+            });
+        }
+
+        // Spawn shooting star every 2.2 seconds
+        setInterval(() => {
+            if (overlay.classList.contains('active')) {
+                spawnShootingStar();
+                if (Math.random() > 0.6) {
+                    setTimeout(spawnShootingStar, 400);
+                }
+            }
+        }, 2200);
+
+        // 3. Interactive Mouse Stardust Trail
+        function addMouseStardust(x, y) {
+            for (let i = 0; i < 3; i++) {
+                mouseTrail.push({
+                    x: x + (Math.random() - 0.5) * 12,
+                    y: y + (Math.random() - 0.5) * 12,
+                    size: Math.random() * 2 + 1,
+                    vx: (Math.random() - 0.5) * 1.2,
+                    vy: (Math.random() - 0.5) * 1.2 - 0.4,
+                    alpha: Math.random() * 0.8 + 0.2,
+                    decay: Math.random() * 0.02 + 0.015,
+                    color: Math.random() > 0.4 ? '255, 255, 255' : '200, 225, 255'
+                });
+            }
+        }
+
+        let lastX = 0, lastY = 0;
+        overlay.addEventListener('mousemove', (e) => {
+            const rect = overlay.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const dist = Math.hypot(x - lastX, y - lastY);
+            if (dist > 5) {
+                addMouseStardust(x, y);
+                lastX = x;
+                lastY = y;
+            }
+        });
+
+        // 4. Render Loop
+        function render() {
+            ctx.clearRect(0, 0, width, height);
+
+            // A. Draw Ambient Twinkling Stars
+            for (let i = 0; i < ambientStars.length; i++) {
+                const s = ambientStars[i];
+                s.twinklePhase += s.twinkleSpeed;
+                const alpha = Math.max(0.1, s.baseAlpha + Math.sin(s.twinklePhase) * 0.35);
+
+                ctx.save();
+                ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Lens flare for big stars
+                if (s.isBig && alpha > 0.5) {
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.4})`;
+                    ctx.lineWidth = 0.8;
+                    const flareLen = s.size * 3.5;
+                    ctx.beginPath();
+                    ctx.moveTo(s.x - flareLen, s.y);
+                    ctx.lineTo(s.x + flareLen, s.y);
+                    ctx.moveTo(s.x, s.y - flareLen);
+                    ctx.lineTo(s.x, s.y + flareLen);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+            // B. Draw Falling Shooting Stars / Meteors
+            for (let i = shootingStars.length - 1; i >= 0; i--) {
+                const m = shootingStars[i];
+                m.x += m.vx;
+                m.y += m.vy;
+                m.alpha -= m.decay;
+
+                if (m.alpha <= 0 || m.x > width || m.y > height) {
+                    shootingStars.splice(i, 1);
+                    continue;
+                }
+
+                const headX = m.x;
+                const headY = m.y;
+                const dist = Math.hypot(m.vx, m.vy);
+                const tailX = m.x - (m.vx / dist) * m.length;
+                const tailY = m.y - (m.vy / dist) * m.length;
+
+                ctx.save();
+                const grad = ctx.createLinearGradient(headX, headY, tailX, tailY);
+                grad.addColorStop(0, `rgba(255, 255, 255, ${m.alpha})`);
+                grad.addColorStop(0.3, `rgba(220, 235, 255, ${m.alpha * 0.7})`);
+                grad.addColorStop(1, 'rgba(180, 200, 240, 0)');
+
+                ctx.strokeStyle = grad;
+                ctx.lineWidth = m.thickness;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(headX, headY);
+                ctx.lineTo(tailX, tailY);
+                ctx.stroke();
+
+                ctx.fillStyle = `rgba(255, 255, 255, ${m.alpha})`;
+                ctx.shadowColor = 'rgba(255, 255, 255, 0.9)';
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.arc(headX, headY, m.thickness * 1.2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // C. Draw Interactive Mouse Stardust
+            for (let i = mouseTrail.length - 1; i >= 0; i--) {
+                const p = mouseTrail[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= p.decay;
+
+                if (p.alpha <= 0) {
+                    mouseTrail.splice(i, 1);
+                    continue;
+                }
+
+                ctx.save();
+                ctx.fillStyle = `rgba(${p.color}, ${p.alpha})`;
+                ctx.shadowColor = `rgba(${p.color}, ${p.alpha * 0.8})`;
+                ctx.shadowBlur = 6;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            requestAnimationFrame(render);
+        }
+        render();
+    });
+};
+
+window.initReviewsSlider = function() {
+    const sliders = document.querySelectorAll('.reviews-slider');
+    sliders.forEach(slider => {
+        const slides = slider.querySelectorAll('.review-slide');
+        if (slides.length <= 1) return;
+        let current = 0;
+        setInterval(() => {
+            slides[current].classList.remove('active');
+            current = (current + 1) % slides.length;
+            slides[current].classList.add('active');
+        }, 4500);
+    });
+};
+
+window.playSplitCardIntro = function() {
+    const overlay = document.getElementById('login-overlay');
+    if (!overlay) return;
+
+    // Reset Classes
+    overlay.classList.remove('unlocking', 'merged');
+    overlay.classList.add('intro-mode');
+
+    // Step 1: Doors split open outwards from center (0.45s)
+    setTimeout(() => {
+        overlay.classList.add('unlocking');
+    }, 450);
+
+    // Step 2: Doors fully open to reveal main card form content (1.35s)
+    setTimeout(() => {
+        overlay.classList.add('merged');
+    }, 1350);
+
+    // Step 3: Complete Intro & focus username input (2.0s)
+    setTimeout(() => {
+        overlay.classList.remove('intro-mode', 'unlocking', 'merged');
+        const userInput = document.getElementById('login-username');
+        if (userInput) {
+            userInput.removeAttribute('disabled');
+            userInput.style.pointerEvents = 'auto';
+            userInput.focus();
+        }
+        const passInput = document.getElementById('login-password');
+        if (passInput) {
+            passInput.removeAttribute('disabled');
+            passInput.style.pointerEvents = 'auto';
+        }
+    }, 2000);
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.initSmokeEffect) window.initSmokeEffect();
+    if (window.initReviewsSlider) window.initReviewsSlider();
+
+    const replayBtn = document.getElementById('replay-intro-btn');
+    if (replayBtn) {
+        replayBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.playSplitCardIntro();
+        });
+    }
+
+    const loginOverlay = document.getElementById('login-overlay');
+    if (loginOverlay && loginOverlay.classList.contains('active')) {
+        setTimeout(window.playSplitCardIntro, 350);
+    }
+});
 

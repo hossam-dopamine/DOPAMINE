@@ -14,43 +14,239 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z'/></svg>">
-    <link rel="stylesheet" href="style.css?v=60.0">
+    <link rel="stylesheet" href="style.css?v=1.5.0">
 </head>
 <body>
+    <!-- SVG Warp Filter for Background Wave Motion -->
+    <svg style="display: none;" xmlns="http://www.w3.org/2000/svg">
+        <filter id="warp-filter">
+            <feTurbulence type="fractalNoise" baseFrequency="0.008 0.012" numOctaves="2" result="noise">
+                <animate attributeName="baseFrequency" dur="20s" values="0.008 0.012; 0.012 0.018; 0.008 0.012" repeatCount="indefinite" />
+            </feTurbulence>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="6" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+    </svg>
+
     <!-- Login Overlay -->
-    <div id="login-overlay" class="login-overlay active">
+    <div id="login-overlay" class="login-overlay active intro-mode">
+        <!-- Minimalist White Ink Line-Art Animated Background (Dark Mode) -->
+        <div class="login-animated-bg">
+            <svg class="line-art-svg" viewBox="0 0 1400 900" fill="none" preserveAspectRatio="xMidYMid slice">
+                <!-- Main Continuous White Line Connecting Path -->
+                <path class="continuous-ink-line" d="M 100 200 C 250 120 320 280 450 180 C 580 80 650 320 800 220 C 950 120 1050 300 1200 160 C 1300 80 1350 250 1400 350" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <path class="continuous-ink-line-secondary" d="M 50 700 C 180 820 300 620 480 720 C 660 820 780 600 950 740 C 1120 880 1250 650 1380 780" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+
+                <!-- Node 1: Employee Card -->
+                <g class="artwork-node node-employee">
+                    <g transform="translate(180, 160)">
+                        <rect x="-35" y="-45" width="70" height="90" rx="8" stroke="#ffffff" stroke-width="1.6" fill="rgba(15, 18, 25, 0.85)" />
+                        <circle cx="0" cy="-15" r="14" stroke="#ffffff" stroke-width="1.5" fill="none" />
+                        <path d="M -18 20 C -18 5 -10 2 0 2 C 10 2 18 5 18 20" stroke="#ffffff" stroke-width="1.5" />
+                        <line x1="-20" y1="28" x2="20" y2="28" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="3 3" />
+                    </g>
+                </g>
+
+                <!-- Node 2: Task Card -->
+                <g class="artwork-node node-task">
+                    <g transform="translate(420, 240)">
+                        <rect x="-40" y="-30" width="80" height="60" rx="6" stroke="#ffffff" stroke-width="1.6" fill="rgba(15, 18, 25, 0.85)" />
+                        <line x1="-20" y1="-14" x2="20" y2="-14" stroke="#ffffff" stroke-width="1.5" />
+                        <line x1="-20" y1="0" x2="25" y2="0" stroke="#ffffff" stroke-width="1.5" />
+                        <line x1="-20" y1="14" x2="0" y2="14" stroke="#ffffff" stroke-width="1.5" />
+                        <circle cx="-28" cy="-14" r="2" fill="#ffffff" />
+                        <circle cx="-28" cy="0" r="2" fill="#ffffff" />
+                        <circle cx="-28" cy="14" r="2" fill="#ffffff" />
+                    </g>
+                </g>
+
+                <!-- Node 3: Checkmark Circle -->
+                <g class="artwork-node node-checkmark">
+                    <g transform="translate(680, 140)">
+                        <circle cx="0" cy="0" r="26" stroke="#ffffff" stroke-width="1.6" fill="rgba(15, 18, 25, 0.85)" />
+                        <path d="M -10 -2 L -2 7 L 12 -7" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </g>
+                </g>
+
+                <!-- Node 4: Calendar & Clock -->
+                <g class="artwork-node node-calendar">
+                    <g transform="translate(960, 220)">
+                        <rect x="-35" y="-35" width="70" height="70" rx="6" stroke="#ffffff" stroke-width="1.6" fill="rgba(15, 18, 25, 0.85)" />
+                        <line x1="-35" y1="-18" x2="35" y2="-18" stroke="#ffffff" stroke-width="1.5" />
+                        <circle cx="-16" cy="-26" r="3" fill="#ffffff" />
+                        <circle cx="16" cy="-26" r="3" fill="#ffffff" />
+                        <circle cx="8" cy="10" r="14" stroke="#ffffff" stroke-width="1.4" fill="rgba(15, 18, 25, 0.85)" />
+                        <path d="M 8 2 L 8 10 L 14 10" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" />
+                    </g>
+                </g>
+
+                <!-- Node 5: Payroll & Financial Document -->
+                <g class="artwork-node node-payroll">
+                    <g transform="translate(1220, 260)">
+                        <rect x="-32" y="-42" width="64" height="84" rx="6" stroke="#ffffff" stroke-width="1.6" fill="rgba(15, 18, 25, 0.85)" />
+                        <path d="M 12 -42 L 32 -22 L 12 -22 Z" stroke="#ffffff" stroke-width="1.4" fill="rgba(15, 18, 25, 0.85)" />
+                        <path d="M -18 16 L -6 4 L 4 10 L 18 -6" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                        <circle cx="18" cy="-6" r="2.5" fill="#ffffff" />
+                        <line x1="-18" y1="-20" x2="2" y2="-20" stroke="#ffffff" stroke-width="1.4" />
+                        <line x1="-18" y1="-10" x2="18" y2="-10" stroke="#ffffff" stroke-width="1.4" />
+                    </g>
+                </g>
+
+                <!-- Bottom Flow Nodes -->
+                <g class="artwork-node node-folder">
+                    <g transform="translate(300, 680)">
+                        <path d="M -35 -20 L -15 -20 L -8 -10 L 35 -10 L 35 25 C 35 28 32 30 28 30 L -30 30 C -34 30 -35 28 -35 25 Z" stroke="#ffffff" stroke-width="1.6" fill="rgba(15, 18, 25, 0.85)" />
+                        <line x1="-20" y1="5" x2="20" y2="5" stroke="#ffffff" stroke-width="1.4" stroke-dasharray="3 3" />
+                    </g>
+                </g>
+
+                <g class="artwork-node node-document">
+                    <g transform="translate(750, 720)">
+                        <rect x="-30" y="-38" width="60" height="76" rx="5" stroke="#ffffff" stroke-width="1.6" fill="rgba(15, 18, 25, 0.85)" />
+                        <line x1="-18" y1="-20" x2="18" y2="-20" stroke="#ffffff" stroke-width="1.4" />
+                        <line x1="-18" y1="-8" x2="18" y2="-8" stroke="#ffffff" stroke-width="1.4" />
+                        <line x1="-18" y1="4" x2="10" y2="4" stroke="#ffffff" stroke-width="1.4" />
+                        <circle cx="8" cy="22" r="8" stroke="#ffffff" stroke-width="1.4" fill="rgba(15, 18, 25, 0.85)" />
+                        <path d="M 4 22 L 7 25 L 13 19" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+                    </g>
+                </g>
+
+                <g class="artwork-node node-badge">
+                    <g transform="translate(1120, 690)">
+                        <circle cx="0" cy="0" r="28" stroke="#ffffff" stroke-width="1.6" fill="rgba(15, 18, 25, 0.85)" />
+                        <path d="M -12 24 L -16 42 L 0 35 L 16 42 L 12 24" stroke="#ffffff" stroke-width="1.4" stroke-linejoin="round" fill="rgba(15, 18, 25, 0.85)" />
+                        <polygon points="0,-14 4,-4 14,-4 6,2 9,12 0,6 -9,12 -6,2 -14,-4 -4,-4" stroke="#ffffff" stroke-width="1.2" fill="none" />
+                    </g>
+                </g>
+
+                <!-- Floating Silver Ink Dots -->
+                <circle class="ink-dot dot-1" cx="280" cy="180" r="3" fill="#ffffff" />
+                <circle class="ink-dot dot-2" cx="550" cy="150" r="2.5" fill="#ffffff" />
+                <circle class="ink-dot dot-3" cx="820" cy="260" r="3" fill="#ffffff" />
+                <circle class="ink-dot dot-4" cx="1080" cy="190" r="2.5" fill="#ffffff" />
+            </svg>
+        </div>
+
+        <div class="login-bg-layer"></div>
+        <canvas class="smoke-canvas"></canvas>
         <div class="bg-glow glow-1"></div>
         <div class="bg-glow glow-2"></div>
-        <div class="login-container glass-panel">
-            <div class="login-header">
-                <i data-lucide="flame" style="width:48px;height:48px;color:#ffffff;filter:drop-shadow(0 0 12px rgba(255,255,255,0.4));"></i>
-                <h1 class="logo-text" style="font-size:28px;margin-top:12px;">DOPAMINE</h1>
-                <p style="color:var(--text-muted);font-size:14px;margin-top:4px;" data-i18n="login-subtitle">تسجيل الدخول للنظام</p>
+
+        <!-- Central Glowing Flame Logo Core -->
+        <div id="central-logo-core" class="central-logo-core">
+            <i data-lucide="flame" style="width:64px;height:64px;color:#ffffff;filter:drop-shadow(0 0 25px rgba(255,255,255,0.95));"></i>
+        </div>
+
+        <div id="login-container-card" class="login-container glass-panel">
+            <!-- Left Slate Gray Door with Arabesque Ornamentation -->
+            <div class="glass-door door-left">
+                <svg class="door-ornament" viewBox="0 0 200 400" fill="none" preserveAspectRatio="none">
+                    <rect x="10" y="10" width="180" height="380" rx="12" stroke="rgba(255,255,255,0.22)" stroke-width="1.5" stroke-dasharray="6,4" />
+                    <path d="M 10 40 C 30 40 40 30 40 10" stroke="rgba(255,255,255,0.35)" stroke-width="1.5" />
+                    <path d="M 10 360 C 30 360 40 370 40 390" stroke="rgba(255,255,255,0.35)" stroke-width="1.5" />
+                    <g transform="translate(180, 200)" stroke="rgba(255,255,255,0.3)" stroke-width="1.2">
+                        <polygon points="0,-45 13,-13 45,0 13,13 0,45 -13,13 -45,0 -13,-13" />
+                        <polygon points="0,-30 8,-8 30,0 8,8 0,30 -8,8 -30,0 -8,-8" stroke-dasharray="4,2" />
+                        <circle cx="0" cy="0" r="18" fill="none" />
+                        <circle cx="0" cy="0" r="35" fill="none" stroke-dasharray="6,3" />
+                    </g>
+                </svg>
             </div>
-            <form id="login-form" style="margin-top:24px;" autocomplete="off">
-                <div class="form-group">
-                    <label for="login-username" data-i18n="login-username">اسم المستخدم</label>
-                    <input type="text" id="login-username" required autocomplete="off" placeholder="">
+
+            <!-- Right Slate Gray Door with Arabesque Ornamentation -->
+            <div class="glass-door door-right">
+                <svg class="door-ornament" viewBox="0 0 200 400" fill="none" preserveAspectRatio="none">
+                    <rect x="10" y="10" width="180" height="380" rx="12" stroke="rgba(255,255,255,0.22)" stroke-width="1.5" stroke-dasharray="6,4" />
+                    <path d="M 190 40 C 170 40 160 30 160 10" stroke="rgba(255,255,255,0.35)" stroke-width="1.5" />
+                    <path d="M 190 360 C 170 360 160 370 160 390" stroke="rgba(255,255,255,0.35)" stroke-width="1.5" />
+                    <g transform="translate(20, 200)" stroke="rgba(255,255,255,0.3)" stroke-width="1.2">
+                        <polygon points="0,-45 13,-13 45,0 13,13 0,45 -13,13 -45,0 -13,-13" />
+                        <polygon points="0,-30 8,-8 30,0 8,8 0,30 -8,8 -30,0 -8,-8" stroke-dasharray="4,2" />
+                        <circle cx="0" cy="0" r="18" fill="none" />
+                        <circle cx="0" cy="0" r="35" fill="none" stroke-dasharray="6,3" />
+                    </g>
+                </svg>
+            </div>
+
+            <div class="card-inner-body">
+                <div class="login-header">
+                    <i data-lucide="flame" style="width:48px;height:48px;color:#ffffff;filter:drop-shadow(0 0 12px rgba(255,255,255,0.4));"></i>
+                    <h1 class="logo-text" style="font-size:28px;margin-top:12px;">DOPAMINE</h1>
+                    <p style="color:var(--text-muted);font-size:14px;margin-top:4px;" data-i18n="login-subtitle">تسجيل الدخول للنظام</p>
                 </div>
-                <div class="form-group">
-                    <label for="login-password" data-i18n="login-password">كلمة المرور</label>
-                    <input type="password" id="login-password" required autocomplete="new-password">
+                <form id="login-form" style="margin-top:24px;" autocomplete="off">
+                    <div class="form-group">
+                        <label for="login-username" data-i18n="login-username">اسم المستخدم</label>
+                        <input type="text" id="login-username" required autocomplete="off" placeholder="">
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password" data-i18n="login-password">كلمة المرور</label>
+                        <input type="password" id="login-password" required autocomplete="new-password">
+                    </div>
+                    <div id="login-error" style="display:none;color:var(--color-rose);font-size:13px;margin-bottom:12px;text-align:center;" data-i18n="login-error">اسم المستخدم أو كلمة المرور غير صحيحة</div>
+                    <button type="submit" class="btn btn-primary btn-block" id="login-btn">
+                        <i data-lucide="log-in"></i>
+                        <span data-i18n="login-btn">دخول</span>
+                    </button>
+                    <div style="text-align:center;margin-top:14px;">
+                        <a href="#" id="show-register-btn" style="color: var(--color-primary); font-size: 13px; text-decoration: none; font-weight: 600;">إنشاء حساب لتجربة الخدمات</a>
+                    </div>
+                </form>
+                <p style="color:var(--text-dim);font-size:12px;text-align:center;margin-top:20px;">DOPAMINE-SERVICE &copy; 2026</p>
+            </div>
+        </div>
+
+        <!-- Floating Reviews & Social Widgets Bar -->
+        <div class="login-footer-widgets">
+            <!-- Reviews Widget -->
+            <div class="login-widget-card login-reviews-widget">
+                <div class="reviews-header">
+                    <div class="stars">
+                        <i data-lucide="star" class="star-icon"></i>
+                        <i data-lucide="star" class="star-icon"></i>
+                        <i data-lucide="star" class="star-icon"></i>
+                        <i data-lucide="star" class="star-icon"></i>
+                        <i data-lucide="star" class="star-icon"></i>
+                    </div>
+                    <span class="rating-badge">4.9 / 5</span>
                 </div>
-                <div id="login-error" style="display:none;color:var(--color-rose);font-size:13px;margin-bottom:12px;text-align:center;" data-i18n="login-error">اسم المستخدم أو كلمة المرور غير صحيحة</div>
-                <button type="submit" class="btn btn-primary btn-block" id="login-btn">
-                    <i data-lucide="log-in"></i>
-                    <span data-i18n="login-btn">دخول</span>
-                </button>
-                <div style="text-align: center; margin-top: 14px;">
-                    <a href="#" id="show-register-btn" style="color: var(--color-primary); font-size: 13px; text-decoration: none; font-weight: 600;">إنشاء حساب لتجربة الخدمات</a>
+                <div class="reviews-slider">
+                    <div class="review-slide active">
+                        <p class="review-text">"نظام ممتاز جداً وسريع في إدارة الأجور وتتبع المهام بكل سهولة."</p>
+                        <span class="review-author">— شركة النور للتجارة والتوزيع</span>
+                    </div>
+                    <div class="review-slide">
+                        <p class="review-text">"أفضل منصة سهلت علينا حساب المستحقات والتقارير المالية بدقة."</p>
+                        <span class="review-author">— د. أحمد سليمان - مدير الخدمات</span>
+                    </div>
+                    <div class="review-slide">
+                        <p class="review-text">"واجهة استخدام فائقة الروعة ودعم فني متميز ومستمر دائماً."</p>
+                        <span class="review-author">— م. مروان خالد - مجموعة الإبداع</span>
+                    </div>
                 </div>
-            </form>
-            <p style="color:var(--text-dim);font-size:12px;text-align:center;margin-top:20px;">DOPAMINE-SERVICE &copy; 2026</p>
+            </div>
+
+            <!-- Social Media Widget -->
+            <div class="login-widget-card login-social-widget">
+                <span class="social-title" data-i18n="social-connect">تواصل معنا</span>
+                <div class="social-links">
+                    <a href="https://www.facebook.com/Hossam.20112001" target="_blank" rel="noopener" class="social-btn facebook" title="Facebook">
+                        <svg viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px;"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                    </a>
+                    <a href="https://www.instagram.com/t7.toxic" target="_blank" rel="noopener" class="social-btn instagram" title="Instagram">
+                        <svg viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px;"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                    </a>
+                    <a href="mailto:adorehk2@gmail.com" class="social-btn gmail" title="Gmail: adorehk2@gmail.com">
+                        <svg viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px;"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Register Overlay (Independent Admin Registration) -->
     <div id="register-overlay" class="login-overlay">
+        <div class="login-bg-layer"></div>
+        <canvas class="smoke-canvas"></canvas>
         <div class="bg-glow glow-1"></div>
         <div class="bg-glow glow-2"></div>
         <div class="login-container glass-panel">
@@ -1078,7 +1274,7 @@
         }
     </script>
     <!-- App JavaScript Logic -->
-    <script src="app.js?v=60.0"></script>
+    <script src="app.js?v=1.5.0"></script>
 </body>
 </html>
 
