@@ -8,7 +8,7 @@ const Task = require('../models/Task');
 const AppData = require('../models/AppData');
 const { verifyToken, requireAdmin, invalidateUserCache } = require('../middleware/auth');
 const { authLimiter } = require('../middleware/security');
-const { sendApprovalEmail, sendRejectionEmail, sendOtpEmail } = require('../utils/mailer');
+const { sendApprovalEmail, sendRejectionEmail, sendSuspensionEmail, sendReactivationEmail, sendOtpEmail } = require('../utils/mailer');
 
 const router = express.Router();
 
@@ -687,9 +687,9 @@ router.post('/suspend-admin-account', verifyToken, requireAdmin, async (req, res
     await user.save();
     invalidateUserCache(user._id);
 
-    // Send suspension email (async)
+    // Send dedicated suspension email (async)
     if (user.email) {
-      sendRejectionEmail(user.email, user.username, reason.trim()).catch(err => {
+      sendSuspensionEmail(user.email, user.username, reason.trim()).catch(err => {
         console.error('❌ Failed to send suspension email:', err.message);
       });
     }
@@ -728,14 +728,14 @@ router.post('/activate-admin-account', verifyToken, requireAdmin, async (req, re
     await user.save();
     invalidateUserCache(user._id);
 
-    // Send activation email (async)
+    // Send dedicated reactivation email (async)
     if (user.email) {
-      sendApprovalEmail(user.email, user.username).catch(err => {
+      sendReactivationEmail(user.email, user.username).catch(err => {
         console.error('❌ Failed to send activation email:', err.message);
       });
     }
 
-    res.json({ success: true, message: 'تم تفعيل الحساب بنجاح وتصفير حالة الحظر' });
+    res.json({ success: true, message: 'تم إعادة تنشيط الحساب بنجاح وتصفير حالة الحظر' });
   } catch (error) {
     console.error('Activate admin account error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });

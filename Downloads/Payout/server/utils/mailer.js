@@ -293,9 +293,87 @@ const sendOtpEmail = async (userEmail, username, otpCode) => {
   return await sendEmail({ to: userEmail, subject, text, html });
 };
 
+const sendSuspensionEmail = async (userEmail, username, reason) => {
+  const appUrl = process.env.APP_URL || 'https://dopamine-c06w.onrender.com';
+  const safeUsername = escapeHTML(username);
+  const safeReason = escapeHTML(reason);
+  const subject = '⚠️ إشعار هام: تم تعليق وحظر حسابك - DOPAMINE';
+  const text = `مرحباً ${username}،\n\nنود إبلاغك بأنه قد تم تعليق وحظر حسابك في منصة DOPAMINE من قبل الإدارة.\n\nسبب الحظر:\n${reason || 'مخالفة شروط الاستخدام أو قرارات الإدارة.'}\n\nتم إيقاف صلاحيات الوصول إلى لوحة التحكم الخاصة بك مؤقتاً.\nإذا كنت ترى أن هذا الإجراء تم بالخطأ، يرجى التواصل مع إدارة المنصة.\n\nمع تحيات إدارة DOPAMINE.`;
+  const html = `
+    <div style="direction: rtl; text-align: right; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 32px 24px; border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 16px; max-width: 560px; margin: 20px auto; background: #0f131a; color: #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="display: inline-block; padding: 12px; background: rgba(239, 68, 68, 0.12); border-radius: 14px; border: 1px solid rgba(239, 68, 68, 0.3); margin-bottom: 12px;">
+          <span style="font-size: 32px;">⛔</span>
+        </div>
+        <h2 style="color: #ef4444; margin: 0; font-size: 22px; font-weight: 800;">تم تعليق وحظر الحساب</h2>
+        <p style="color: #94a3b8; font-size: 13.5px; margin-top: 6px;">مرحباً ${safeUsername}، نفيدك بتفاصيل قرار الإدارة بخصوص حسابك.</p>
+      </div>
+
+      <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 18px; margin-bottom: 20px;">
+        <p style="font-size: 14.5px; color: #cbd5e1; line-height: 1.6; margin-top: 0; margin-bottom: 12px;">
+          نحيطكم علماً بأنه قد تم <strong>حظر وتعليق صلاحيات الوصول</strong> إلى حسابك ولوحة التحكم في منصة DOPAMINE.
+        </p>
+        <div style="background: rgba(239, 68, 68, 0.08); border-right: 4px solid #ef4444; padding: 14px 16px; border-radius: 8px;">
+          <strong style="color: #fca5a5; display: block; margin-bottom: 6px; font-size: 13.5px;">سبب الحظر الموضح من الإدارة:</strong>
+          <p style="margin: 0; color: #e2e8f0; font-size: 14px; line-height: 1.55;">${safeReason || 'مخالفة معايير وشروط الاستخدام.'}</p>
+        </div>
+      </div>
+
+      <p style="font-size: 13px; color: #94a3b8; line-height: 1.6; margin-bottom: 20px; text-align: center;">
+        إذا كنت تعتقد أن هذا الإجراء تم عن طريق الخطأ أو ترغب في الاستفسار، يمكنك التواصل مباشرة مع إدارة الدعم الفني.
+      </p>
+
+      <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 20px 0;">
+      <p style="font-size: 11.5px; color: #64748b; text-align: center; margin: 0;">
+        هذا إشعار إداري رسمي من نظام إدارة DOPAMINE-SERVICE &copy; 2026
+      </p>
+    </div>
+  `;
+  return await sendEmail({ to: userEmail, subject, text, html });
+};
+
+const sendReactivationEmail = async (userEmail, username) => {
+  const appUrl = process.env.APP_URL || 'https://dopamine-c06w.onrender.com';
+  const safeUsername = escapeHTML(username);
+  const subject = '✅ تم إلغاء الحظر وإعادة تنشيط حسابك - DOPAMINE';
+  const text = `مرحباً ${username}،\n\nيسعدنا إبلاغك بأنه قد تم فك الحظر وإعادة تنشيط حسابك في منصة DOPAMINE بنجاح.\nيمكنك الآن معاودة تسجيل الدخول واستئناف كافة الأنشطة والمهام من خلال لوحة التحكم الخاصة بك.\n\nرابط تسجيل الدخول: ${appUrl}\n\nنتمنى لك عملاً موفقاً،\nمع تحيات إدارة DOPAMINE.`;
+  const html = `
+    <div style="direction: rtl; text-align: right; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 32px 24px; border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 16px; max-width: 560px; margin: 20px auto; background: #0f131a; color: #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="display: inline-block; padding: 12px; background: rgba(16, 185, 129, 0.12); border-radius: 14px; border: 1px solid rgba(16, 185, 129, 0.3); margin-bottom: 12px;">
+          <span style="font-size: 32px;">🔓</span>
+        </div>
+        <h2 style="color: #10b981; margin: 0; font-size: 22px; font-weight: 800;">تم إعادة تنشيط الحساب بنجاح</h2>
+        <p style="color: #94a3b8; font-size: 13.5px; margin-top: 6px;">مرحباً ${safeUsername}، تم فك الحظر عن لوحة التحكم الخاصة بك.</p>
+      </div>
+
+      <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 24px;">
+        <p style="font-size: 15px; color: #cbd5e1; line-height: 1.65; margin: 0 0 16px 0;">
+          يسرنا إبلاغك بأنه قد تم <strong>إلغاء الحظر وتصفير حالة الإيقاف</strong>، وأصبح حسابك نشطاً بالكامل وجاهزاً للاستخدام.
+        </p>
+        <p style="font-size: 14px; color: #94a3b8; line-height: 1.6; margin: 0 0 24px 0;">
+          يمكنك الآن الدخول إلى لوحة التحكم الخاصة بك ومواصلة إدارة مهامك وبياناتك بكل سهولة.
+        </p>
+        <div style="text-align: center; margin: 20px 0 10px 0;">
+          <a href="${appUrl}" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; padding: 13px 32px; text-decoration: none; border-radius: 10px; font-weight: 700; display: inline-block; font-size: 15px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35);">تسجيل الدخول واستئناف العمل</a>
+        </div>
+      </div>
+
+      <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 20px 0;">
+      <p style="font-size: 11.5px; color: #64748b; text-align: center; margin: 0;">
+        هذا البريد تم إرساله تلقائياً من نظام إدارة DOPAMINE-SERVICE &copy; 2026
+      </p>
+    </div>
+  `;
+  return await sendEmail({ to: userEmail, subject, text, html });
+};
+
 module.exports = {
   sendApprovalEmail,
   sendRejectionEmail,
+  sendSuspensionEmail,
+  sendReactivationEmail,
   sendOtpEmail
 };
+
 
