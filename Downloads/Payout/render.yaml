@@ -17,3 +17,7 @@ services:
         sync: false
       - key: ADMIN_USERNAME
         value: admin
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false

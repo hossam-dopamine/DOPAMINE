@@ -21,15 +21,16 @@ let transporter = null;
 if (EMAIL_USER && EMAIL_PASS) {
   try {
     transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true, // true for 465, false for other ports
+      service: 'gmail',
       auth: {
         user: EMAIL_USER,
         pass: EMAIL_PASS
+      },
+      tls: {
+        rejectUnauthorized: false
       }
     });
-    console.log('📧 Mailer: SMTP transporter configured successfully.');
+    console.log('📧 Mailer: Gmail SMTP transporter configured successfully for:', EMAIL_USER);
   } catch (err) {
     console.error('❌ Mailer configuration error:', err.message);
   }
@@ -65,14 +66,38 @@ const sendEmail = async ({ to, subject, text, html }) => {
     return false;
   }
 
-  // 1. Try Resend HTTP API if configured (bypasses Render SMTP port blocking)
-  if (process.env.RESEND_API_KEY) {
+  const mailOptions = {
+    from: EMAIL_USER ? `"DOPAMINE Services" <${EMAIL_USER}>` : '"DOPAMINE Services" <no-reply@dopamine-service.com>',
+    to,
+    subject,
+    text,
+    html,
+    headers: {
+      'X-Auto-Response-Suppress': 'OOF, AutoReply',
+      'X-Mailer': 'DOPAMINE-Mailer'
+    }
+  };
+
+  // 1. Try Gmail SMTP first if configured
+  if (transporter) {
+    try {
+      const info = await transporter.sendMail(mailOptions);
+      console.log('📧 Mailer [Gmail]: Email sent successfully! MessageId:', info.messageId);
+      return true;
+    } catch (err) {
+      console.error('⚠️ Mailer [Gmail] SMTP send failed:', err.message);
+    }
+  }
+
+  // 2. Try Resend HTTP API as fallback if configured with a real API key
+  const resendKey = process.env.RESEND_API_KEY;
+  if (resendKey && resendKey.startsWith('re_') && resendKey.length > 20) {
     try {
       const fromEmail = process.env.RESEND_FROM || 'onboarding@resend.dev';
       const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+          'Authorization': `Bearer ${resendKey}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -96,32 +121,9 @@ const sendEmail = async ({ to, subject, text, html }) => {
     }
   }
 
-  // 2. Fallback to Nodemailer SMTP
-  const mailOptions = {
-    from: EMAIL_USER ? `"DOPAMINE Services" <${EMAIL_USER}>` : '"DOPAMINE Services" <no-reply@dopamine-service.com>',
-    to,
-    subject,
-    text,
-    html,
-    headers: {
-      'X-Auto-Response-Suppress': 'OOF, AutoReply',
-      'X-Mailer': 'DOPAMINE-Mailer'
-    }
-  };
-
-  if (transporter) {
-    try {
-      const info = await transporter.sendMail(mailOptions);
-      console.log('📧 Mailer: Email sent successfully! MessageId:', info.messageId);
-      return true;
-    } catch (err) {
-      console.error('❌ Mailer: SMTP send error:', err.message);
-      // Fallback to mock logging in case SMTP fails during runtime
-      return sendMailMock(mailOptions);
-    }
-  } else {
-    return sendMailMock(mailOptions);
-  }
+  // 3. Fallback to mock log
+  console.log('⚠️ Mailer: Falling back to local simulated mock delivery.');
+  return sendMailMock(mailOptions);
 };
 
 const sendApprovalEmail = async (userEmail, username) => {
