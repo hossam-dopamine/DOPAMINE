@@ -298,15 +298,11 @@ html[dir="ltr"] .sidebar {
     border: 1px solid var(--border-color);
     border-radius: 10px;
     padding: 10px 12px;
+    padding-inline-start: 36px;
+    padding-inline-end: 12px;
     color: #fff;
     font-size: 14px;
     transition: all var(--transition-fast);
-}
-html[dir="rtl"] .search-box input {
-    padding-right: 36px;
-}
-html[dir="ltr"] .search-box input {
-    padding-left: 36px;
 }
 .search-box input:focus {
     outline: none;
@@ -317,16 +313,11 @@ html[dir="ltr"] .search-box input {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
+    inset-inline-start: 12px;
     width: 16px;
     height: 16px;
     color: var(--text-muted);
     pointer-events: none;
-}
-html[dir="rtl"] .search-icon {
-    right: 12px;
-}
-html[dir="ltr"] .search-icon {
-    left: 12px;
 }
 
 .employees-list {
@@ -450,18 +441,22 @@ html[dir="ltr"] .employee-item:hover {
     flex-wrap: wrap;
 }
 
-/* Stats Cards Grid - Desktop Default */
+/* Stats Cards Grid - Balanced & Responsive */
 .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 20px;
+    width: 100%;
 }
 .stat-card {
+    flex: 1 1 calc(33.333% - 14px);
+    min-width: 220px;
     display: flex;
     align-items: center;
     padding: 22px 24px;
     gap: 18px;
     transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+    box-sizing: border-box;
 }
 .stat-card:hover {
     transform: translateY(-4px);
@@ -1004,11 +999,7 @@ html[dir="rtl"] .toast {
     gap: 2px;
     opacity: 0;
     transition: opacity 0.2s ease;
-    margin-right: auto;
-}
-html[dir="rtl"] .employee-sort-actions {
-    margin-right: 0;
-    margin-left: auto;
+    margin-inline-start: auto;
 }
 .employee-item:hover .employee-sort-actions {
     opacity: 1;
@@ -2201,8 +2192,11 @@ html[dir="rtl"] .employee-sort-actions {
         grid-template-columns: repeat(2, 1fr) !important;
         gap: 8px !important;
         margin-bottom: 14px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
     }
     .stat-card {
+        flex: none !important;
         display: flex !important;
         flex-direction: column !important;
         align-items: flex-start !important;
@@ -2212,6 +2206,7 @@ html[dir="rtl"] .employee-sort-actions {
         background: rgba(18, 18, 24, 0.85) !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
         box-sizing: border-box !important;
+        width: 100% !important;
         min-width: 0 !important;
         overflow: hidden !important;
     }
