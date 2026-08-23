@@ -14,7 +14,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z'/></svg>">
-    <link rel="stylesheet" href="style.css?v=1.7.0">
+    <link rel="stylesheet" href="style.css?v=2.0.0">
 </head>
 <body>
     <!-- SVG Warp Filter for Background Wave Motion -->
@@ -356,7 +356,7 @@
 
     <!-- Change Password Modal -->
     <div class="modal-overlay" id="change-password-modal">
-        <div class="modal-content glass-panel modal-sm">
+        <div class="modal-content glass-panel" style="width: 400px;">
             <div class="modal-header">
                 <h2 data-i18n="change-password">تغيير كلمة المرور</h2>
                 <button class="btn btn-secondary btn-icon-only close-modal-btn" id="close-change-password-modal" aria-label="إغلاق"><i data-lucide="x"></i></button>
@@ -752,8 +752,8 @@
                         <div class="panel-header">
                             <h3 data-i18n="tasks-list">سجل المهام</h3>
                             <div class="panel-actions">
-                                <div class="filter-group panel-filters-group">
-                                    <input type="text" id="task-search-input" class="task-search-input" placeholder="ابحث عن مهمة...">
+                                <div class="filter-group" style="display: flex; gap: 8px;">
+                                    <input type="text" id="task-search-input" placeholder="بحث بالوصف/العميل..." style="width: 150px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 10px; color: #fff; font-size: 12px;">
                                     <select id="task-filter-month" class="select-sm">
                                         <option value="all" data-i18n="all-months">كل الشهور</option>
                                         <option value="january" data-i18n="month-jan">يناير</option>
@@ -973,7 +973,7 @@
 
     <!-- Add/Edit Employee Modal -->
     <div id="employee-modal" class="modal-overlay">
-        <div class="modal-content glass-panel">
+        <div class="modal-content glass-panel" style="max-width: 600px; width: 95%; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header">
                 <h3 id="modal-title" data-i18n="modal-add-employee-title">إضافة موظف جديد</h3>
                 <button class="close-modal-btn" id="close-employee-modal"><i data-lucide="x"></i></button>
@@ -1032,7 +1032,7 @@
 
     <!-- Manager Password Modal -->
     <div id="password-modal" class="modal-overlay">
-        <div class="modal-content glass-panel modal-sm">
+        <div class="modal-content glass-panel" style="width: 380px;">
             <div class="modal-header">
                 <h3 data-i18n="password-modal-title">دخول لوحة المدير</h3>
                 <button class="close-modal-btn" id="close-password-modal" aria-label="إغلاق"><i data-lucide="x"></i></button>
@@ -1053,7 +1053,7 @@
 
     <!-- Approval Confirmation Modal -->
     <div id="approval-confirm-modal" class="modal-overlay">
-        <div class="modal-content glass-panel modal-sm">
+        <div class="modal-content glass-panel" style="width: 380px;">
             <div class="modal-header">
                 <h3>تأكيد تفعيل الحساب</h3>
                 <button type="button" class="close-modal-btn" id="close-approval-confirm-modal" aria-label="إغلاق"><i data-lucide="x"></i></button>
@@ -1070,7 +1070,7 @@
 
     <!-- Activation Confirmation Modal -->
     <div id="activation-confirm-modal" class="modal-overlay">
-        <div class="modal-content glass-panel modal-sm">
+        <div class="modal-content glass-panel" style="width: 380px;">
             <div class="modal-header">
                 <h3>تأكيد تنشيط الحساب</h3>
                 <button type="button" class="close-modal-btn" id="close-activation-confirm-modal" aria-label="إغلاق"><i data-lucide="x"></i></button>
@@ -1087,7 +1087,7 @@
 
     <!-- Rejection Reason Modal -->
     <div id="rejection-prompt-modal" class="modal-overlay">
-        <div class="modal-content glass-panel modal-md">
+        <div class="modal-content glass-panel" style="width: 440px;">
             <div class="modal-header">
                 <h3>رفض طلب التسجيل</h3>
                 <button type="button" class="close-modal-btn" id="close-rejection-prompt-modal" aria-label="إغلاق"><i data-lucide="x"></i></button>
@@ -1107,7 +1107,7 @@
 
     <!-- Suspend/Ban Reason Modal -->
     <div id="suspend-prompt-modal" class="modal-overlay">
-        <div class="modal-content glass-panel modal-md">
+        <div class="modal-content glass-panel" style="width: 440px;">
             <div class="modal-header">
                 <h3>تعليق وحظر الحساب</h3>
                 <button type="button" class="close-modal-btn" id="close-suspend-prompt-modal" aria-label="إغلاق"><i data-lucide="x"></i></button>
@@ -1127,7 +1127,7 @@
 
     <!-- Cascade Delete Admin Account Confirmation Modal -->
     <div id="delete-admin-confirm-modal" class="modal-overlay">
-        <div class="modal-content glass-panel modal-md">
+        <div class="modal-content glass-panel" style="width: 400px;">
             <div class="modal-header">
                 <h3 style="color: var(--color-rose); display: flex; align-items: center; gap: 8px;">
                     <i data-lucide="alert-triangle" style="width: 20px; height: 20px;"></i>
@@ -1151,7 +1151,7 @@
 
     <!-- Task Account Credentials Modal -->
     <div id="credentials-modal" class="modal-overlay">
-        <div class="modal-content glass-panel modal-md">
+        <div class="modal-content glass-panel" style="width: 460px;">
             <div class="modal-header">
                 <h3 style="display:flex; align-items:center; gap:8px;" data-i18n="credentials-modal-title">
                     <i data-lucide="key" style="color:var(--color-primary); width:20px; height:20px;"></i>
@@ -1170,7 +1170,7 @@
 
     <!-- Edit Task Modal -->
     <div id="edit-task-modal" class="modal-overlay">
-        <div class="modal-content glass-panel modal-lg">
+        <div class="modal-content glass-panel" style="width: 580px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header">
                 <h3 style="display:flex; align-items:center; gap:8px;" data-i18n="edit-task-modal-title">
                     <i data-lucide="edit-3" style="color:var(--color-primary); width:20px; height:20px;"></i>
@@ -1296,7 +1296,7 @@
 
     <!-- Leader Allowed Employees Modal -->
     <div id="leader-permissions-modal" class="modal-overlay">
-        <div class="modal-content glass-panel modal-lg">
+        <div class="modal-content glass-panel" style="max-width: 650px; width: 95%;">
             <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
                 <div>
                     <h3 id="leader-modal-title" style="margin: 0; font-size: 16px; color: #fff;">إدارة موظفين المشرف</h3>
@@ -1338,7 +1338,7 @@
 
     <!-- Terms of Service & Disclaimer Modal -->
     <div id="terms-modal" class="modal-overlay">
-        <div class="modal-content glass-panel modal-xl modal-terms-body">
+        <div class="modal-content glass-panel" style="max-width: 720px; width: 95%; max-height: 88vh; display: flex; flex-direction: column; padding: 24px;">
             <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 14px;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(255, 255, 255, 0.06); display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-color);">
@@ -1460,7 +1460,7 @@
         }
     </script>
     <!-- App JavaScript Logic -->
-    <script src="app.js?v=1.7.0"></script>
+    <script src="app.js?v=2.0.0"></script>
 </body>
 </html>
 

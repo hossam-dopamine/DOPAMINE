@@ -1884,7 +1884,7 @@ html[dir="rtl"] .employee-sort-actions {
    RESPONSIVE BREAKPOINTS (TABLET & MOBILE OVERRIDES ONLY)
    ========================================================================== */
 
-@media (max-width: 1024px) {
+@media (max-width: 1023px) {
     /* Mobile Topbar & Drawer */
     .mobile-topbar {
         display: flex !important;
