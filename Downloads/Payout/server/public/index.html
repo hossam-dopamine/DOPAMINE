@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
     <title>DOPAMINE-SERVICE</title>
     <meta name="description" content="نظام DOPAMINE-SERVICE لإدارة المستحقات المالية وحسابات المهام">
     <meta property="og:title" content="DOPAMINE-SERVICE">
@@ -356,10 +356,10 @@
 
     <!-- Change Password Modal -->
     <div class="modal-overlay" id="change-password-modal">
-        <div class="glass-panel" style="max-width: 420px; width: 90vw; padding: 28px;">
+        <div class="modal-content glass-panel modal-sm">
             <div class="modal-header">
                 <h2 data-i18n="change-password">تغيير كلمة المرور</h2>
-                <button class="btn btn-secondary btn-icon-only" id="close-change-password-modal"><i data-lucide="x"></i></button>
+                <button class="btn btn-secondary btn-icon-only close-modal-btn" id="close-change-password-modal" aria-label="إغلاق"><i data-lucide="x"></i></button>
             </div>
             <form id="change-password-form">
                 <div class="form-group">
@@ -387,11 +387,38 @@
         <div class="bg-glow glow-1"></div>
         <div class="bg-glow glow-2"></div>
 
-        <!-- Sidebar / Navigation -->
-        <aside class="sidebar glass-panel">
-            <div class="logo-area">
-                <i data-lucide="flame" class="logo-icon" style="color: #ffffff; filter: drop-shadow(0 0 10px rgba(255,255,255,0.4));"></i>
-                <span class="logo-text" data-i18n="app-title" style="font-weight: 800; letter-spacing: 0.5px;">DOPAMINE</span>
+        <!-- Mobile Top Navigation Bar (Visible on mobile/tablet <= 1024px) -->
+        <header class="mobile-topbar glass-panel" id="mobile-topbar">
+            <button id="mobile-menu-toggle" class="btn btn-secondary btn-icon-only mobile-toggle-btn" aria-label="قائمة الموظفين والتنقل">
+                <i data-lucide="menu"></i>
+            </button>
+            <div class="mobile-logo-area">
+                <i data-lucide="flame" class="mobile-logo-icon"></i>
+                <span class="mobile-logo-text" data-i18n="app-title">DOPAMINE</span>
+            </div>
+            <div class="mobile-topbar-actions">
+                <button id="mobile-lang-toggle-btn" class="btn btn-secondary btn-icon-only" title="Switch Language" aria-label="Switch Language">
+                    <i data-lucide="languages"></i>
+                </button>
+                <button id="mobile-add-employee-btn" class="btn btn-primary btn-icon-only" title="إضافة موظف" aria-label="إضافة موظف">
+                    <i data-lucide="user-plus"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Mobile Drawer Backdrop Overlay -->
+        <div id="sidebar-backdrop" class="sidebar-backdrop" aria-hidden="true"></div>
+
+        <!-- Sidebar / Navigation Drawer -->
+        <aside class="sidebar glass-panel" id="app-sidebar">
+            <div class="sidebar-mobile-header">
+                <div class="logo-area" style="margin-bottom: 0;">
+                    <i data-lucide="flame" class="logo-icon" style="color: #ffffff; filter: drop-shadow(0 0 10px rgba(255,255,255,0.4));"></i>
+                    <span class="logo-text" data-i18n="app-title" style="font-weight: 800; letter-spacing: 0.5px;">DOPAMINE</span>
+                </div>
+                <button id="close-sidebar-btn" class="btn btn-secondary btn-icon-only close-sidebar-btn" aria-label="إغلاق القائمة">
+                    <i data-lucide="x"></i>
+                </button>
             </div>
             
             <div class="sidebar-actions">
@@ -725,8 +752,8 @@
                         <div class="panel-header">
                             <h3 data-i18n="tasks-list">سجل المهام</h3>
                             <div class="panel-actions">
-                                <div class="filter-group" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                                    <input type="text" id="task-search-input" placeholder="ابحث عن مهمة..." style="width: 150px; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 6px; padding: 5px 10px; color: #fff; font-size: 13px;">
+                                <div class="filter-group panel-filters-group">
+                                    <input type="text" id="task-search-input" class="task-search-input" placeholder="ابحث عن مهمة...">
                                     <select id="task-filter-month" class="select-sm">
                                         <option value="all" data-i18n="all-months">كل الشهور</option>
                                         <option value="january" data-i18n="month-jan">يناير</option>
@@ -1005,10 +1032,10 @@
 
     <!-- Manager Password Modal -->
     <div id="password-modal" class="modal-overlay">
-        <div class="modal-content glass-panel" style="width: 360px;">
+        <div class="modal-content glass-panel modal-sm">
             <div class="modal-header">
                 <h3 data-i18n="password-modal-title">دخول لوحة المدير</h3>
-                <button class="close-modal-btn" id="close-password-modal"><i data-lucide="x"></i></button>
+                <button class="close-modal-btn" id="close-password-modal" aria-label="إغلاق"><i data-lucide="x"></i></button>
             </div>
             <form id="password-form">
                 <div class="form-group">
@@ -1026,10 +1053,10 @@
 
     <!-- Approval Confirmation Modal -->
     <div id="approval-confirm-modal" class="modal-overlay">
-        <div class="modal-content glass-panel" style="width: 380px;">
+        <div class="modal-content glass-panel modal-sm">
             <div class="modal-header">
                 <h3>تأكيد تفعيل الحساب</h3>
-                <button type="button" class="close-modal-btn" id="close-approval-confirm-modal"><i data-lucide="x"></i></button>
+                <button type="button" class="close-modal-btn" id="close-approval-confirm-modal" aria-label="إغلاق"><i data-lucide="x"></i></button>
             </div>
             <div style="margin-top: 16px; text-align: center; color: #fff;">
                 <p style="font-size: 14px; line-height: 1.5; direction: rtl;">هل أنت متأكد من رغبتك في تفعيل هذا الحساب؟</p>
@@ -1043,10 +1070,10 @@
 
     <!-- Activation Confirmation Modal -->
     <div id="activation-confirm-modal" class="modal-overlay">
-        <div class="modal-content glass-panel" style="width: 380px;">
+        <div class="modal-content glass-panel modal-sm">
             <div class="modal-header">
                 <h3>تأكيد تنشيط الحساب</h3>
-                <button type="button" class="close-modal-btn" id="close-activation-confirm-modal"><i data-lucide="x"></i></button>
+                <button type="button" class="close-modal-btn" id="close-activation-confirm-modal" aria-label="إغلاق"><i data-lucide="x"></i></button>
             </div>
             <div style="margin-top: 16px; text-align: center; color: #fff;">
                 <p style="font-size: 14px; line-height: 1.5; direction: rtl;">هل أنت متأكد من رغبتك في تنشيط هذا الحساب؟</p>
@@ -1060,10 +1087,10 @@
 
     <!-- Rejection Reason Modal -->
     <div id="rejection-prompt-modal" class="modal-overlay">
-        <div class="modal-content glass-panel" style="width: 440px;">
+        <div class="modal-content glass-panel modal-md">
             <div class="modal-header">
                 <h3>رفض طلب التسجيل</h3>
-                <button type="button" class="close-modal-btn" id="close-rejection-prompt-modal"><i data-lucide="x"></i></button>
+                <button type="button" class="close-modal-btn" id="close-rejection-prompt-modal" aria-label="إغلاق"><i data-lucide="x"></i></button>
             </div>
             <form id="rejection-prompt-form" style="margin-top: 16px;">
                 <div class="form-group">
@@ -1080,10 +1107,10 @@
 
     <!-- Suspend/Ban Reason Modal -->
     <div id="suspend-prompt-modal" class="modal-overlay">
-        <div class="modal-content glass-panel" style="width: 440px;">
+        <div class="modal-content glass-panel modal-md">
             <div class="modal-header">
                 <h3>تعليق وحظر الحساب</h3>
-                <button type="button" class="close-modal-btn" id="close-suspend-prompt-modal"><i data-lucide="x"></i></button>
+                <button type="button" class="close-modal-btn" id="close-suspend-prompt-modal" aria-label="إغلاق"><i data-lucide="x"></i></button>
             </div>
             <form id="suspend-prompt-form" style="margin-top: 16px;">
                 <div class="form-group">
@@ -1100,13 +1127,13 @@
 
     <!-- Cascade Delete Admin Account Confirmation Modal -->
     <div id="delete-admin-confirm-modal" class="modal-overlay">
-        <div class="modal-content glass-panel" style="width: 400px;">
+        <div class="modal-content glass-panel modal-md">
             <div class="modal-header">
                 <h3 style="color: var(--color-rose); display: flex; align-items: center; gap: 8px;">
                     <i data-lucide="alert-triangle" style="width: 20px; height: 20px;"></i>
                     حذف الحساب والبيانات نهائياً
                 </h3>
-                <button type="button" class="close-modal-btn" id="close-delete-admin-confirm-modal"><i data-lucide="x"></i></button>
+                <button type="button" class="close-modal-btn" id="close-delete-admin-confirm-modal" aria-label="إغلاق"><i data-lucide="x"></i></button>
             </div>
             <div style="margin-top: 16px; color: #fff; direction: rtl; text-align: right;">
                 <p style="font-size: 14px; line-height: 1.6; font-weight: bold; margin-bottom: 8px;">تحذير أمني هام:</p>
@@ -1124,13 +1151,13 @@
 
     <!-- Task Account Credentials Modal -->
     <div id="credentials-modal" class="modal-overlay">
-        <div class="modal-content glass-panel" style="width: 460px;">
+        <div class="modal-content glass-panel modal-md">
             <div class="modal-header">
                 <h3 style="display:flex; align-items:center; gap:8px;" data-i18n="credentials-modal-title">
                     <i data-lucide="key" style="color:var(--color-primary); width:20px; height:20px;"></i>
                     بيانات الحساب والـ VPN
                 </h3>
-                <button class="close-modal-btn" id="close-credentials-modal"><i data-lucide="x"></i></button>
+                <button class="close-modal-btn" id="close-credentials-modal" aria-label="إغلاق"><i data-lucide="x"></i></button>
             </div>
             <div id="credentials-modal-body" style="display:flex; flex-direction:column; gap:12px;">
                 <!-- Dynamic credential rows -->
@@ -1143,13 +1170,13 @@
 
     <!-- Edit Task Modal -->
     <div id="edit-task-modal" class="modal-overlay">
-        <div class="modal-content glass-panel" style="width: 580px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-content glass-panel modal-lg">
             <div class="modal-header">
                 <h3 style="display:flex; align-items:center; gap:8px;" data-i18n="edit-task-modal-title">
                     <i data-lucide="edit-3" style="color:var(--color-primary); width:20px; height:20px;"></i>
                     تعديل بيانات المهمة
                 </h3>
-                <button class="close-modal-btn" id="close-edit-task-modal"><i data-lucide="x"></i></button>
+                <button class="close-modal-btn" id="close-edit-task-modal" aria-label="إغلاق"><i data-lucide="x"></i></button>
             </div>
             <form id="edit-task-form">
                 <input type="hidden" id="edit-task-id">
@@ -1269,7 +1296,7 @@
 
     <!-- Leader Allowed Employees Modal -->
     <div id="leader-permissions-modal" class="modal-overlay">
-        <div class="modal-content glass-panel" style="max-width: 650px; width: 95%;">
+        <div class="modal-content glass-panel modal-lg">
             <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
                 <div>
                     <h3 id="leader-modal-title" style="margin: 0; font-size: 16px; color: #fff;">إدارة موظفين المشرف</h3>
@@ -1277,7 +1304,7 @@
                         الموظفون المخصصون: 0
                     </span>
                 </div>
-                <button class="modal-close" id="close-leader-permissions-modal">&times;</button>
+                <button class="btn btn-secondary btn-icon-only close-modal-btn" id="close-leader-permissions-modal" aria-label="إغلاق"><i data-lucide="x"></i></button>
             </div>
             
             <input type="hidden" id="leader-target-username">
@@ -1311,7 +1338,7 @@
 
     <!-- Terms of Service & Disclaimer Modal -->
     <div id="terms-modal" class="modal-overlay">
-        <div class="modal-content glass-panel" style="max-width: 720px; width: 95%; max-height: 88vh; display: flex; flex-direction: column; padding: 24px;">
+        <div class="modal-content glass-panel modal-xl modal-terms-body">
             <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 14px;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(255, 255, 255, 0.06); display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-color);">
@@ -1322,7 +1349,7 @@
                         <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-muted);" data-i18n="terms-modal-subtitle">اتفاقية الاستخدام والمسؤولية الكاملة للمشترك</p>
                     </div>
                 </div>
-                <button class="modal-close close-modal-btn" id="close-terms-modal-x">&times;</button>
+                <button class="btn btn-secondary btn-icon-only close-modal-btn" id="close-terms-modal-x" aria-label="إغلاق"><i data-lucide="x"></i></button>
             </div>
 
             <!-- Scrollable Terms Body -->

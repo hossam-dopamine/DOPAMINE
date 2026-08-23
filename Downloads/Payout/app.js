@@ -1081,6 +1081,25 @@ function renderEmployeesList() {
     }
 }
 
+// --- Mobile Navigation Drawer Controller ---
+function toggleMobileMenu(open) {
+    const sidebar = document.getElementById('app-sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    if (!sidebar || !backdrop) return;
+    
+    const shouldOpen = (open !== undefined) ? open : !sidebar.classList.contains('open');
+    if (shouldOpen) {
+        sidebar.classList.add('open');
+        backdrop.classList.add('active');
+        document.body.classList.add('sidebar-open');
+    } else {
+        sidebar.classList.remove('open');
+        backdrop.classList.remove('active');
+        document.body.classList.remove('sidebar-open');
+    }
+}
+window.toggleMobileMenu = toggleMobileMenu;
+
 async function hashPassword(password) {
     const encoder = new TextEncoder();
     const data = encoder.encode(password);
@@ -1098,6 +1117,9 @@ function selectEmployee(id) {
         state.isManagerUnlocked = false;
     }
     
+    // Auto-close mobile navigation drawer
+    toggleMobileMenu(false);
+
     // Toggle UI panels
     document.getElementById('dashboard-placeholder').style.display = 'none';
     document.getElementById('manager-panel-section').style.display = 'none';
@@ -1120,6 +1142,7 @@ function selectEmployee(id) {
 }
 
 function selectManagerPanel() {
+    toggleMobileMenu(false);
     const user = getAuthUser();
     if (user && user.role === 'admin') {
         state.isManagerUnlocked = true;
@@ -1137,6 +1160,7 @@ function selectManagerPanel() {
 }
 
 function enterManagerDashboard() {
+    toggleMobileMenu(false);
     state.selectedEmployeeId = null;
     state.viewMode = 'manager';
 
@@ -2037,6 +2061,7 @@ window.editTask = function(empId, taskId) {
 
 // --- CRUD Actions for Employees ---
 function openEmployeeModal(isEdit = false) {
+    toggleMobileMenu(false);
     const user = getAuthUser();
     if (!user) return;
     if (user.role === 'employee' && (!isEdit || String(state.selectedEmployeeId) !== String(user.employeeId))) return;
@@ -3093,6 +3118,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (changePassBtn && changePassModal) {
         changePassBtn.addEventListener('click', () => {
+            toggleMobileMenu(false);
             changePassModal.classList.add('active');
         });
     }
@@ -3531,6 +3557,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const reviewRequestsBtn = document.getElementById('review-requests-btn');
     if (reviewRequestsBtn) {
         reviewRequestsBtn.addEventListener('click', () => {
+            toggleMobileMenu(false);
             state.selectedEmployeeId = null;
             state.viewMode = 'review-requests';
             updateUIVisuals();
@@ -3697,10 +3724,44 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // 6. Language Toggle Controller
-    document.getElementById('lang-toggle-btn').addEventListener('click', () => {
+    const toggleLang = () => {
         state.currentLanguage = state.currentLanguage === 'ar' ? 'en' : 'ar';
         localStorage.setItem('task_payout_lang', state.currentLanguage);
         updateUIVisuals();
+    };
+    
+    document.getElementById('lang-toggle-btn').addEventListener('click', toggleLang);
+    
+    const mobileLangToggleBtn = document.getElementById('mobile-lang-toggle-btn');
+    if (mobileLangToggleBtn) {
+        mobileLangToggleBtn.addEventListener('click', toggleLang);
+    }
+
+    // Mobile Navigation Drawer Toggle Listeners
+    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+    if (mobileMenuToggle) {
+        mobileMenuToggle.addEventListener('click', () => toggleMobileMenu());
+    }
+
+    const closeSidebarBtn = document.getElementById('close-sidebar-btn');
+    if (closeSidebarBtn) {
+        closeSidebarBtn.addEventListener('click', () => toggleMobileMenu(false));
+    }
+
+    const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+    if (sidebarBackdrop) {
+        sidebarBackdrop.addEventListener('click', () => toggleMobileMenu(false));
+    }
+
+    const mobileAddEmpBtn = document.getElementById('mobile-add-employee-btn');
+    if (mobileAddEmpBtn) {
+        mobileAddEmpBtn.addEventListener('click', () => openEmployeeModal(false));
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            toggleMobileMenu(false);
+        }
     });
 
     // 7. Filters and Search inputs

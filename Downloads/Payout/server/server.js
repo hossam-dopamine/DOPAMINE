@@ -5,7 +5,6 @@ if (dns.setDefaultResultOrder) {
 }
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
 const connectDB = require('./config/db');
 const { applySecurityMiddleware } = require('./middleware/security');
 const authRoutes = require('./routes/auth');
@@ -31,10 +30,8 @@ applySecurityMiddleware(app);
 app.use('/api/auth', authRoutes);
 app.use('/api/data', dataRoutes);
 
-// Determine static files directory (server/public or root)
-const publicDir = fs.existsSync(path.join(__dirname, 'public', 'index.html'))
-  ? path.join(__dirname, 'public')
-  : path.join(__dirname, '..');
+// Static files directory (server/public)
+const publicDir = path.join(__dirname, 'public');
 
 // Static files with optimized HTTP caching
 app.use(express.static(publicDir, {

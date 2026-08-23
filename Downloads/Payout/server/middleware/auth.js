@@ -66,27 +66,9 @@ const requireAdminOrLeader = (req, res, next) => {
   }
 };
 
-const optionalAuth = async (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await getCachedUser(decoded.id);
-      if (user && user.status === 'approved') {
-        req.user = user;
-      }
-    }
-  } catch (error) {
-    // Ignore error for optional auth
-  }
-  next();
-};
-
 module.exports = {
   verifyToken,
   requireAdmin,
   requireAdminOrLeader,
-  optionalAuth,
   invalidateUserCache
 };
