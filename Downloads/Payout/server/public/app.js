@@ -3758,6 +3758,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         mobileAddEmpBtn.addEventListener('click', () => openEmployeeModal(false));
     }
 
+    // Sidebar Category Dropdown Toggle (DOPAMINE-SERVICE)
+    const sidebarAccountToggle = document.getElementById('sidebar-account-toggle');
+    const sidebarAccountBody = document.getElementById('sidebar-account-body');
+    if (sidebarAccountToggle && sidebarAccountBody) {
+        sidebarAccountToggle.addEventListener('click', () => {
+            const isOpen = sidebarAccountBody.classList.contains('open');
+            if (isOpen) {
+                sidebarAccountBody.classList.remove('open');
+                sidebarAccountToggle.classList.remove('open');
+                sidebarAccountToggle.setAttribute('aria-expanded', 'false');
+            } else {
+                sidebarAccountBody.classList.add('open');
+                sidebarAccountToggle.classList.add('open');
+                sidebarAccountToggle.setAttribute('aria-expanded', 'true');
+            }
+        });
+    }
+
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             toggleMobileMenu(false);

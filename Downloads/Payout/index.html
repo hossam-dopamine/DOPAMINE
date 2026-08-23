@@ -14,7 +14,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z'/></svg>">
-    <link rel="stylesheet" href="style.css?v=2.2.0">
+    <link rel="stylesheet" href="style.css?v=2.3.0">
 </head>
 <body>
     <!-- SVG Warp Filter for Background Wave Motion -->
@@ -421,34 +421,24 @@
                 </button>
             </div>
             
-            <div class="sidebar-actions">
-                <button id="add-employee-btn" class="btn btn-primary btn-block" style="margin-bottom: 10px;">
-                    <i data-lucide="user-plus"></i>
-                    <span data-i18n="add-employee">إضافة موظف</span>
-                </button>
+            <!-- Category: DOPAMINE-SERVICE Account & Control Dropdown -->
+            <div class="sidebar-category-header" id="sidebar-account-toggle" role="button" tabindex="0" aria-expanded="true">
+                <div class="category-header-title">
+                    <i data-lucide="shield" class="category-icon"></i>
+                    <span class="category-title-text">DOPAMINE-SERVICE</span>
+                </div>
+                <i data-lucide="chevron-down" class="category-chevron" id="sidebar-account-chevron"></i>
+            </div>
+            
+            <div class="sidebar-account-body open" id="sidebar-account-body">
                 <button id="manager-btn" class="btn btn-secondary btn-block">
                     <i data-lucide="shield-check"></i>
                     <span data-i18n="manager-title">المدير (الحسابات العامة)</span>
                 </button>
-                <button id="review-requests-btn" class="btn btn-secondary btn-block" style="display: none; margin-top: 10px;">
+                <button id="review-requests-btn" class="btn btn-secondary btn-block" style="display: none;">
                     <i data-lucide="user-check"></i>
                     <span>مراجعة الحسابات المنشأة</span>
                 </button>
-
-            </div>
-
-            <nav class="employee-nav">
-                <h3 class="nav-title" data-i18n="employees-list">قائمة الموظفين</h3>
-                <div class="search-box">
-                    <i data-lucide="search" class="search-icon"></i>
-                    <input type="text" id="employee-search" data-i18n-placeholder="search-employee-placeholder" placeholder="ابحث عن موظف...">
-                </div>
-                <div id="employees-list-container" class="employees-list">
-                    <!-- Dynamic employee items go here -->
-                </div>
-            </nav>
-            
-            <div class="sidebar-footer" style="display: flex; flex-direction: column; gap: 8px;">
                 <button id="change-password-btn" class="btn btn-secondary btn-block">
                     <i data-lucide="key"></i>
                     <span data-i18n="change-password">تغيير كلمة المرور</span>
@@ -457,11 +447,32 @@
                     <i data-lucide="log-out"></i>
                     <span data-i18n="logout">تسجيل الخروج</span>
                 </button>
-                <button id="lang-toggle-btn" class="btn btn-secondary btn-icon-text">
+                <button id="lang-toggle-btn" class="btn btn-secondary btn-icon-text btn-block" style="justify-content: center;">
                     <i data-lucide="languages"></i>
                     <span id="lang-btn-text">English</span>
                 </button>
             </div>
+
+            <div class="sidebar-divider"></div>
+
+            <!-- Employee Files Navigation -->
+            <div class="sidebar-actions" style="margin-bottom: 10px;">
+                <button id="add-employee-btn" class="btn btn-primary btn-block">
+                    <i data-lucide="user-plus"></i>
+                    <span data-i18n="add-employee">إضافة موظف</span>
+                </button>
+            </div>
+
+            <nav class="employee-nav">
+                <h3 class="nav-title" data-i18n="employees-list">ملفات الموظفين</h3>
+                <div class="search-box">
+                    <i data-lucide="search" class="search-icon"></i>
+                    <input type="text" id="employee-search" data-i18n-placeholder="search-employee-placeholder" placeholder="ابحث عن موظف...">
+                </div>
+                <div id="employees-list-container" class="employees-list">
+                    <!-- Dynamic employee items go here -->
+                </div>
+            </nav>
         </aside>
 
         <!-- Main Content Area -->
@@ -1460,7 +1471,7 @@
         }
     </script>
     <!-- App JavaScript Logic -->
-    <script src="app.js?v=2.2.0"></script>
+    <script src="app.js?v=2.3.0"></script>
 </body>
 </html>
 
