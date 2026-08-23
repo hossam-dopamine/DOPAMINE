@@ -2021,7 +2021,7 @@ html[dir="rtl"] .employee-sort-actions {
         height: auto !important;
         overflow-y: visible !important;
         overflow-x: hidden !important;
-        padding: 14px 14px calc(24px + var(--sab)) 14px !important;
+        padding: 12px 12px calc(24px + var(--sab)) 12px !important;
         box-sizing: border-box !important;
     }
 
@@ -2030,29 +2030,29 @@ html[dir="rtl"] .employee-sort-actions {
         display: flex !important;
         flex-direction: column !important;
         align-items: stretch !important;
-        gap: 14px !important;
-        padding: 16px !important;
-        border-radius: var(--radius-lg) !important;
-        margin-bottom: 16px !important;
+        gap: 12px !important;
+        padding: 14px !important;
+        border-radius: 14px !important;
+        margin-bottom: 14px !important;
     }
     .header-info {
         text-align: start !important;
     }
     .header-info h1 {
-        font-size: 20px !important;
+        font-size: clamp(17px, 5vw, 20px) !important;
         font-weight: 800 !important;
         color: #ffffff !important;
-        margin-bottom: 4px !important;
+        margin-bottom: 2px !important;
     }
     .header-info .current-date {
-        font-size: 12px !important;
+        font-size: 11.5px !important;
         color: var(--text-muted) !important;
     }
     .header-actions {
         display: flex !important;
-        flex-direction: column !important;
-        align-items: stretch !important;
-        gap: 10px !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        gap: 8px !important;
         width: 100% !important;
     }
     .exchange-rate-widget {
@@ -2060,9 +2060,10 @@ html[dir="rtl"] .employee-sort-actions {
         align-items: center !important;
         justify-content: center !important;
         flex-wrap: wrap !important;
-        gap: 8px !important;
+        gap: 6px !important;
         width: 100% !important;
-        padding: 8px 12px !important;
+        flex: 1 1 100% !important;
+        padding: 7px 10px !important;
         background: rgba(255, 255, 255, 0.03) !important;
         border: 1px solid var(--border-color) !important;
         border-radius: 10px !important;
@@ -2073,86 +2074,111 @@ html[dir="rtl"] .employee-sort-actions {
         display: inline-flex !important;
         align-items: center !important;
         gap: 4px !important;
-        font-size: 12px !important;
+        font-size: 11.5px !important;
     }
     .exchange-rate-widget input {
-        width: 64px !important;
-        height: 28px !important;
+        width: 58px !important;
+        height: 26px !important;
         padding: 2px 4px !important;
-        font-size: 13px !important;
+        font-size: 12px !important;
         text-align: center !important;
     }
     .header-actions .filter-group {
         width: 100% !important;
+        flex: 1 1 100% !important;
     }
     .header-actions .filter-group select {
         width: 100% !important;
-        height: 38px !important;
-        font-size: 13px !important;
+        height: 36px !important;
+        font-size: 12.5px !important;
     }
-    .header-actions .btn {
-        flex: 1 !important;
-        min-height: 38px !important;
-        font-size: 12px !important;
+    .header-actions #export-btn,
+    .header-actions #import-btn,
+    .header-actions #clear-data-btn {
+        flex: 1 1 28% !important;
+        min-height: 36px !important;
+        font-size: 11.5px !important;
+        padding: 6px 8px !important;
         justify-content: center !important;
+        white-space: nowrap !important;
     }
 
     /* --- Stats Metrics Cards (Revolut / Stripe Dashboard Style) --- */
     .stats-grid {
         display: grid !important;
         grid-template-columns: repeat(2, 1fr) !important;
-        gap: 10px !important;
-        margin-bottom: 16px !important;
+        gap: 8px !important;
+        margin-bottom: 14px !important;
     }
     .stat-card {
         display: flex !important;
         flex-direction: column !important;
         align-items: flex-start !important;
-        padding: 14px !important;
-        gap: 8px !important;
-        border-radius: 14px !important;
+        padding: 10px 12px !important;
+        gap: 6px !important;
+        border-radius: 12px !important;
         background: rgba(18, 18, 24, 0.85) !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
         box-sizing: border-box !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
     }
     .stat-card:nth-child(5) {
         grid-column: span 2 !important;
         flex-direction: row !important;
         align-items: center !important;
         justify-content: space-between !important;
+        padding: 12px 14px !important;
+    }
+    .stat-card:nth-child(5) .stat-info {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 8px !important;
+    }
+    .stat-card:nth-child(5) .stat-info h4 {
+        margin-bottom: 0 !important;
     }
     .stat-icon-wrapper {
-        width: 36px !important;
-        height: 36px !important;
-        border-radius: 10px !important;
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 8px !important;
+        flex-shrink: 0 !important;
     }
     .stat-icon-wrapper i {
-        width: 18px !important;
-        height: 18px !important;
+        width: 16px !important;
+        height: 16px !important;
     }
     .stat-info {
         width: 100% !important;
+        min-width: 0 !important;
     }
     .stat-info h4 {
-        font-size: 11.5px !important;
+        font-size: 11px !important;
         font-weight: 600 !important;
         color: #94a3b8 !important;
-        margin-bottom: 4px !important;
+        margin-bottom: 2px !important;
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
     }
     .stat-value {
-        font-size: 16px !important;
-        font-weight: 700 !important;
+        font-size: clamp(13.5px, 3.8vw, 16px) !important;
+        font-weight: 800 !important;
         color: #ffffff !important;
         line-height: 1.25 !important;
         letter-spacing: -0.2px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
     }
     .stat-value-sub {
-        font-size: 11.5px !important;
+        font-size: 11px !important;
         color: #64748b !important;
-        margin-top: 2px !important;
+        margin-top: 1px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
     }
 
     /* --- Employee Profile Header Card --- */
@@ -2160,56 +2186,63 @@ html[dir="rtl"] .employee-sort-actions {
         display: flex !important;
         flex-direction: column !important;
         align-items: stretch !important;
-        gap: 14px !important;
-        padding: 16px !important;
-        border-radius: 14px !important;
-        margin-bottom: 16px !important;
+        gap: 12px !important;
+        padding: 14px !important;
+        border-radius: 12px !important;
+        margin-bottom: 14px !important;
         background: rgba(18, 18, 24, 0.85) !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
     .employee-meta {
         display: flex !important;
         align-items: center !important;
-        gap: 14px !important;
+        gap: 12px !important;
+        width: 100% !important;
     }
     .avatar-large {
-        width: 52px !important;
-        height: 52px !important;
-        border-radius: 14px !important;
+        width: 48px !important;
+        height: 48px !important;
+        border-radius: 12px !important;
         flex-shrink: 0 !important;
     }
     .employee-name-row {
         display: flex !important;
         align-items: center !important;
-        gap: 8px !important;
+        gap: 6px !important;
         flex-wrap: wrap !important;
     }
     .employee-name-row h2 {
-        font-size: 17px !important;
+        font-size: 16px !important;
         font-weight: 800 !important;
         color: #ffffff !important;
+        margin: 0 !important;
     }
     .employee-details-text {
         display: flex !important;
         flex-wrap: wrap !important;
         align-items: center !important;
         gap: 6px !important;
-        font-size: 12px !important;
+        font-size: 11.5px !important;
         color: var(--text-muted) !important;
-        margin-top: 4px !important;
+        margin-top: 3px !important;
     }
     .employee-actions {
         display: flex !important;
         align-items: center !important;
-        gap: 8px !important;
+        gap: 6px !important;
         width: 100% !important;
     }
     .employee-actions .btn {
-        flex: 1 !important;
-        min-height: 40px !important;
+        flex: 1 1 auto !important;
+        min-height: 36px !important;
         justify-content: center !important;
-        font-size: 12.5px !important;
-        padding: 8px 10px !important;
+        font-size: 11.5px !important;
+        padding: 6px 8px !important;
+        white-space: nowrap !important;
+    }
+    .employee-actions .btn i {
+        width: 14px !important;
+        height: 14px !important;
     }
 
     /* --- Task Management Layout & Forms --- */
@@ -2218,34 +2251,47 @@ html[dir="rtl"] .employee-sort-actions {
         flex-direction: column !important;
         grid-template-columns: 1fr !important;
         width: 100% !important;
-        gap: 16px !important;
+        gap: 14px !important;
     }
     .task-form-column, .tasks-table-panel {
         width: 100% !important;
     }
     .task-form-panel {
-        padding: 16px !important;
-        border-radius: 14px !important;
+        padding: 14px !important;
+        border-radius: 12px !important;
         background: rgba(18, 18, 24, 0.85) !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+    .task-form-panel h3 {
+        font-size: 15px !important;
+        font-weight: 700 !important;
+        margin-bottom: 12px !important;
+    }
+    .form-group {
+        margin-bottom: 10px !important;
+    }
+    .form-group label {
+        font-size: 11.5px !important;
+        margin-bottom: 4px !important;
     }
     .form-group input, 
     .form-group select, 
     .form-group textarea {
         font-size: 16px !important; /* Strictly prevents iOS auto-zoom */
-        min-height: 42px !important;
+        min-height: 38px !important;
+        padding: 6px 10px !important;
         border-radius: 8px !important;
     }
     .form-row {
         display: grid !important;
         grid-template-columns: repeat(2, 1fr) !important;
-        gap: 10px !important;
+        gap: 8px !important;
     }
 
     /* --- Tasks Table Panel --- */
     .tasks-table-panel {
-        padding: 16px !important;
-        border-radius: 14px !important;
+        padding: 14px !important;
+        border-radius: 12px !important;
         background: rgba(18, 18, 24, 0.85) !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
@@ -2253,31 +2299,35 @@ html[dir="rtl"] .employee-sort-actions {
         display: flex !important;
         flex-direction: column !important;
         align-items: stretch !important;
-        gap: 12px !important;
-        margin-bottom: 14px !important;
+        gap: 10px !important;
+        margin-bottom: 12px !important;
     }
     .panel-header h3 {
-        font-size: 16px !important;
+        font-size: 15px !important;
         font-weight: 700 !important;
         color: #ffffff !important;
     }
     .panel-actions {
         display: flex !important;
         align-items: center !important;
-        gap: 8px !important;
+        gap: 6px !important;
         width: 100% !important;
     }
     .panel-actions .filter-group {
         display: flex !important;
-        gap: 8px !important;
+        gap: 6px !important;
         width: 100% !important;
     }
-    .panel-actions input, 
-    .panel-actions select {
-        flex: 1 !important;
+    .panel-actions #task-search-input {
+        flex: 1 1 55% !important;
         width: 100% !important;
-        min-height: 38px !important;
-        font-size: 13px !important;
+        min-height: 36px !important;
+        font-size: 12px !important;
+    }
+    .panel-actions #task-filter-month {
+        flex: 1 1 45% !important;
+        min-height: 36px !important;
+        font-size: 12px !important;
     }
     .table-container {
         width: 100% !important;
@@ -2287,31 +2337,35 @@ html[dir="rtl"] .employee-sort-actions {
         border: 1px solid rgba(255, 255, 255, 0.06) !important;
     }
     table {
-        min-width: 550px !important;
+        min-width: 520px !important;
+    }
+    table th, table td {
+        padding: 8px 10px !important;
+        font-size: 11.5px !important;
     }
 
     /* --- Responsive Modals --- */
     .modal-content {
         width: auto !important;
-        max-width: min(94vw, 500px) !important;
+        max-width: min(94vw, 480px) !important;
         max-height: min(88vh, 88dvh) !important;
         overflow-y: auto !important;
         -webkit-overflow-scrolling: touch !important;
-        padding: 18px !important;
-        border-radius: 16px !important;
+        padding: 16px !important;
+        border-radius: 14px !important;
         box-sizing: border-box !important;
     }
     .modal-footer {
         display: flex !important;
         flex-wrap: wrap !important;
         gap: 8px !important;
-        margin-top: 20px !important;
+        margin-top: 16px !important;
     }
     .modal-footer .btn {
         flex: 1 1 45% !important;
-        min-height: 42px !important;
+        min-height: 40px !important;
         justify-content: center !important;
-        font-size: 13px !important;
+        font-size: 12.5px !important;
     }
 }
 
@@ -2331,15 +2385,6 @@ html[dir="rtl"] .employee-sort-actions {
 }
 
 @media (max-width: 480px) {
-    .stats-grid {
-        gap: 8px !important;
-    }
-    .stat-card {
-        padding: 12px !important;
-    }
-    .stat-value {
-        font-size: 15px !important;
-    }
     .employee-actions {
         flex-direction: column !important;
     }
