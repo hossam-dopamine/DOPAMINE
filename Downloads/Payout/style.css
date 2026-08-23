@@ -1996,6 +1996,9 @@ html[dir="rtl"] .employee-sort-actions {
         padding-bottom: 12px;
         border-bottom: 1px solid var(--border-color);
     }
+    .sidebar-mobile-header .logo-area {
+        margin-bottom: 0 !important;
+    }
     .sidebar-mobile-header .close-sidebar-btn {
         display: flex !important;
         align-items: center;
