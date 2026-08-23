@@ -33,10 +33,15 @@ app.use('/api/data', dataRoutes);
 // Static files directory (server/public)
 const publicDir = path.join(__dirname, 'public');
 
-// Static files with optimized HTTP caching
+// Static files with optimized HTTP caching (Never cache HTML)
 app.use(express.static(publicDir, {
-  maxAge: '1d',
-  etag: true
+  maxAge: 0,
+  etag: false,
+  setHeaders: (res, filePath) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
 }));
 
 // SPA Fallback
@@ -44,6 +49,9 @@ app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) {
     return next();
   }
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.sendFile(path.join(publicDir, 'index.html'));
 });
 
