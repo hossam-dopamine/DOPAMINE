@@ -2410,6 +2410,9 @@ function calculateEmployeeFinancials(emp, targetMonth = 'all', preferredCurrency
 
     let totalGross = 0;
     let totalDeductions = 0;
+    let totalNet = 0;
+    let earningsCompletedNet = 0;
+    let earningsPaidNet = 0;
     let totalWithdrawals = 0;
 
     const tasks = (emp.tasks || []).filter(t => targetMonth === 'all' || t.month === targetMonth);
@@ -2420,17 +2423,19 @@ function calculateEmployeeFinancials(emp, targetMonth = 'all', preferredCurrency
     }
 
     const usdRate = state.exchangeRate || 50;
+    const eurRate = state.eurExchangeRate || 55;
 
     tasks.forEach(t => {
         const curr = t.currency || 'USD';
         let conversionFactor = 1;
 
         if (curr !== targetCurr) {
-            if (curr === 'USD' && targetCurr === 'EGP') {
-                conversionFactor = usdRate;
-            } else if (curr === 'EGP' && targetCurr === 'USD') {
-                conversionFactor = 1 / usdRate;
-            }
+            if (curr === 'USD' && targetCurr === 'EGP') conversionFactor = usdRate;
+            else if (curr === 'EGP' && targetCurr === 'USD') conversionFactor = 1 / usdRate;
+            else if (curr === 'EUR' && targetCurr === 'EGP') conversionFactor = eurRate;
+            else if (curr === 'EGP' && targetCurr === 'EUR') conversionFactor = 1 / eurRate;
+            else if (curr === 'USD' && targetCurr === 'EUR') conversionFactor = usdRate / eurRate;
+            else if (curr === 'EUR' && targetCurr === 'USD') conversionFactor = eurRate / usdRate;
         }
 
         const taskGross = Number(t.gross || 0) * conversionFactor;
@@ -2438,20 +2443,31 @@ function calculateEmployeeFinancials(emp, targetMonth = 'all', preferredCurrency
         if (t.type === 'withdrawal') {
             totalWithdrawals += taskGross;
         } else {
-            const rate = typeof t.deductionRate === 'number' ? t.deductionRate : (emp.defaultDeductionRate || 10);
+            const defaultRate = typeof emp.defaultDeductionRate === 'number' ? emp.defaultDeductionRate : 10;
+            const rate = typeof t.deductionRate === 'number' ? t.deductionRate : defaultRate;
             const delay = (Number(t.delayDeduction || 0)) * conversionFactor;
             const adv = (Number(t.advance || 0)) * conversionFactor;
             const fixed = (Number(t.fixedDeduction || 0)) * conversionFactor;
-            const effectiveGross = Math.max(0, taskGross - fixed);
-            const siteDeduction = effectiveGross * (rate / 100);
-            const totalTaskDeductions = siteDeduction + delay + adv + fixed;
             
+            const taskNet = calculateTaskNet(taskGross, rate, delay, adv, fixed);
+            const taskDeduction = taskGross - taskNet;
+
             totalGross += taskGross;
-            totalDeductions += totalTaskDeductions;
+            totalDeductions += taskDeduction;
+            totalNet += taskNet;
+
+            if (t.status === 'completed') {
+                earningsCompletedNet += taskNet;
+            } else if (t.status === 'paid') {
+                earningsPaidNet += taskNet;
+            } else {
+                // Pending tasks count into net pool if no other completed
+                earningsCompletedNet += taskNet;
+            }
         }
     });
 
-    const netAvailable = Math.max(0, (totalGross - totalDeductions) - totalWithdrawals);
+    const netAvailable = Math.max(0, earningsCompletedNet - totalWithdrawals);
     return {
         gross: totalGross,
         deductions: totalDeductions,
