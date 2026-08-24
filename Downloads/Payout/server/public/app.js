@@ -1601,13 +1601,21 @@ async function fetchAndRenderEmployeeAccounts() {
                     : '';
 
                 const tr = document.createElement('tr');
+                const emailDisplay = acc.email
+                    ? `<span style="color: #cbd5e1; font-size: 12.5px;"><i data-lucide="mail" style="width: 12px; height: 12px; vertical-align: middle; margin-inline-end: 4px; color: var(--color-primary);"></i>${escapeHTML(acc.email)}</span>`
+                    : `<span style="color: var(--text-dim); font-size: 11px;">غير مسجل</span>`;
+
                 tr.innerHTML = `
                     <td style="font-weight: 700; color: #fff;">${escapeHTML(empName)}</td>
                     <td style="font-family: monospace; color: var(--color-primary); font-weight: 600;">${escapeHTML(acc.username)}</td>
+                    <td>${emailDisplay}</td>
                     <td>${roleBadge}</td>
                     <td style="font-size: 12px; color: var(--text-muted);">${dateStr}</td>
                     <td>
                         ${manageBtn}
+                        <button class="btn btn-secondary btn-icon-only btn-sm" onclick="editEmployeeEmail('${escapeHTML(acc.username)}', '${escapeHTML(acc.email || '')}')" title="تعديل البريد الإلكتروني" style="margin-inline-end: 4px;">
+                            <i data-lucide="edit-3" style="width: 14px; height: 14px; pointer-events: none;"></i>
+                        </button>
                         <button class="btn btn-danger btn-icon-only btn-sm btn-delete-account" data-username="${escapeHTML(acc.username)}" onclick="deleteEmployeeAccount('${escapeHTML(acc.username)}')" title="حذف الحساب">
                             <i data-lucide="trash-2" style="width: 14px; height: 14px; pointer-events: none;"></i>
                         </button>
@@ -3444,6 +3452,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             e.preventDefault();
             const employeeId = document.getElementById('account-employee-select').value;
             const username = document.getElementById('account-username').value.trim();
+            const email = document.getElementById('account-email') ? document.getElementById('account-email').value.trim() : '';
             const password = document.getElementById('account-password').value;
             const role = roleSelect ? roleSelect.value : 'employee';
             const msgEl = document.getElementById('account-msg');
@@ -3460,7 +3469,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const res = await fetch('/api/auth/create-employee-account', {
                     method: 'POST',
                     headers: authHeaders(),
-                    body: JSON.stringify({ username, password, employeeId, role, allowedEmployeeIds })
+                    body: JSON.stringify({ username, password, email, employeeId, role, allowedEmployeeIds })
                 });
                 if (res.status === 401 || res.status === 403) {
                     clearAuth();
@@ -4913,6 +4922,32 @@ window.playSplitCardIntro = function() {
             passInput.style.pointerEvents = 'auto';
         }
     }, 2000);
+};
+
+window.editEmployeeEmail = async function(username, currentEmail) {
+    const isAr = state.currentLanguage === 'ar';
+    const newEmail = prompt(
+        isAr ? `تعديل البريد الإلكتروني للمستخدم (${username}) الخاص بالإشعارات والتواصل:` : `Edit email for user (${username}) used for notifications:`,
+        currentEmail || ''
+    );
+    if (newEmail === null) return;
+
+    try {
+        const res = await fetch('/api/auth/update-employee-account', {
+            method: 'PUT',
+            headers: authHeaders(),
+            body: JSON.stringify({ username, email: newEmail.trim() })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToastDirectMsg(isAr ? 'تم تحديث البريد الإلكتروني بنجاح' : 'Email updated successfully');
+            fetchAndRenderEmployeeAccounts();
+        } else {
+            alert(data.error || 'Failed to update email');
+        }
+    } catch (e) {
+        console.error('Error updating employee email:', e);
+    }
 };
 
 document.addEventListener('DOMContentLoaded', () => {

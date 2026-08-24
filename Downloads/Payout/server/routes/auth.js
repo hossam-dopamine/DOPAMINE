@@ -409,7 +409,7 @@ router.post('/change-password', verifyToken, async (req, res) => {
 // POST /create-employee-account
 router.post('/create-employee-account', verifyToken, requireAdmin, async (req, res) => {
   try {
-    const { username, password, employeeId, role, allowedEmployeeIds } = req.body;
+    const { username, password, email, employeeId, role, allowedEmployeeIds } = req.body;
     
     if (!username || !password || !employeeId) {
       return res.status(400).json({ success: false, error: 'Missing required fields' });
@@ -422,6 +422,7 @@ router.post('/create-employee-account', verifyToken, requireAdmin, async (req, r
     }
     
     const cleanUsername = String(username).toLowerCase().trim();
+    const cleanEmail = email ? String(email).toLowerCase().trim() : '';
     const tenantId = req.user.tenantId || 'default_tenant';
     
     const existingUser = await User.findOne({ username: cleanUsername });
@@ -440,6 +441,7 @@ router.post('/create-employee-account', verifyToken, requireAdmin, async (req, r
     const passwordHash = await User.hashPassword(password);
     const user = new User({
       username: cleanUsername,
+      email: cleanEmail,
       passwordHash,
       role: userRole,
       employeeId,
@@ -448,9 +450,35 @@ router.post('/create-employee-account', verifyToken, requireAdmin, async (req, r
     });
     
     await user.save();
-    res.status(201).json({ success: true, message: 'Employee account created successfully' });
+    res.status(201).json({ success: true, message: 'Employee account created successfully', user });
   } catch (error) {
     console.error('Create employee account error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// PUT /update-employee-account - Admin updates employee account email
+router.put('/update-employee-account', authLimiter, verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const { username, email } = req.body;
+    if (!username) {
+      return res.status(400).json({ success: false, error: 'اسم المستخدم مطلوب' });
+    }
+    const cleanUsername = String(username).toLowerCase().trim();
+    const cleanEmail = email !== undefined ? String(email).toLowerCase().trim() : '';
+    const tenantId = req.user.tenantId || 'default_tenant';
+
+    const updatedUser = await User.findOneAndUpdate(
+      { username: cleanUsername, tenantId },
+      { $set: { email: cleanEmail } },
+      { new: true }
+    );
+    if (!updatedUser) {
+      return res.status(404).json({ success: false, error: 'الحساب غير موجود' });
+    }
+    res.json({ success: true, message: 'تم تحديث البريد الإلكتروني بنجاح', user: updatedUser });
+  } catch (error) {
+    console.error('Update employee account error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
