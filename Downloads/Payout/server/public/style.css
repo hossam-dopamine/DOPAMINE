@@ -2079,39 +2079,46 @@ html[dir="rtl"] .toast {
         border-radius: 8px;
     }
 
-    /* --- Main Container Layout --- */
+    /* --- Main Container Layout (Phone Edge-to-Edge with Zero Dead Space) --- */
     .app-container {
         display: flex !important;
         flex-direction: column !important;
         grid-template-columns: 1fr !important;
         width: 100% !important;
+        max-width: 100vw !important;
         min-height: 100vh;
         overflow-x: hidden !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
     .main-content {
         width: 100% !important;
+        max-width: 100vw !important;
         height: auto !important;
         overflow-y: visible !important;
         overflow-x: hidden !important;
-        padding: 12px 12px calc(24px + var(--sab)) 12px !important;
+        padding: 8px 8px calc(20px + var(--sab)) 8px !important;
+        margin: 0 !important;
         box-sizing: border-box !important;
     }
 
-    /* --- Header Bar (Linear / Stripe Fintech Style) --- */
+    /* --- Header Bar (Linear / Stripe Fintech Style - Zero Side Gap) --- */
     .header {
         display: flex !important;
         flex-direction: column !important;
         align-items: stretch !important;
-        gap: 10px !important;
-        padding: 14px !important;
-        border-radius: 14px !important;
-        margin-bottom: 12px !important;
+        gap: 8px !important;
+        padding: 10px !important;
+        border-radius: 10px !important;
+        margin: 0 0 8px 0 !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
     }
     .header-info {
         text-align: start !important;
     }
     .header-info h1 {
-        font-size: clamp(16px, 4.8vw, 19px) !important;
+        font-size: clamp(15.5px, 4.6vw, 18.5px) !important;
         font-weight: 800 !important;
         color: #ffffff !important;
         margin-bottom: 2px !important;
@@ -2126,19 +2133,20 @@ html[dir="rtl"] .toast {
         align-items: center !important;
         gap: 6px !important;
         width: 100% !important;
+        margin: 0 !important;
     }
     .exchange-rate-widget {
         display: flex !important;
         align-items: center !important;
         justify-content: space-between !important;
-        gap: 6px !important;
+        gap: 4px !important;
         width: 100% !important;
         flex: 1 1 100% !important;
-        padding: 6px 8px !important;
+        padding: 5px 8px !important;
         background: rgba(255, 255, 255, 0.03) !important;
         border: 1px solid var(--border-color) !important;
         border-radius: 8px !important;
-        margin-inline-end: 0 !important;
+        margin: 0 !important;
         box-sizing: border-box !important;
     }
     .exchange-rate-widget .rate-info-icon,
@@ -2149,28 +2157,29 @@ html[dir="rtl"] .toast {
         display: inline-flex !important;
         align-items: center !important;
         gap: 3px !important;
-        font-size: 11px !important;
+        font-size: 10.5px !important;
         white-space: nowrap !important;
         flex: 1 !important;
         justify-content: center !important;
     }
     .exchange-rate-widget input {
-        width: 48px !important;
-        height: 24px !important;
-        padding: 2px 2px !important;
-        font-size: 11.5px !important;
+        width: 46px !important;
+        height: 22px !important;
+        padding: 1px 2px !important;
+        font-size: 11px !important;
         text-align: center !important;
         border-radius: 4px !important;
     }
     .exchange-rate-widget #sync-rate-btn {
-        min-width: 28px !important;
-        min-height: 28px !important;
+        min-width: 26px !important;
+        min-height: 26px !important;
         padding: 4px !important;
         flex-shrink: 0 !important;
     }
     .header-actions .filter-group {
         width: 100% !important;
         flex: 1 1 100% !important;
+        margin: 0 !important;
     }
     .header-actions .filter-group select {
         width: 100% !important;
@@ -2188,14 +2197,15 @@ html[dir="rtl"] .toast {
         justify-content: center !important;
         white-space: nowrap !important;
         border-radius: 8px !important;
+        margin: 0 !important;
     }
 
-    /* --- Stats Metrics Cards (Revolut / Stripe Dashboard Style) --- */
+    /* --- Stats Metrics Cards (Flush Grid with Zero Horizontal Gaps) --- */
     .stats-grid {
         display: grid !important;
         grid-template-columns: repeat(2, 1fr) !important;
-        gap: 8px !important;
-        margin-bottom: 14px !important;
+        gap: 6px !important;
+        margin: 0 0 8px 0 !important;
         width: 100% !important;
         box-sizing: border-box !important;
     }
@@ -2204,22 +2214,23 @@ html[dir="rtl"] .toast {
         display: flex !important;
         flex-direction: column !important;
         align-items: flex-start !important;
-        padding: 10px 12px !important;
-        gap: 6px !important;
-        border-radius: 12px !important;
+        padding: 8px 10px !important;
+        gap: 4px !important;
+        border-radius: 10px !important;
         background: rgba(18, 18, 24, 0.85) !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
         box-sizing: border-box !important;
         width: 100% !important;
         min-width: 0 !important;
         overflow: hidden !important;
+        margin: 0 !important;
     }
     .stat-card:nth-child(5) {
         grid-column: span 2 !important;
         flex-direction: row !important;
         align-items: center !important;
         justify-content: space-between !important;
-        padding: 12px 14px !important;
+        padding: 10px 12px !important;
     }
     .stat-card:nth-child(5) .stat-info {
         display: flex !important;
@@ -2231,21 +2242,21 @@ html[dir="rtl"] .toast {
         margin-bottom: 0 !important;
     }
     .stat-icon-wrapper {
-        width: 32px !important;
-        height: 32px !important;
-        border-radius: 8px !important;
+        width: 28px !important;
+        height: 28px !important;
+        border-radius: 7px !important;
         flex-shrink: 0 !important;
     }
     .stat-icon-wrapper i {
-        width: 16px !important;
-        height: 16px !important;
+        width: 14px !important;
+        height: 14px !important;
     }
     .stat-info {
         width: 100% !important;
         min-width: 0 !important;
     }
     .stat-info h4 {
-        font-size: 11px !important;
+        font-size: 10.5px !important;
         font-weight: 600 !important;
         color: #94a3b8 !important;
         margin-bottom: 2px !important;
@@ -2254,17 +2265,17 @@ html[dir="rtl"] .toast {
         text-overflow: ellipsis !important;
     }
     .stat-value {
-        font-size: clamp(13.5px, 3.8vw, 16px) !important;
+        font-size: clamp(13px, 3.6vw, 15.5px) !important;
         font-weight: 800 !important;
         color: #ffffff !important;
-        line-height: 1.25 !important;
+        line-height: 1.2 !important;
         letter-spacing: -0.2px !important;
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
     }
     .stat-value-sub {
-        font-size: 11px !important;
+        font-size: 10.5px !important;
         color: #64748b !important;
         margin-top: 1px !important;
         white-space: nowrap !important;
@@ -2272,28 +2283,30 @@ html[dir="rtl"] .toast {
         text-overflow: ellipsis !important;
     }
 
-    /* --- Employee Profile Header Card --- */
+    /* --- Employee Profile Header Card (Edge-to-Edge & Balanced) --- */
     .employee-header {
         display: flex !important;
         flex-direction: column !important;
         align-items: stretch !important;
-        gap: 12px !important;
-        padding: 14px !important;
-        border-radius: 12px !important;
-        margin-bottom: 14px !important;
+        gap: 10px !important;
+        padding: 10px !important;
+        border-radius: 10px !important;
+        margin: 0 0 8px 0 !important;
         background: rgba(18, 18, 24, 0.85) !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
     }
     .employee-meta {
         display: flex !important;
         align-items: center !important;
-        gap: 12px !important;
+        gap: 10px !important;
         width: 100% !important;
     }
     .avatar-large {
-        width: 48px !important;
-        height: 48px !important;
-        border-radius: 12px !important;
+        width: 44px !important;
+        height: 44px !important;
+        border-radius: 10px !important;
         flex-shrink: 0 !important;
     }
     .employee-name-row {
@@ -2303,7 +2316,7 @@ html[dir="rtl"] .toast {
         flex-wrap: wrap !important;
     }
     .employee-name-row h2 {
-        font-size: 16px !important;
+        font-size: 15px !important;
         font-weight: 800 !important;
         color: #ffffff !important;
         margin: 0 !important;
@@ -2313,9 +2326,9 @@ html[dir="rtl"] .toast {
         flex-wrap: wrap !important;
         align-items: center !important;
         gap: 6px !important;
-        font-size: 11.5px !important;
+        font-size: 11px !important;
         color: var(--text-muted) !important;
-        margin-top: 3px !important;
+        margin-top: 2px !important;
     }
     .employee-actions {
         display: flex !important;
@@ -2325,15 +2338,16 @@ html[dir="rtl"] .toast {
     }
     .employee-actions .btn {
         flex: 1 1 auto !important;
-        min-height: 36px !important;
+        min-height: 34px !important;
         justify-content: center !important;
-        font-size: 11.5px !important;
-        padding: 6px 8px !important;
+        font-size: 11px !important;
+        padding: 4px 6px !important;
         white-space: nowrap !important;
+        border-radius: 8px !important;
     }
     .employee-actions .btn i {
-        width: 14px !important;
-        height: 14px !important;
+        width: 13px !important;
+        height: 13px !important;
     }
 
     /* --- Task Management Layout & Forms --- */
@@ -2342,59 +2356,67 @@ html[dir="rtl"] .toast {
         flex-direction: column !important;
         grid-template-columns: 1fr !important;
         width: 100% !important;
-        gap: 14px !important;
+        gap: 8px !important;
+        margin: 0 0 8px 0 !important;
     }
     .task-form-column, .tasks-table-panel {
         width: 100% !important;
+        margin: 0 !important;
     }
     .task-form-panel {
-        padding: 14px !important;
-        border-radius: 12px !important;
+        padding: 10px !important;
+        border-radius: 10px !important;
         background: rgba(18, 18, 24, 0.85) !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        margin: 0 0 8px 0 !important;
     }
     .task-form-panel h3 {
-        font-size: 15px !important;
+        font-size: 14px !important;
         font-weight: 700 !important;
-        margin-bottom: 12px !important;
-    }
-    .form-group {
         margin-bottom: 10px !important;
     }
+    .form-group {
+        margin-bottom: 8px !important;
+    }
     .form-group label {
-        font-size: 11.5px !important;
-        margin-bottom: 4px !important;
+        font-size: 11px !important;
+        margin-bottom: 3px !important;
     }
     .form-group input, 
     .form-group select, 
     .form-group textarea {
         font-size: 16px !important; /* Strictly prevents iOS auto-zoom */
-        min-height: 38px !important;
-        padding: 6px 10px !important;
-        border-radius: 8px !important;
+        min-height: 36px !important;
+        padding: 4px 8px !important;
+        border-radius: 7px !important;
     }
     .form-row {
         display: grid !important;
         grid-template-columns: repeat(2, 1fr) !important;
-        gap: 8px !important;
+        gap: 6px !important;
     }
 
     /* --- Tasks Table Panel --- */
     .tasks-table-panel {
-        padding: 14px !important;
-        border-radius: 12px !important;
+        padding: 10px !important;
+        border-radius: 10px !important;
         background: rgba(18, 18, 24, 0.85) !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        margin: 0 0 8px 0 !important;
     }
     .panel-header {
         display: flex !important;
         flex-direction: column !important;
         align-items: stretch !important;
-        gap: 10px !important;
-        margin-bottom: 12px !important;
+        gap: 8px !important;
+        margin-bottom: 10px !important;
     }
     .panel-header h3 {
-        font-size: 15px !important;
+        font-size: 14px !important;
         font-weight: 700 !important;
         color: #ffffff !important;
     }
@@ -2412,27 +2434,39 @@ html[dir="rtl"] .toast {
     .panel-actions #task-search-input {
         flex: 1 1 55% !important;
         width: 100% !important;
-        min-height: 36px !important;
-        font-size: 12px !important;
+        min-height: 34px !important;
+        font-size: 11.5px !important;
+        border-radius: 7px !important;
     }
     .panel-actions #task-filter-month {
         flex: 1 1 45% !important;
-        min-height: 36px !important;
-        font-size: 12px !important;
+        min-height: 34px !important;
+        font-size: 11.5px !important;
+        border-radius: 7px !important;
     }
     .table-container {
         width: 100% !important;
         overflow-x: auto !important;
         -webkit-overflow-scrolling: touch !important;
-        border-radius: 10px !important;
+        border-radius: 8px !important;
         border: 1px solid rgba(255, 255, 255, 0.06) !important;
     }
     table {
-        min-width: 520px !important;
+        min-width: 480px !important;
     }
     table th, table td {
-        padding: 8px 10px !important;
-        font-size: 11.5px !important;
+        padding: 6px 8px !important;
+        font-size: 11px !important;
+    }
+    .employee-detail-section,
+    .manager-panel-section,
+    #dashboard-placeholder,
+    #review-requests-section {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
     }
 
     /* --- Responsive Modals --- */
