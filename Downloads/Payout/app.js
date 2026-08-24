@@ -2138,9 +2138,19 @@ function renderEmployeeDetail(id) {
     const payMethodText = i18n[state.currentLanguage]['payment-' + payMethodKey.replace('_', '')] || payMethodKey;
     document.getElementById('detail-employee-payment').textContent = `${payMethodText} (${emp.paymentDetails || '-'})`;
 
-    // Populate task table
+    // Populate task table & Update live financial summary
     const statusFilter = document.getElementById('task-filter-status').value;
     const monthFilter = empMonthFilter ? empMonthFilter.value : 'all';
+    const empFin = calculateEmployeeFinancials(emp, monthFilter);
+    const grossEl = document.getElementById('emp-summary-gross');
+    const deductEl = document.getElementById('emp-summary-deductions');
+    const withEl = document.getElementById('emp-summary-withdrawals');
+    const netEl = document.getElementById('emp-summary-net');
+    if (grossEl) grossEl.textContent = formatCurrency(empFin.gross, empFin.currency);
+    if (deductEl) deductEl.textContent = formatCurrency(empFin.deductions, empFin.currency);
+    if (withEl) withEl.textContent = formatCurrency(empFin.withdrawals, empFin.currency);
+    if (netEl) netEl.textContent = formatCurrency(empFin.netAvailable, empFin.currency);
+
     const tableBody = document.getElementById('tasks-table-body');
     const fallback = document.getElementById('no-tasks-fallback');
     tableBody.innerHTML = '';
@@ -2395,31 +2405,48 @@ window.editTask = function(empId, taskId) {
     if (window.lucide) window.lucide.createIcons();
 };
 
-function calculateEmployeeFinancials(emp, targetMonth = 'all') {
+function calculateEmployeeFinancials(emp, targetMonth = 'all', preferredCurrency = null) {
     if (!emp) return { gross: 0, deductions: 0, withdrawals: 0, netAvailable: 0, currency: 'USD' };
 
     let totalGross = 0;
     let totalDeductions = 0;
     let totalWithdrawals = 0;
-    let mainCurrency = 'USD';
 
     const tasks = (emp.tasks || []).filter(t => targetMonth === 'all' || t.month === targetMonth);
+    let targetCurr = preferredCurrency;
+    if (!targetCurr) {
+        const currencies = tasks.map(t => t.currency || 'USD');
+        targetCurr = currencies.length > 0 ? currencies[currencies.length - 1] : 'USD';
+    }
+
+    const usdRate = state.exchangeRate || 50;
+
     tasks.forEach(t => {
-        const currency = t.currency || 'USD';
-        mainCurrency = currency;
+        const curr = t.currency || 'USD';
+        let conversionFactor = 1;
+
+        if (curr !== targetCurr) {
+            if (curr === 'USD' && targetCurr === 'EGP') {
+                conversionFactor = usdRate;
+            } else if (curr === 'EGP' && targetCurr === 'USD') {
+                conversionFactor = 1 / usdRate;
+            }
+        }
+
+        const taskGross = Number(t.gross || 0) * conversionFactor;
+
         if (t.type === 'withdrawal') {
-            totalWithdrawals += Number(t.gross || 0);
+            totalWithdrawals += taskGross;
         } else {
-            const gross = Number(t.gross || 0);
             const rate = typeof t.deductionRate === 'number' ? t.deductionRate : (emp.defaultDeductionRate || 10);
-            const delay = Number(t.delayDeduction || 0);
-            const adv = Number(t.advance || 0);
-            const fixed = Number(t.fixedDeduction || 0);
-            const effectiveGross = Math.max(0, gross - fixed);
+            const delay = (Number(t.delayDeduction || 0)) * conversionFactor;
+            const adv = (Number(t.advance || 0)) * conversionFactor;
+            const fixed = (Number(t.fixedDeduction || 0)) * conversionFactor;
+            const effectiveGross = Math.max(0, taskGross - fixed);
             const siteDeduction = effectiveGross * (rate / 100);
             const totalTaskDeductions = siteDeduction + delay + adv + fixed;
             
-            totalGross += gross;
+            totalGross += taskGross;
             totalDeductions += totalTaskDeductions;
         }
     });
@@ -2430,8 +2457,32 @@ function calculateEmployeeFinancials(emp, targetMonth = 'all') {
         deductions: totalDeductions,
         withdrawals: totalWithdrawals,
         netAvailable,
-        currency: mainCurrency
+        currency: targetCurr
     };
+}
+
+function syncPayoutModalFinancials() {
+    const empId = document.getElementById('payout-employee-id').value;
+    if (!empId) return;
+    const emp = state.employees.find(e => String(e.id) === String(empId));
+    if (!emp) return;
+
+    const monthSelect = document.getElementById('payout-month');
+    const currencySelect = document.getElementById('payout-currency');
+    const targetMonth = monthSelect ? monthSelect.value : 'all';
+    const targetCurrency = currencySelect ? currencySelect.value : 'USD';
+
+    const fin = calculateEmployeeFinancials(emp, targetMonth, targetCurrency);
+
+    document.getElementById('payout-calc-gross').textContent = formatCurrency(fin.gross, fin.currency);
+    document.getElementById('payout-calc-deductions').textContent = formatCurrency(fin.deductions, fin.currency);
+    document.getElementById('payout-calc-withdrawals').textContent = formatCurrency(fin.withdrawals, fin.currency);
+    document.getElementById('payout-calc-net').textContent = formatCurrency(fin.netAvailable, fin.currency);
+
+    const amountInput = document.getElementById('payout-amount');
+    if (amountInput) {
+        amountInput.value = fin.netAvailable > 0 ? fin.netAvailable.toFixed(2) : '0.00';
+    }
 }
 
 window.openPayoutModal = function(employeeId) {
@@ -2445,27 +2496,15 @@ window.openPayoutModal = function(employeeId) {
     const empMonthFilter = document.getElementById('task-filter-month');
     const targetMonth = empMonthFilter ? empMonthFilter.value : 'all';
 
-    const fin = calculateEmployeeFinancials(emp, targetMonth);
-
     document.getElementById('payout-employee-id').value = emp.id;
     const subEl = document.getElementById('payout-employee-subtitle');
     if (subEl) {
         subEl.textContent = `${state.currentLanguage === 'ar' ? 'للموظف' : 'For Employee'}: ${emp.name}`;
     }
 
-    document.getElementById('payout-calc-gross').textContent = formatCurrency(fin.gross, fin.currency);
-    document.getElementById('payout-calc-deductions').textContent = formatCurrency(fin.deductions, fin.currency);
-    document.getElementById('payout-calc-withdrawals').textContent = formatCurrency(fin.withdrawals, fin.currency);
-    document.getElementById('payout-calc-net').textContent = formatCurrency(fin.netAvailable, fin.currency);
-
-    const amountInput = document.getElementById('payout-amount');
-    if (amountInput) {
-        amountInput.value = fin.netAvailable > 0 ? fin.netAvailable.toFixed(2) : '';
-    }
-
-    const currencySelect = document.getElementById('payout-currency');
-    if (currencySelect) {
-        currencySelect.value = fin.currency || 'USD';
+    const monthSelect = document.getElementById('payout-month');
+    if (monthSelect) {
+        monthSelect.value = targetMonth !== 'all' ? targetMonth : (state.selectedMonth || 'all');
     }
 
     const payMethodSelect = document.getElementById('payout-payment-method');
@@ -2478,11 +2517,6 @@ window.openPayoutModal = function(employeeId) {
         payDetailsInput.value = emp.paymentDetails || '';
     }
 
-    const monthSelect = document.getElementById('payout-month');
-    if (monthSelect) {
-        monthSelect.value = targetMonth !== 'all' ? targetMonth : (state.selectedMonth || 'all');
-    }
-
     const refInput = document.getElementById('payout-ref-number');
     if (refInput) {
         refInput.value = 'PAYOUT-' + Date.now().toString().slice(-6);
@@ -2493,7 +2527,10 @@ window.openPayoutModal = function(employeeId) {
         notesInput.value = '';
     }
 
+    syncPayoutModalFinancials();
+
     modal.classList.add('active');
+    const amountInput = document.getElementById('payout-amount');
     if (amountInput) amountInput.focus();
     if (window.lucide) window.lucide.createIcons();
 };
@@ -4165,6 +4202,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const cancelBtn = document.getElementById('cancel-payout-modal');
         if (cancelBtn) cancelBtn.addEventListener('click', () => payoutModal.classList.remove('active'));
+
+        const payoutMonthSelect = document.getElementById('payout-month');
+        if (payoutMonthSelect) {
+            payoutMonthSelect.addEventListener('change', () => {
+                syncPayoutModalFinancials();
+            });
+        }
+
+        const payoutCurrencySelect = document.getElementById('payout-currency');
+        if (payoutCurrencySelect) {
+            payoutCurrencySelect.addEventListener('change', () => {
+                syncPayoutModalFinancials();
+            });
+        }
 
         payoutForm.addEventListener('submit', async (e) => {
             e.preventDefault();
