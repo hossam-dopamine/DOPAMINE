@@ -368,12 +368,84 @@ const sendReactivationEmail = async (userEmail, username) => {
   return await sendEmail({ to: userEmail, subject, text, html });
 };
 
+const sendNewTaskNotificationEmail = async (userEmail, username, task) => {
+  const appUrl = process.env.APP_URL || 'https://dopamine-c06w.onrender.com';
+  const safeUsername = escapeHTML(username || 'عضو فريق DOPAMINE');
+  const safeTitle = escapeHTML(task.title || 'مهمة جديدة');
+  const safeTaskNumber = escapeHTML(task.taskNumber || '-');
+  const safeCurrency = escapeHTML(task.currency || 'USD');
+  const amount = Number(task.gross || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const safeMonth = escapeHTML(task.month || '');
+  const isWithdrawal = task.type === 'withdrawal';
+  const opTitle = isWithdrawal ? 'تسجيل عملية سحب جديدة' : 'إسناد مهمة جديدة لك';
+
+  const subject = `📌 ${opTitle}: ${safeTitle} - DOPAMINE`;
+  const text = `مرحباً ${username}،\n\nتم تسجيل ${isWithdrawal ? 'عملية سحب' : 'مهمة جديدة'} لك في منصة DOPAMINE:\n` +
+    `- عنوان المهمة: ${task.title}\n` +
+    `- رقم المهمة: ${task.taskNumber || '-'}\n` +
+    `- المبلغ: ${amount} ${safeCurrency}\n` +
+    (safeMonth ? `- الشهر: ${safeMonth}\n` : '') +
+    `\nيمكنك مراجعة كافة التفاصيل وتسجيل الدخول عبر الرابط التالي:\n${appUrl}\n\nمع تحيات إدارة DOPAMINE.`;
+
+  const html = `
+    <div style="direction: rtl; text-align: right; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 32px 24px; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; max-width: 580px; margin: 20px auto; background: #0f131a; color: #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="display: inline-block; padding: 12px; background: rgba(249, 115, 22, 0.12); border-radius: 14px; border: 1px solid rgba(249, 115, 22, 0.3); margin-bottom: 12px;">
+          <span style="font-size: 30px;">🔥</span>
+        </div>
+        <h2 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 0.5px;">DOPAMINE-SERVICE</h2>
+        <p style="color: #94a3b8; font-size: 13.5px; margin-top: 6px;">إشعار بالمهام والعمليات الجديدة</p>
+      </div>
+
+      <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 22px; margin-bottom: 22px;">
+        <p style="font-size: 15px; color: #cbd5e1; margin-top: 0; margin-bottom: 16px;">
+          مرحباً <strong>${safeUsername}</strong>، تم ${opTitle} في حسابك بالتفاصيل التالية:
+        </p>
+
+        <div style="background: #151a23; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 16px; margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed rgba(255,255,255,0.07); padding-bottom: 8px;">
+            <span style="color: #94a3b8; font-size: 13px;">المهمة / الوصف:</span>
+            <strong style="color: #ffffff; font-size: 14px;">${safeTitle}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed rgba(255,255,255,0.07); padding-bottom: 8px;">
+            <span style="color: #94a3b8; font-size: 13px;">رقم المهمة (Task #):</span>
+            <span style="color: #f97316; font-weight: 700; font-family: monospace; font-size: 14px;">${safeTaskNumber}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed rgba(255,255,255,0.07); padding-bottom: 8px;">
+            <span style="color: #94a3b8; font-size: 13px;">القيمة:</span>
+            <strong style="color: #10b981; font-size: 16px;">${amount} ${safeCurrency}</strong>
+          </div>
+          ${safeMonth ? `
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: #94a3b8; font-size: 13px;">الشهر المستهدف:</span>
+            <span style="color: #cbd5e1; font-size: 13px;">${safeMonth}</span>
+          </div>` : ''}
+        </div>
+
+        <div style="text-align: center; margin: 24px 0 8px 0;">
+          <a href="${appUrl}" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: #ffffff; padding: 13px 32px; text-decoration: none; border-radius: 10px; font-weight: 700; display: inline-block; font-size: 14.5px; box-shadow: 0 4px 15px rgba(249, 115, 22, 0.35);">
+            فتح لوحة التحكم ومتابعة العمل
+          </a>
+        </div>
+      </div>
+
+      <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 20px 0;">
+      <p style="font-size: 11px; color: #64748b; text-align: center; margin: 0;">
+        هذا إشعار تلقائي صادر عن نظام إدارة DOPAMINE-SERVICE &copy; 2026
+      </p>
+    </div>
+  `;
+
+  return await sendEmail({ to: userEmail, subject, text, html });
+};
+
 module.exports = {
   sendApprovalEmail,
   sendRejectionEmail,
   sendSuspensionEmail,
   sendReactivationEmail,
-  sendOtpEmail
+  sendOtpEmail,
+  sendNewTaskNotificationEmail
 };
 
 

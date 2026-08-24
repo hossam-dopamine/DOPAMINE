@@ -400,6 +400,10 @@
                 <span class="mobile-logo-text" data-i18n="app-title">DOPAMINE</span>
             </div>
             <div class="mobile-topbar-actions">
+                <button id="mobile-notification-btn" class="btn btn-secondary btn-icon-only notification-btn" title="الإشعارات" aria-label="الإشعارات">
+                    <i data-lucide="bell"></i>
+                    <span class="notification-badge" id="mobile-notification-badge" style="display: none;">0</span>
+                </button>
                 <button id="mobile-lang-toggle-btn" class="btn btn-secondary btn-icon-only" title="Switch Language" aria-label="Switch Language">
                     <i data-lucide="languages"></i>
                 </button>
@@ -524,6 +528,27 @@
                             <option value="november" data-i18n="month-nov">نوفمبر</option>
                             <option value="december" data-i18n="month-dec">ديسمبر</option>
                         </select>
+                    </div>
+
+                    <!-- Notifications Widget & Dropdown -->
+                    <div class="notification-widget-wrapper" style="position: relative;">
+                        <button id="notification-btn" class="btn btn-secondary btn-icon-only notification-btn" title="الإشعارات" aria-label="الإشعارات">
+                            <i data-lucide="bell"></i>
+                            <span class="notification-badge" id="notification-badge" style="display: none;">0</span>
+                        </button>
+                        <div id="notification-dropdown" class="notification-dropdown glass-panel" style="display: none;">
+                            <div class="notification-dropdown-header">
+                                <div class="notification-dropdown-title">
+                                    <i data-lucide="bell" style="width: 16px; height: 16px; color: var(--color-primary);"></i>
+                                    <span data-i18n="notifications-title">الإشعارات</span>
+                                    <span class="notification-count-badge" id="notification-count-text">0</span>
+                                </div>
+                                <button type="button" id="mark-all-read-btn" class="btn-text-sm" data-i18n="mark-all-read">تحديد الكل كمقروء</button>
+                            </div>
+                            <div class="notification-dropdown-list" id="notification-items-list">
+                                <!-- Dynamic notification items -->
+                            </div>
+                        </div>
                     </div>
 
                     <button id="export-btn" class="btn btn-secondary btn-sm">
@@ -751,6 +776,12 @@
                                         <option value="completed" data-i18n="status-completed">مكتملة</option>
                                         <option value="paid" data-i18n="status-paid">تم الدفع</option>
                                     </select>
+                                </div>
+                                <div class="form-group" id="task-notify-group" style="margin-top: 4px; margin-bottom: 14px;">
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--text-color);">
+                                        <input type="checkbox" id="task-notify-checkbox" checked style="width: 16px; height: 16px; accent-color: var(--color-primary); cursor: pointer;">
+                                        <span data-i18n="notify-employee-label">إرسال إشعار للموظف (بالبريد والتطبيق)</span>
+                                    </label>
                                 </div>
                                 <button type="submit" class="btn btn-primary btn-block">
                                     <i data-lucide="plus-circle"></i>

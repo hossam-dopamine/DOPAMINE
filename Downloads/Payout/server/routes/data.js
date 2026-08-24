@@ -5,9 +5,11 @@ const AppData = require('../models/AppData');
 const Employee = require('../models/Employee');
 const Task = require('../models/Task');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 const { verifyToken, requireAdmin, requireAdminOrLeader } = require('../middleware/auth');
 const { dataMutationLimiter } = require('../middleware/security');
 const { encryptTaskFields, decryptTaskFields } = require('../utils/encryption');
+const { sendNewTaskNotificationEmail } = require('../utils/mailer');
 
 const router = express.Router();
 
@@ -472,6 +474,9 @@ router.post('/tasks', dataMutationLimiter, verifyToken, requireAdminOrLeader, as
       }
     }
 
+    const existingTask = await Task.findOne({ id: taskId, tenantId });
+    const isNew = !existingTask;
+
     const encryptedT = encryptTaskFields(taskData);
 
     const newTask = await Task.findOneAndUpdate(
@@ -501,6 +506,59 @@ router.post('/tasks', dataMutationLimiter, verifyToken, requireAdminOrLeader, as
       },
       { upsert: true, new: true }
     );
+
+    // If new task was created and notifications are not explicitly disabled, notify employee
+    if (isNew && taskData.notify !== false) {
+      (async () => {
+        try {
+          const empId = String(taskData.employeeId);
+          const [emp, userAccount] = await Promise.all([
+            Employee.findOne({ id: empId, tenantId }).lean(),
+            User.findOne({ employeeId: empId, tenantId }).lean()
+          ]);
+
+          const empName = emp ? emp.name : (userAccount ? userAccount.username : 'عضو فريق DOPAMINE');
+          const isWithdrawal = taskData.type === 'withdrawal';
+          const notifTitle = isWithdrawal ? 'عملية سحب جديدة' : `مهمة جديدة: ${taskData.title}`;
+          const notifMessage = isWithdrawal
+            ? `تم تسجيل عملية سحب بقيمة ${taskData.gross || 0} ${taskData.currency || 'USD'}`
+            : `تم إسناد مهمة جديدة (#${taskData.taskNumber || '-'}) بقيمة ${taskData.gross || 0} ${taskData.currency || 'USD'}`;
+
+          // Create in-app notification record in MongoDB
+          await Notification.create({
+            id: 'notif_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+            tenantId,
+            recipientEmployeeId: empId,
+            recipientUserId: userAccount ? userAccount._id : null,
+            title: notifTitle,
+            message: notifMessage,
+            type: isWithdrawal ? 'general' : 'new_task',
+            taskId: taskId,
+            taskNumber: taskData.taskNumber || '',
+            taskTitle: taskData.title,
+            gross: taskData.gross || 0,
+            currency: taskData.currency || 'USD',
+            month: taskData.month || '',
+            read: false,
+            createdAt: new Date()
+          });
+
+          // Send Email if user has an email registered
+          if (userAccount && userAccount.email) {
+            await sendNewTaskNotificationEmail(userAccount.email, empName, {
+              title: taskData.title,
+              taskNumber: taskData.taskNumber,
+              gross: taskData.gross,
+              currency: taskData.currency,
+              month: taskData.month,
+              type: taskData.type
+            });
+          }
+        } catch (notifErr) {
+          console.error('⚠️ Error processing task notification/email:', notifErr.message);
+        }
+      })();
+    }
 
     res.json({ success: true, task: decryptTaskFields(newTask.toObject()) });
   } catch (error) {

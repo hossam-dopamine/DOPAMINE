@@ -3,4 +3,6 @@ node_modules/
 server/.env
 *.tmp
 setup_out.txt
+server/mock_emails.txt
+mock_emails.txt
 

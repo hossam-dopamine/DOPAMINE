@@ -9,6 +9,7 @@ const connectDB = require('./config/db');
 const { applySecurityMiddleware } = require('./middleware/security');
 const authRoutes = require('./routes/auth');
 const dataRoutes = require('./routes/data');
+const notificationRoutes = require('./routes/notifications');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,6 +30,7 @@ applySecurityMiddleware(app);
 // Mount Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/data', dataRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Static files directory (server/public)
 const publicDir = path.join(__dirname, 'public');

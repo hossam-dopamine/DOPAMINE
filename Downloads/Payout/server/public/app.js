@@ -145,7 +145,12 @@ const i18n = {
         "terms-modal-title": "شروط الخدمة وإخلاء المسؤولية القانونية",
         "terms-modal-subtitle": "اتفاقية الاستخدام والمسؤولية الكاملة للمشترك",
         "terms-age-error": "يجب أن يكون عمرك 18 عاماً أو أكثر للتسجيل في النظام.",
-        "terms-agree-error": "يجب تأكيد بلوغ سن 18 عاماً والموافقة على الشروط والأحكام وإخلاء المسؤولية."
+        "terms-agree-error": "يجب تأكيد بلوغ سن 18 عاماً والموافقة على الشروط والأحكام وإخلاء المسؤولية.",
+        "notifications-title": "الإشعارات",
+        "mark-all-read": "تحديد الكل كمقروء",
+        "no-notifications": "لا توجد إشعارات حالياً",
+        "notify-employee-label": "إرسال إشعار للموظف (بالبريد والتطبيق)",
+        "toast-all-read": "تم تحديد جميع الإشعارات كمقروءة"
     },
     en: {
         "app-title": "DOPAMINE-SERVICE",
@@ -298,7 +303,12 @@ const i18n = {
         "password-changed": "Password changed successfully",
         "confirm-delete-task": "Are you sure you want to delete this task?",
         "create-account": "Create Account",
-        "employee-accounts": "Employee Accounts"
+        "employee-accounts": "Employee Accounts",
+        "notifications-title": "Notifications",
+        "mark-all-read": "Mark all as read",
+        "no-notifications": "No notifications yet",
+        "notify-employee-label": "Notify employee (Email & App)",
+        "toast-all-read": "All notifications marked as read"
     }
 };
 
@@ -374,8 +384,258 @@ let state = {
     viewMode: 'placeholder', // 'placeholder', 'employee', 'manager'
     isManagerUnlocked: false,
     exchangeRate: 50.00, // Default exchange rate
-    employees: []
+    employees: [],
+    notifications: [],
+    unreadNotifCount: 0
 };
+
+// --- Notification System Engine ---
+let notificationPollingTimer = null;
+let lastKnownNotificationIds = new Set();
+let isInitialNotifFetch = true;
+
+function playNotificationChime() {
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const now = ctx.currentTime;
+
+        // Tone 1: E5 (659.25 Hz)
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(659.25, now);
+        gain1.gain.setValueAtTime(0.12, now);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.35);
+
+        // Tone 2: A5 (880.00 Hz)
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(880.00, now + 0.12);
+        gain2.gain.setValueAtTime(0.15, now + 0.12);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(now + 0.12);
+        osc2.stop(now + 0.55);
+    } catch (e) {
+        console.warn('Audio chime error:', e);
+    }
+}
+
+function initBrowserNotifications() {
+    if ('Notification' in window) {
+        if (Notification.permission === 'default') {
+            Notification.requestPermission().catch(e => console.log('Notification permission request:', e));
+        }
+    }
+}
+
+function showNativeBrowserNotification(title, message, notif) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+            const n = new Notification(title, {
+                body: message,
+                icon: '/cursor-logo.svg',
+                badge: '/cursor-logo.svg',
+                tag: notif && notif.id ? notif.id : 'dopamine_notif',
+                renotify: true
+            });
+            n.onclick = function() {
+                window.focus();
+                this.close();
+            };
+        } catch (e) {
+            console.warn('Native notification error:', e);
+        }
+    }
+}
+
+function formatRelativeTime(dateString) {
+    if (!dateString) return '';
+    const now = Date.now();
+    const past = new Date(dateString).getTime();
+    const diffSec = Math.floor((now - past) / 1000);
+    const lang = state.currentLanguage || 'ar';
+
+    if (diffSec < 60) {
+        return lang === 'ar' ? 'الآن' : 'Just now';
+    }
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) {
+        return lang === 'ar' ? `منذ ${diffMin} دقيقة` : `${diffMin}m ago`;
+    }
+    const diffHour = Math.floor(diffMin / 60);
+    if (diffHour < 24) {
+        return lang === 'ar' ? `منذ ${diffHour} ساعة` : `${diffHour}h ago`;
+    }
+    const diffDays = Math.floor(diffHour / 24);
+    return lang === 'ar' ? `منذ ${diffDays} يوم` : `${diffDays}d ago`;
+}
+
+function renderNotificationDropdown(notifications, unreadCount) {
+    const badgeEl = document.getElementById('notification-badge');
+    const mobileBadgeEl = document.getElementById('mobile-notification-badge');
+    const countTextEl = document.getElementById('notification-count-text');
+    const listEl = document.getElementById('notification-items-list');
+
+    const displayCount = unreadCount > 99 ? '99+' : unreadCount;
+    if (badgeEl) {
+        badgeEl.textContent = displayCount;
+        badgeEl.style.display = unreadCount > 0 ? 'inline-block' : 'none';
+    }
+    if (mobileBadgeEl) {
+        mobileBadgeEl.textContent = displayCount;
+        mobileBadgeEl.style.display = unreadCount > 0 ? 'inline-block' : 'none';
+    }
+    if (countTextEl) {
+        countTextEl.textContent = unreadCount;
+    }
+
+    if (!listEl) return;
+
+    if (!notifications || notifications.length === 0) {
+        const emptyText = state.currentLanguage === 'ar' ? 'لا توجد إشعارات حالياً' : 'No notifications yet';
+        listEl.innerHTML = `
+            <div class="notification-empty">
+                <i data-lucide="bell-off" style="width:36px;height:36px;opacity:0.4;margin:0 auto 8px;display:block;"></i>
+                <p style="font-size:13px;color:#64748b;margin:0;">${escapeHTML(emptyText)}</p>
+            </div>
+        `;
+        if (window.lucide) window.lucide.createIcons();
+        return;
+    }
+
+    let html = '';
+    notifications.forEach(n => {
+        const isUnread = !n.read;
+        const isWithdrawal = n.type === 'withdrawal' || (n.title && n.title.includes('سحب'));
+        const timeAgo = formatRelativeTime(n.createdAt);
+        const iconName = isWithdrawal ? 'arrow-up-right' : 'sparkles';
+        const iconClass = isWithdrawal ? 'notification-item-icon withdrawal' : 'notification-item-icon';
+
+        html += `
+            <div class="notification-item ${isUnread ? 'unread' : ''}" data-id="${escapeHTML(n.id)}">
+                <div class="${iconClass}">
+                    <i data-lucide="${iconName}" style="width:16px;height:16px;"></i>
+                </div>
+                <div class="notification-item-content">
+                    <div class="notification-item-title">
+                        <span>${escapeHTML(n.title)}</span>
+                        <span class="notification-item-time">${timeAgo}</span>
+                    </div>
+                    <p class="notification-item-msg">${escapeHTML(n.message)}</p>
+                    <div class="notification-item-pills">
+                        ${n.taskNumber ? `<span class="notification-pill">#${escapeHTML(n.taskNumber)}</span>` : ''}
+                        ${n.gross ? `<span class="notification-pill amount">${Number(n.gross).toLocaleString()} ${escapeHTML(n.currency || 'USD')}</span>` : ''}
+                        ${n.month ? `<span class="notification-pill">${escapeHTML(n.month)}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    listEl.innerHTML = html;
+    if (window.lucide) window.lucide.createIcons();
+
+    listEl.querySelectorAll('.notification-item').forEach(el => {
+        el.addEventListener('click', async () => {
+            const notifId = el.getAttribute('data-id');
+            if (notifId && el.classList.contains('unread')) {
+                await markNotificationAsRead(notifId);
+            }
+        });
+    });
+}
+
+async function fetchNotifications() {
+    if (!isAuthenticated()) return;
+    try {
+        const res = await fetch('/api/notifications', { headers: authHeaders() });
+        if (res.status === 401 || res.status === 403) return;
+        if (!res.ok) return;
+
+        const data = await res.json();
+        if (data.success) {
+            const notifications = data.notifications || [];
+            const unreadCount = data.unreadCount || 0;
+
+            if (!isInitialNotifFetch) {
+                const newUnreadItems = notifications.filter(n => !n.read && !lastKnownNotificationIds.has(n.id));
+                if (newUnreadItems.length > 0) {
+                    playNotificationChime();
+                    const latest = newUnreadItems[0];
+                    showNativeBrowserNotification(latest.title, latest.message, latest);
+                    showToastDirectMsg(latest.title + ': ' + latest.message);
+                }
+            }
+
+            lastKnownNotificationIds = new Set(notifications.map(n => n.id));
+            isInitialNotifFetch = false;
+
+            renderNotificationDropdown(notifications, unreadCount);
+        }
+    } catch (err) {
+        console.warn('Error fetching notifications:', err.message);
+    }
+}
+
+async function markNotificationAsRead(notifId) {
+    if (!isAuthenticated() || !notifId) return;
+    try {
+        const res = await fetch(`/api/notifications/${encodeURIComponent(notifId)}/read`, {
+            method: 'PATCH',
+            headers: authHeaders()
+        });
+        if (res.ok) {
+            fetchNotifications();
+        }
+    } catch (e) {
+        console.error('Error marking notification as read:', e);
+    }
+}
+
+async function markAllNotificationsAsRead() {
+    if (!isAuthenticated()) return;
+    try {
+        const res = await fetch('/api/notifications/read-all', {
+            method: 'POST',
+            headers: authHeaders()
+        });
+        if (res.ok) {
+            fetchNotifications();
+            showToastDirectMsg(state.currentLanguage === 'ar' ? 'تم تحديد جميع الإشعارات كمقروءة' : 'All notifications marked as read');
+        }
+    } catch (e) {
+        console.error('Error marking all notifications as read:', e);
+    }
+}
+
+function toggleNotificationDropdown() {
+    const dropdown = document.getElementById('notification-dropdown');
+    if (!dropdown) return;
+    const isHidden = dropdown.style.display === 'none' || !dropdown.style.display;
+    if (isHidden) {
+        dropdown.style.display = 'block';
+        fetchNotifications();
+    } else {
+        dropdown.style.display = 'none';
+    }
+}
+
+function initNotificationSystem() {
+    initBrowserNotifications();
+    fetchNotifications();
+
+    if (notificationPollingTimer) clearInterval(notificationPollingTimer);
+    notificationPollingTimer = setInterval(fetchNotifications, 20000);
+}
 
 // --- Performance Utilities (Debounce & RAF Lucide Scheduler) ---
 function debounce(fn, delay = 150) {
@@ -537,6 +797,7 @@ async function loadStateAsync() {
                 hideLoginOverlay();
                 applyRoleRestrictions();
                 updateUIVisuals();
+                initNotificationSystem();
                 console.log('✅ Loaded data from server successfully!');
                 return;
             }
@@ -3483,18 +3744,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             newTask.eurExchangeRate = state.eurExchangeRate;
         }
 
+        const notifyCheck = document.getElementById('task-notify-checkbox');
+        const notify = notifyCheck ? notifyCheck.checked : true;
+        newTask.notify = notify;
+        newTask.employeeId = emp.id;
+
         emp.tasks.unshift(newTask); // Add to the top of list
         
+        saveTaskApi(newTask);
         const user = getAuthUser();
-        if (user && user.role === 'leader') {
-            newTask.employeeId = emp.id;
-            saveTaskApi(newTask);
-        } else {
+        if (user && user.role === 'admin') {
             saveState();
         }
         
         // Reset form
         document.getElementById('add-task-form').reset();
+        const resetNotifyCheck = document.getElementById('task-notify-checkbox');
+        if (resetNotifyCheck) resetNotifyCheck.checked = true;
         document.getElementById('task-deduction-group').style.display = 'block';
         document.getElementById('task-adjustments-row-1').style.display = 'grid';
         document.getElementById('task-advance-group').style.visibility = 'visible';
@@ -4201,6 +4467,48 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     }
+
+    // Notifications UI Events
+    const notifBtn = document.getElementById('notification-btn');
+    if (notifBtn) {
+        notifBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleNotificationDropdown();
+        });
+    }
+
+    const mobileNotifBtn = document.getElementById('mobile-notification-btn');
+    if (mobileNotifBtn) {
+        mobileNotifBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleNotificationDropdown();
+        });
+    }
+
+    const markAllReadBtn = document.getElementById('mark-all-read-btn');
+    if (markAllReadBtn) {
+        markAllReadBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            markAllNotificationsAsRead();
+        });
+    }
+
+    document.addEventListener('click', (e) => {
+        const dropdown = document.getElementById('notification-dropdown');
+        const nBtn = document.getElementById('notification-btn');
+        const mnBtn = document.getElementById('mobile-notification-btn');
+        if (dropdown && dropdown.style.display !== 'none') {
+            if (!dropdown.contains(e.target) && (!nBtn || !nBtn.contains(e.target)) && (!mnBtn || !mnBtn.contains(e.target))) {
+                dropdown.style.display = 'none';
+            }
+        }
+    });
+
+    window.addEventListener('focus', () => {
+        if (isAuthenticated()) {
+            fetchNotifications();
+        }
+    });
 
     // Ensure Lucide icons render reliably
     function ensureLucideIcons() {
