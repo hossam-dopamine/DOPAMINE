@@ -483,6 +483,7 @@ function renderNotificationDropdown(notifications, unreadCount) {
     const badgeEl = document.getElementById('notification-badge');
     const mobileBadgeEl = document.getElementById('mobile-notification-badge');
     const countTextEl = document.getElementById('notification-count-text');
+    const subtitleEl = document.getElementById('notification-scope-subtitle');
     const listEl = document.getElementById('notification-items-list');
 
     const displayCount = unreadCount > 99 ? '99+' : unreadCount;
@@ -497,15 +498,28 @@ function renderNotificationDropdown(notifications, unreadCount) {
     if (countTextEl) {
         countTextEl.textContent = unreadCount;
     }
+    if (subtitleEl) {
+        const isAr = state.currentLanguage === 'ar';
+        const role = state.user ? state.user.role : '';
+        if (role === 'employee') {
+            subtitleEl.textContent = isAr ? 'المهام والتنبيهات المخصصة لك فقط' : 'Your personal task alerts';
+        } else if (role === 'leader') {
+            subtitleEl.textContent = isAr ? 'إشعارات أعضاء فريقك المخصصين' : 'Assigned team member alerts';
+        } else {
+            subtitleEl.textContent = isAr ? 'سجل إشعارات مهام الفريق' : 'Team notification feed';
+        }
+    }
 
     if (!listEl) return;
 
     if (!notifications || notifications.length === 0) {
-        const emptyText = state.currentLanguage === 'ar' ? 'لا توجد إشعارات حالياً' : 'No notifications yet';
+        const emptyText = state.currentLanguage === 'ar' ? 'لا توجد إشعارات جديدة' : 'No notifications yet';
+        const emptySub = state.currentLanguage === 'ar' ? 'سيتم إشعارك فور تسجيل أي مهمة أو عملية جديدة' : 'You will be alerted when new tasks are created';
         listEl.innerHTML = `
             <div class="notification-empty">
-                <i data-lucide="bell-off" style="width:36px;height:36px;opacity:0.4;margin:0 auto 8px;display:block;"></i>
-                <p style="font-size:13px;color:#64748b;margin:0;">${escapeHTML(emptyText)}</p>
+                <i data-lucide="bell-off"></i>
+                <p style="font-weight: 700; color: #fff; margin-bottom: 4px;">${escapeHTML(emptyText)}</p>
+                <span style="font-size: 12px; color: var(--text-dim);">${escapeHTML(emptySub)}</span>
             </div>
         `;
         if (window.lucide) window.lucide.createIcons();
@@ -519,22 +533,24 @@ function renderNotificationDropdown(notifications, unreadCount) {
         const timeAgo = formatRelativeTime(n.createdAt);
         const iconName = isWithdrawal ? 'arrow-up-right' : 'sparkles';
         const iconClass = isWithdrawal ? 'notification-item-icon withdrawal' : 'notification-item-icon';
+        const empName = n.recipientEmployeeName || '';
 
         html += `
-            <div class="notification-item ${isUnread ? 'unread' : ''}" data-id="${escapeHTML(n.id)}">
+            <div class="notification-item ${isUnread ? 'unread' : ''}" data-id="${escapeHTML(n.id)}" data-emp-id="${escapeHTML(n.recipientEmployeeId || '')}" data-task-id="${escapeHTML(n.taskId || '')}">
                 <div class="${iconClass}">
-                    <i data-lucide="${iconName}" style="width:16px;height:16px;"></i>
+                    <i data-lucide="${iconName}" style="width: 17px; height: 17px;"></i>
                 </div>
                 <div class="notification-item-content">
-                    <div class="notification-item-title">
-                        <span>${escapeHTML(n.title)}</span>
+                    <div class="notification-item-header-line">
+                        <span class="notification-item-title">${escapeHTML(n.title)}</span>
                         <span class="notification-item-time">${timeAgo}</span>
                     </div>
                     <p class="notification-item-msg">${escapeHTML(n.message)}</p>
                     <div class="notification-item-pills">
-                        ${n.taskNumber ? `<span class="notification-pill">#${escapeHTML(n.taskNumber)}</span>` : ''}
-                        ${n.gross ? `<span class="notification-pill amount">${Number(n.gross).toLocaleString()} ${escapeHTML(n.currency || 'USD')}</span>` : ''}
-                        ${n.month ? `<span class="notification-pill">${escapeHTML(n.month)}</span>` : ''}
+                        ${empName ? `<span class="notification-pill employee"><i data-lucide="user" style="width: 11px; height: 11px;"></i> ${escapeHTML(empName)}</span>` : ''}
+                        ${n.taskNumber ? `<span class="notification-pill task-num">#${escapeHTML(n.taskNumber)}</span>` : ''}
+                        ${n.gross ? `<span class="notification-pill amount">💰 ${Number(n.gross).toLocaleString()} ${escapeHTML(n.currency || 'USD')}</span>` : ''}
+                        ${n.month ? `<span class="notification-pill month">📅 ${escapeHTML(n.month)}</span>` : ''}
                     </div>
                 </div>
             </div>
@@ -547,8 +563,21 @@ function renderNotificationDropdown(notifications, unreadCount) {
     listEl.querySelectorAll('.notification-item').forEach(el => {
         el.addEventListener('click', async () => {
             const notifId = el.getAttribute('data-id');
+            const empId = el.getAttribute('data-emp-id');
             if (notifId && el.classList.contains('unread')) {
                 await markNotificationAsRead(notifId);
+            }
+            // Navigate or filter by employee if in manager/leader view
+            if (empId && state.isManagerUnlocked && typeof state.selectedEmployeeId !== 'undefined') {
+                const emp = state.employees.find(e => String(e.id) === String(empId));
+                if (emp) {
+                    const empSelect = document.getElementById('employee-select');
+                    if (empSelect) {
+                        empSelect.value = empId;
+                        state.selectedEmployeeId = empId;
+                        renderDashboard();
+                    }
+                }
             }
         });
     });
@@ -617,15 +646,30 @@ async function markAllNotificationsAsRead() {
     }
 }
 
+function openNotificationDropdown() {
+    const dropdown = document.getElementById('notification-dropdown');
+    const backdrop = document.getElementById('notification-backdrop');
+    if (dropdown) dropdown.style.display = 'flex';
+    if (backdrop) backdrop.style.display = 'block';
+    fetchNotifications();
+    if (window.lucide) window.lucide.createIcons();
+}
+
+function closeNotificationDropdown() {
+    const dropdown = document.getElementById('notification-dropdown');
+    const backdrop = document.getElementById('notification-backdrop');
+    if (dropdown) dropdown.style.display = 'none';
+    if (backdrop) backdrop.style.display = 'none';
+}
+
 function toggleNotificationDropdown() {
     const dropdown = document.getElementById('notification-dropdown');
     if (!dropdown) return;
     const isHidden = dropdown.style.display === 'none' || !dropdown.style.display;
     if (isHidden) {
-        dropdown.style.display = 'block';
-        fetchNotifications();
+        openNotificationDropdown();
     } else {
-        dropdown.style.display = 'none';
+        closeNotificationDropdown();
     }
 }
 
@@ -4557,6 +4601,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    const notifBackdrop = document.getElementById('notification-backdrop');
+    if (notifBackdrop) {
+        notifBackdrop.addEventListener('click', () => {
+            closeNotificationDropdown();
+        });
+    }
+
+    const closeNotifBtn = document.getElementById('close-notification-dropdown-btn');
+    if (closeNotifBtn) {
+        closeNotifBtn.addEventListener('click', () => {
+            closeNotificationDropdown();
+        });
+    }
+
     const markAllReadBtn = document.getElementById('mark-all-read-btn');
     if (markAllReadBtn) {
         markAllReadBtn.addEventListener('click', (e) => {
@@ -4565,14 +4623,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    document.addEventListener('click', (e) => {
-        const dropdown = document.getElementById('notification-dropdown');
-        const nBtn = document.getElementById('notification-btn');
-        const mnBtn = document.getElementById('mobile-notification-btn');
-        if (dropdown && dropdown.style.display !== 'none') {
-            if (!dropdown.contains(e.target) && (!nBtn || !nBtn.contains(e.target)) && (!mnBtn || !mnBtn.contains(e.target))) {
-                dropdown.style.display = 'none';
-            }
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeNotificationDropdown();
         }
     });
 

@@ -18,6 +18,10 @@ const notificationSchema = new mongoose.Schema({
     required: true,
     index: true
   },
+  recipientEmployeeName: {
+    type: String,
+    default: ''
+  },
   recipientUserId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

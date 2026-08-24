@@ -529,6 +529,7 @@ router.post('/tasks', dataMutationLimiter, verifyToken, requireAdminOrLeader, as
             id: 'notif_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
             tenantId,
             recipientEmployeeId: empId,
+            recipientEmployeeName: empName,
             recipientUserId: userAccount ? userAccount._id : null,
             title: notifTitle,
             message: notifMessage,
