@@ -1246,7 +1246,7 @@ function calculateDashboardStats() {
                     withdrawals_paid_eur += eurVal;
                 }
             } else { // Regular task
-                if (task.status === 'completed' || task.status === 'paid') {
+                if (task.status === 'completed') {
                     completedTasksCount++;
 
                     const delay = task.delayDeduction || 0;
@@ -1277,11 +1277,7 @@ function calculateDashboardStats() {
                     totalGrossEGP += grossEgp; totalGrossUSD += grossUsd; totalGrossEUR += grossEur;
                     totalDeductionsEGP += dedEgp; totalDeductionsUSD += dedUsd; totalDeductionsEUR += dedEur;
 
-                    if (task.status === 'paid') {
-                        earnings_paid_egp += netEgp; earnings_paid_usd += netUsd; earnings_paid_eur += netEur;
-                    } else if (task.status === 'completed') {
-                        earnings_completed_egp += netEgp; earnings_completed_usd += netUsd; earnings_completed_eur += netEur;
-                    }
+                    earnings_completed_egp += netEgp; earnings_completed_usd += netUsd; earnings_completed_eur += netEur;
                 }
             }
         });
@@ -1547,7 +1543,7 @@ function renderManagerPanel() {
                     }
                 }
             } else { // Regular task
-                if (task.status === 'completed' || task.status === 'paid') {
+                if (task.status === 'completed') {
                     empCompletedCount++;
                     const delay = task.delayDeduction || 0;
                     const adv = task.advance || 0;
@@ -1558,19 +1554,13 @@ function renderManagerPanel() {
                     if (currency === 'EGP') {
                         empGrossEGP += grossMinusFixed;
                         empGrossUSD += grossMinusFixed / rate;
-                        
-                        if (task.status === 'completed') {
-                            earnings_completed_egp += netVal;
-                            earnings_completed_usd += netVal / rate;
-                        }
+                        earnings_completed_egp += netVal;
+                        earnings_completed_usd += netVal / rate;
                     } else {
                         empGrossUSD += grossMinusFixed;
                         empGrossEGP += grossMinusFixed * rate;
-                        
-                        if (task.status === 'completed') {
-                            earnings_completed_usd += netVal;
-                            earnings_completed_egp += netVal * rate;
-                        }
+                        earnings_completed_usd += netVal;
+                        earnings_completed_egp += netVal * rate;
                     }
                 }
             }
@@ -2443,31 +2433,25 @@ function calculateEmployeeFinancials(emp, targetMonth = 'all', preferredCurrency
         if (t.type === 'withdrawal') {
             totalWithdrawals += taskGross;
         } else {
-            const defaultRate = typeof emp.defaultDeductionRate === 'number' ? emp.defaultDeductionRate : 10;
-            const rate = typeof t.deductionRate === 'number' ? t.deductionRate : defaultRate;
-            const delay = (Number(t.delayDeduction || 0)) * conversionFactor;
-            const adv = (Number(t.advance || 0)) * conversionFactor;
-            const fixed = (Number(t.fixedDeduction || 0)) * conversionFactor;
-            
-            const taskNet = calculateTaskNet(taskGross, rate, delay, adv, fixed);
-            const taskDeduction = taskGross - taskNet;
-
-            totalGross += taskGross;
-            totalDeductions += taskDeduction;
-            totalNet += taskNet;
-
+            // Calculate ONLY completed tasks (ignore pending and paid)
             if (t.status === 'completed') {
-                earningsCompletedNet += taskNet;
-            } else if (t.status === 'paid') {
-                earningsPaidNet += taskNet;
-            } else {
-                // Pending tasks count into net pool if no other completed
-                earningsCompletedNet += taskNet;
+                const defaultRate = typeof emp.defaultDeductionRate === 'number' ? emp.defaultDeductionRate : 10;
+                const rate = typeof t.deductionRate === 'number' ? t.deductionRate : defaultRate;
+                const delay = (Number(t.delayDeduction || 0)) * conversionFactor;
+                const adv = (Number(t.advance || 0)) * conversionFactor;
+                const fixed = (Number(t.fixedDeduction || 0)) * conversionFactor;
+                
+                const taskNet = calculateTaskNet(taskGross, rate, delay, adv, fixed);
+                const taskDeduction = taskGross - taskNet;
+
+                totalGross += taskGross;
+                totalDeductions += taskDeduction;
+                totalNet += taskNet;
             }
         }
     });
 
-    const netAvailable = Math.max(0, earningsCompletedNet - totalWithdrawals);
+    const netAvailable = Math.max(0, totalNet - totalWithdrawals);
     return {
         gross: totalGross,
         deductions: totalDeductions,
