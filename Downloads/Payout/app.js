@@ -2431,7 +2431,10 @@ function calculateEmployeeFinancials(emp, targetMonth = 'all', preferredCurrency
         const taskGross = Number(t.gross || 0) * conversionFactor;
 
         if (t.type === 'withdrawal') {
-            totalWithdrawals += taskGross;
+            // Only count active unsettled withdrawals (exclude settled payouts)
+            if (!t.settled && t.status !== 'paid') {
+                totalWithdrawals += taskGross;
+            }
         } else {
             // Calculate ONLY completed tasks (ignore pending and paid)
             if (t.status === 'completed') {
@@ -4229,6 +4232,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const notes = document.getElementById('payout-notes').value.trim();
             const notifyInApp = document.getElementById('payout-notify-inapp') ? document.getElementById('payout-notify-inapp').checked : true;
             const notifyEmail = document.getElementById('payout-notify-email') ? document.getElementById('payout-notify-email').checked : true;
+            const shouldSettle = document.getElementById('payout-settle-completed-tasks') ? document.getElementById('payout-settle-completed-tasks').checked : true;
 
             if (!employeeId || amount <= 0) return;
 
@@ -4243,6 +4247,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 employeeId,
                 type: 'withdrawal',
                 isPayout: true,
+                settled: true,
                 taskNumber: refNumber || ('PAYOUT-' + Date.now().toString().slice(-6)),
                 title: payoutTitle,
                 gross: amount,
@@ -4259,6 +4264,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 createdAt: new Date().toISOString()
             };
 
+            // If settlement is enabled, mark current completed tasks as 'paid'
+            const tasksToSync = [];
+            if (shouldSettle && emp.tasks) {
+                emp.tasks.forEach(t => {
+                    if (t.type !== 'withdrawal' && t.status === 'completed' && (month === 'all' || t.month === month)) {
+                        t.status = 'paid';
+                        tasksToSync.push(t);
+                    }
+                });
+            }
+
             if (!emp.tasks) emp.tasks = [];
             emp.tasks.push(payoutTask);
 
@@ -4266,6 +4282,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             showToastDirectMsg(i18n[state.currentLanguage]['toast-payout-success'] || '✅ تم تسجيل وصرف الـ Payout وإشعار الموظف بنجاح!');
 
             await saveTaskApi(payoutTask);
+            for (const t of tasksToSync) {
+                await saveTaskApi(t);
+            }
             await saveData();
             calculateDashboardStats();
             renderDashboard();
