@@ -1944,13 +1944,13 @@ html[dir="rtl"] .toast {
    ========================================================================== */
 
 @media (max-width: 1023px) {
-    /* --- Top Navigation Bar --- */
+    /* --- Top Navigation Bar (Dynamic Fluid Sizing) --- */
     .mobile-topbar {
         display: flex !important;
         align-items: center;
         justify-content: space-between;
-        padding: max(6px, var(--sat)) 12px 6px 12px;
-        height: calc(52px + var(--sat));
+        padding: max(6px, var(--sat)) clamp(8px, 2.5vw, 14px) 6px clamp(8px, 2.5vw, 14px);
+        height: calc(clamp(48px, 13vw, 54px) + var(--sat));
         position: sticky;
         top: 0;
         z-index: 50;
@@ -1958,11 +1958,13 @@ html[dir="rtl"] .toast {
         backdrop-filter: var(--glass-blur);
         -webkit-backdrop-filter: var(--glass-blur);
         border-bottom: 1px solid var(--border-color);
+        width: 100% !important;
+        box-sizing: border-box !important;
     }
     .mobile-toggle-btn {
-        min-width: 38px;
-        min-height: 38px;
-        padding: 6px;
+        min-width: clamp(34px, 9.5vw, 38px);
+        min-height: clamp(34px, 9.5vw, 38px);
+        padding: 5px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1971,16 +1973,16 @@ html[dir="rtl"] .toast {
     .mobile-logo-area {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: clamp(4px, 1.5vw, 7px);
     }
     .mobile-logo-icon {
-        width: 20px;
-        height: 20px;
+        width: clamp(18px, 5vw, 22px);
+        height: clamp(18px, 5vw, 22px);
         color: var(--color-primary);
         filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.5));
     }
     .mobile-logo-text {
-        font-size: 15px;
+        font-size: clamp(14px, 4vw, 16px);
         font-weight: 800;
         letter-spacing: 0.5px;
         background: linear-gradient(135deg, #fff 40%, var(--text-muted));
@@ -1990,12 +1992,12 @@ html[dir="rtl"] .toast {
     .mobile-topbar-actions {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: clamp(4px, 1.5vw, 7px);
     }
     .mobile-topbar-actions .btn {
-        min-width: 36px;
-        min-height: 36px;
-        padding: 6px;
+        min-width: clamp(32px, 9vw, 36px);
+        min-height: clamp(32px, 9vw, 36px);
+        padding: 5px;
         border-radius: 8px;
     }
 
@@ -2079,7 +2081,7 @@ html[dir="rtl"] .toast {
         border-radius: 8px;
     }
 
-    /* --- Main Container Layout (Phone Edge-to-Edge with Zero Dead Space) --- */
+    /* --- Main Container Layout (Dynamic Fluid Edge-to-Edge) --- */
     .app-container {
         display: flex !important;
         flex-direction: column !important;
@@ -2097,20 +2099,20 @@ html[dir="rtl"] .toast {
         height: auto !important;
         overflow-y: visible !important;
         overflow-x: hidden !important;
-        padding: 8px 8px calc(20px + var(--sab)) 8px !important;
+        padding: clamp(6px, 2vw, 10px) clamp(6px, 2vw, 10px) calc(20px + var(--sab)) clamp(6px, 2vw, 10px) !important;
         margin: 0 !important;
         box-sizing: border-box !important;
     }
 
-    /* --- Header Bar (Linear / Stripe Fintech Style - Zero Side Gap) --- */
+    /* --- Header Bar (Dynamic Fluid Scaling) --- */
     .header {
         display: flex !important;
         flex-direction: column !important;
         align-items: stretch !important;
-        gap: 8px !important;
-        padding: 10px !important;
-        border-radius: 10px !important;
-        margin: 0 0 8px 0 !important;
+        gap: clamp(6px, 2vw, 10px) !important;
+        padding: clamp(8px, 2.5vw, 12px) !important;
+        border-radius: clamp(8px, 2.5vw, 12px) !important;
+        margin: 0 0 clamp(6px, 2vw, 10px) 0 !important;
         width: 100% !important;
         box-sizing: border-box !important;
     }
@@ -2118,20 +2120,20 @@ html[dir="rtl"] .toast {
         text-align: start !important;
     }
     .header-info h1 {
-        font-size: clamp(15.5px, 4.6vw, 18.5px) !important;
+        font-size: clamp(15px, 4.4vw, 18.5px) !important;
         font-weight: 800 !important;
         color: #ffffff !important;
         margin-bottom: 2px !important;
     }
     .header-info .current-date {
-        font-size: 11px !important;
+        font-size: clamp(10px, 2.8vw, 11.5px) !important;
         color: var(--text-muted) !important;
     }
     .header-actions {
         display: flex !important;
         flex-wrap: wrap !important;
         align-items: center !important;
-        gap: 6px !important;
+        gap: clamp(4px, 1.5vw, 8px) !important;
         width: 100% !important;
         margin: 0 !important;
     }
@@ -2139,10 +2141,10 @@ html[dir="rtl"] .toast {
         display: flex !important;
         align-items: center !important;
         justify-content: space-between !important;
-        gap: 4px !important;
+        gap: clamp(3px, 1vw, 6px) !important;
         width: 100% !important;
         flex: 1 1 100% !important;
-        padding: 5px 8px !important;
+        padding: clamp(4px, 1.5vw, 6px) clamp(6px, 2vw, 10px) !important;
         background: rgba(255, 255, 255, 0.03) !important;
         border: 1px solid var(--border-color) !important;
         border-radius: 8px !important;
@@ -2157,23 +2159,23 @@ html[dir="rtl"] .toast {
         display: inline-flex !important;
         align-items: center !important;
         gap: 3px !important;
-        font-size: 10.5px !important;
+        font-size: clamp(10px, 2.8vw, 11.5px) !important;
         white-space: nowrap !important;
         flex: 1 !important;
         justify-content: center !important;
     }
     .exchange-rate-widget input {
-        width: 46px !important;
-        height: 22px !important;
+        width: clamp(42px, 12vw, 52px) !important;
+        height: clamp(22px, 6.2vw, 26px) !important;
         padding: 1px 2px !important;
-        font-size: 11px !important;
+        font-size: clamp(10.5px, 3vw, 12px) !important;
         text-align: center !important;
         border-radius: 4px !important;
     }
     .exchange-rate-widget #sync-rate-btn {
-        min-width: 26px !important;
-        min-height: 26px !important;
-        padding: 4px !important;
+        min-width: clamp(24px, 7vw, 28px) !important;
+        min-height: clamp(24px, 7vw, 28px) !important;
+        padding: 3px !important;
         flex-shrink: 0 !important;
     }
     .header-actions .filter-group {
@@ -2183,16 +2185,16 @@ html[dir="rtl"] .toast {
     }
     .header-actions .filter-group select {
         width: 100% !important;
-        height: 34px !important;
-        font-size: 12px !important;
+        height: clamp(32px, 9vw, 36px) !important;
+        font-size: clamp(11.5px, 3.2vw, 13px) !important;
         border-radius: 8px !important;
     }
     .header-actions #export-btn,
     .header-actions #import-btn,
     .header-actions #clear-data-btn {
         flex: 1 1 28% !important;
-        min-height: 34px !important;
-        font-size: 11px !important;
+        min-height: clamp(32px, 9vw, 36px) !important;
+        font-size: clamp(10.5px, 2.8vw, 12px) !important;
         padding: 4px 6px !important;
         justify-content: center !important;
         white-space: nowrap !important;
@@ -2200,12 +2202,12 @@ html[dir="rtl"] .toast {
         margin: 0 !important;
     }
 
-    /* --- Stats Metrics Cards (Flush Grid with Zero Horizontal Gaps) --- */
+    /* --- Stats Metrics Cards (Dynamic Fluid 2-Column Responsive Grid) --- */
     .stats-grid {
         display: grid !important;
         grid-template-columns: repeat(2, 1fr) !important;
-        gap: 6px !important;
-        margin: 0 0 8px 0 !important;
+        gap: clamp(5px, 1.8vw, 8px) !important;
+        margin: 0 0 clamp(6px, 2vw, 10px) 0 !important;
         width: 100% !important;
         box-sizing: border-box !important;
     }
@@ -2214,9 +2216,9 @@ html[dir="rtl"] .toast {
         display: flex !important;
         flex-direction: column !important;
         align-items: flex-start !important;
-        padding: 8px 10px !important;
+        padding: clamp(7px, 2.2vw, 11px) clamp(8px, 2.5vw, 12px) !important;
         gap: 4px !important;
-        border-radius: 10px !important;
+        border-radius: clamp(8px, 2vw, 12px) !important;
         background: rgba(18, 18, 24, 0.85) !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
         box-sizing: border-box !important;
@@ -2230,7 +2232,7 @@ html[dir="rtl"] .toast {
         flex-direction: row !important;
         align-items: center !important;
         justify-content: space-between !important;
-        padding: 10px 12px !important;
+        padding: clamp(9px, 2.5vw, 12px) clamp(10px, 3vw, 14px) !important;
     }
     .stat-card:nth-child(5) .stat-info {
         display: flex !important;
@@ -2242,21 +2244,21 @@ html[dir="rtl"] .toast {
         margin-bottom: 0 !important;
     }
     .stat-icon-wrapper {
-        width: 28px !important;
-        height: 28px !important;
+        width: clamp(26px, 7.5vw, 32px) !important;
+        height: clamp(26px, 7.5vw, 32px) !important;
         border-radius: 7px !important;
         flex-shrink: 0 !important;
     }
     .stat-icon-wrapper i {
-        width: 14px !important;
-        height: 14px !important;
+        width: clamp(13px, 3.8vw, 16px) !important;
+        height: clamp(13px, 3.8vw, 16px) !important;
     }
     .stat-info {
         width: 100% !important;
         min-width: 0 !important;
     }
     .stat-info h4 {
-        font-size: 10.5px !important;
+        font-size: clamp(10px, 2.8vw, 11.5px) !important;
         font-weight: 600 !important;
         color: #94a3b8 !important;
         margin-bottom: 2px !important;
@@ -2265,7 +2267,7 @@ html[dir="rtl"] .toast {
         text-overflow: ellipsis !important;
     }
     .stat-value {
-        font-size: clamp(13px, 3.6vw, 15.5px) !important;
+        font-size: clamp(12.5px, 3.6vw, 15.5px) !important;
         font-weight: 800 !important;
         color: #ffffff !important;
         line-height: 1.2 !important;
@@ -2275,7 +2277,7 @@ html[dir="rtl"] .toast {
         text-overflow: ellipsis !important;
     }
     .stat-value-sub {
-        font-size: 10.5px !important;
+        font-size: clamp(10px, 2.7vw, 11.5px) !important;
         color: #64748b !important;
         margin-top: 1px !important;
         white-space: nowrap !important;
@@ -2283,15 +2285,15 @@ html[dir="rtl"] .toast {
         text-overflow: ellipsis !important;
     }
 
-    /* --- Employee Profile Header Card (Edge-to-Edge & Balanced) --- */
+    /* --- Employee Profile Header Card (Dynamic Scaling) --- */
     .employee-header {
         display: flex !important;
         flex-direction: column !important;
         align-items: stretch !important;
-        gap: 10px !important;
-        padding: 10px !important;
-        border-radius: 10px !important;
-        margin: 0 0 8px 0 !important;
+        gap: clamp(8px, 2.2vw, 12px) !important;
+        padding: clamp(8px, 2.5vw, 12px) !important;
+        border-radius: clamp(8px, 2vw, 12px) !important;
+        margin: 0 0 clamp(6px, 2vw, 10px) 0 !important;
         background: rgba(18, 18, 24, 0.85) !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
         width: 100% !important;
@@ -2300,12 +2302,12 @@ html[dir="rtl"] .toast {
     .employee-meta {
         display: flex !important;
         align-items: center !important;
-        gap: 10px !important;
+        gap: clamp(8px, 2.5vw, 12px) !important;
         width: 100% !important;
     }
     .avatar-large {
-        width: 44px !important;
-        height: 44px !important;
+        width: clamp(40px, 11vw, 48px) !important;
+        height: clamp(40px, 11vw, 48px) !important;
         border-radius: 10px !important;
         flex-shrink: 0 !important;
     }
@@ -2316,7 +2318,7 @@ html[dir="rtl"] .toast {
         flex-wrap: wrap !important;
     }
     .employee-name-row h2 {
-        font-size: 15px !important;
+        font-size: clamp(14.5px, 4.2vw, 17px) !important;
         font-weight: 800 !important;
         color: #ffffff !important;
         margin: 0 !important;
@@ -2326,7 +2328,7 @@ html[dir="rtl"] .toast {
         flex-wrap: wrap !important;
         align-items: center !important;
         gap: 6px !important;
-        font-size: 11px !important;
+        font-size: clamp(10.5px, 2.9vw, 11.5px) !important;
         color: var(--text-muted) !important;
         margin-top: 2px !important;
     }
@@ -2338,9 +2340,9 @@ html[dir="rtl"] .toast {
     }
     .employee-actions .btn {
         flex: 1 1 auto !important;
-        min-height: 34px !important;
+        min-height: clamp(32px, 9vw, 36px) !important;
         justify-content: center !important;
-        font-size: 11px !important;
+        font-size: clamp(10.5px, 2.8vw, 12px) !important;
         padding: 4px 6px !important;
         white-space: nowrap !important;
         border-radius: 8px !important;
@@ -2356,92 +2358,92 @@ html[dir="rtl"] .toast {
         flex-direction: column !important;
         grid-template-columns: 1fr !important;
         width: 100% !important;
-        gap: 8px !important;
-        margin: 0 0 8px 0 !important;
+        gap: clamp(6px, 2vw, 10px) !important;
+        margin: 0 0 clamp(6px, 2vw, 10px) 0 !important;
     }
     .task-form-column, .tasks-table-panel {
         width: 100% !important;
         margin: 0 !important;
     }
     .task-form-panel {
-        padding: 10px !important;
-        border-radius: 10px !important;
+        padding: clamp(8px, 2.5vw, 12px) !important;
+        border-radius: clamp(8px, 2vw, 12px) !important;
         background: rgba(18, 18, 24, 0.85) !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
         width: 100% !important;
         box-sizing: border-box !important;
-        margin: 0 0 8px 0 !important;
+        margin: 0 0 clamp(6px, 2vw, 10px) 0 !important;
     }
     .task-form-panel h3 {
-        font-size: 14px !important;
+        font-size: clamp(13.5px, 3.8vw, 15px) !important;
         font-weight: 700 !important;
-        margin-bottom: 10px !important;
-    }
-    .form-group {
         margin-bottom: 8px !important;
     }
+    .form-group {
+        margin-bottom: 7px !important;
+    }
     .form-group label {
-        font-size: 11px !important;
+        font-size: clamp(10.5px, 2.8vw, 11.5px) !important;
         margin-bottom: 3px !important;
     }
     .form-group input, 
     .form-group select, 
     .form-group textarea {
         font-size: 16px !important; /* Strictly prevents iOS auto-zoom */
-        min-height: 36px !important;
+        min-height: clamp(34px, 9.5vw, 38px) !important;
         padding: 4px 8px !important;
         border-radius: 7px !important;
     }
     .form-row {
         display: grid !important;
         grid-template-columns: repeat(2, 1fr) !important;
-        gap: 6px !important;
+        gap: clamp(4px, 1.5vw, 7px) !important;
     }
 
     /* --- Tasks Table Panel --- */
     .tasks-table-panel {
-        padding: 10px !important;
-        border-radius: 10px !important;
+        padding: clamp(8px, 2.5vw, 12px) !important;
+        border-radius: clamp(8px, 2vw, 12px) !important;
         background: rgba(18, 18, 24, 0.85) !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
         width: 100% !important;
         box-sizing: border-box !important;
-        margin: 0 0 8px 0 !important;
+        margin: 0 0 clamp(6px, 2vw, 10px) 0 !important;
     }
     .panel-header {
         display: flex !important;
         flex-direction: column !important;
         align-items: stretch !important;
-        gap: 8px !important;
-        margin-bottom: 10px !important;
+        gap: 7px !important;
+        margin-bottom: 8px !important;
     }
     .panel-header h3 {
-        font-size: 14px !important;
+        font-size: clamp(13.5px, 3.8vw, 15px) !important;
         font-weight: 700 !important;
         color: #ffffff !important;
     }
     .panel-actions {
         display: flex !important;
         align-items: center !important;
-        gap: 6px !important;
+        gap: clamp(4px, 1.5vw, 7px) !important;
         width: 100% !important;
     }
     .panel-actions .filter-group {
         display: flex !important;
-        gap: 6px !important;
+        gap: clamp(4px, 1.5vw, 7px) !important;
         width: 100% !important;
     }
     .panel-actions #task-search-input {
         flex: 1 1 55% !important;
         width: 100% !important;
-        min-height: 34px !important;
-        font-size: 11.5px !important;
+        min-height: clamp(32px, 9vw, 36px) !important;
+        font-size: clamp(11px, 3vw, 12px) !important;
         border-radius: 7px !important;
     }
     .panel-actions #task-filter-month {
         flex: 1 1 45% !important;
-        min-height: 34px !important;
-        font-size: 11.5px !important;
+        min-height: clamp(32px, 9vw, 36px) !important;
+        font-size: clamp(11px, 3vw, 12px) !important;
         border-radius: 7px !important;
     }
     .table-container {
@@ -2455,8 +2457,8 @@ html[dir="rtl"] .toast {
         min-width: 480px !important;
     }
     table th, table td {
-        padding: 6px 8px !important;
-        font-size: 11px !important;
+        padding: clamp(5px, 1.5vw, 8px) clamp(6px, 2vw, 10px) !important;
+        font-size: clamp(10.5px, 2.9vw, 12px) !important;
     }
     .employee-detail-section,
     .manager-panel-section,
