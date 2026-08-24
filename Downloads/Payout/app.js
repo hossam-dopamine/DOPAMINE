@@ -1195,33 +1195,25 @@ function calculateDashboardStats() {
     const dbMonthFilter = document.getElementById('dashboard-filter-month');
     const selectedMonth = dbMonthFilter ? dbMonthFilter.value : 'all';
 
-    // Filter calculations by viewMode
-    let targetEmployees = [];
+    // Target employees to calculate (defaults to all employees)
+    let targetEmployees = state.employees || [];
     if (state.viewMode === 'employee' && state.selectedEmployeeId) {
-        const emp = state.employees.find(e => String(e.id) === String(state.selectedEmployeeId));
+        const emp = (state.employees || []).find(e => String(e.id) === String(state.selectedEmployeeId));
         if (emp) targetEmployees = [emp];
-    } else if (state.viewMode === 'manager') {
-        targetEmployees = state.employees;
     }
 
     targetEmployees.forEach(emp => {
-        let earnings_completed_egp = 0, earnings_completed_usd = 0, earnings_completed_eur = 0;
-        let earnings_paid_egp = 0, earnings_paid_usd = 0, earnings_paid_eur = 0;
-
-        let withdrawals_completed_egp = 0, withdrawals_completed_usd = 0, withdrawals_completed_eur = 0;
-        let withdrawals_paid_egp = 0, withdrawals_paid_usd = 0, withdrawals_paid_eur = 0;
-
-        emp.tasks.forEach(task => {
+        (emp.tasks || []).forEach(task => {
             if (selectedMonth !== 'all' && task.month !== selectedMonth) return;
 
-            // Skip withdrawal and payout tasks completely
+            // Skip withdrawal and payout tasks completely - purely informational
             if (task.type === 'withdrawal' || task.isPayout) return;
 
             const currency = task.currency || 'USD';
             const taskUsdRate = task.exchangeRate || usdRate;
             const taskEurRate = eurRate;
 
-            if (task.status === 'completed') {
+            if (task.status === 'completed' || task.status === 'paid') {
                 completedTasksCount++;
 
                 const delay = task.delayDeduction || 0;
@@ -1252,16 +1244,13 @@ function calculateDashboardStats() {
                 totalGrossEGP += grossEgp; totalGrossUSD += grossUsd; totalGrossEUR += grossEur;
                 totalDeductionsEGP += dedEgp; totalDeductionsUSD += dedUsd; totalDeductionsEUR += dedEur;
 
-                earnings_completed_egp += netEgp; earnings_completed_usd += netUsd; earnings_completed_eur += netEur;
+                if (task.status === 'completed') {
+                    totalDueEGP += netEgp; totalDueUSD += netUsd; totalDueEUR += netEur;
+                } else if (task.status === 'paid') {
+                    totalPaidEGP += netEgp; totalPaidUSD += netUsd; totalPaidEUR += netEur;
+                }
             }
         });
-
-        const empDueEGP = earnings_completed_egp;
-        const empDueUSD = earnings_completed_usd;
-        const empDueEUR = earnings_completed_eur;
-
-        totalDueEGP += empDueEGP; totalDueUSD += empDueUSD; totalDueEUR += empDueEUR;
-        totalPaidEGP += empPaidEGP; totalPaidUSD += empPaidUSD; totalPaidEUR += empPaidEUR;
     });
 
     document.getElementById('stat-total-tasks').textContent = completedTasksCount;
@@ -2265,12 +2254,9 @@ window.toggleTaskStatus = function(empId, taskId) {
         delete task.eurExchangeRate;
     }
 
-    const user = getAuthUser();
-    if (user && user.role === 'leader') {
-        saveTaskApi(task);
-    } else {
-        saveState();
-    }
+    task.employeeId = emp.id;
+    saveTaskApi(task);
+    saveState();
     calculateDashboardStats();
     renderEmployeeDetail(empId);
     showToast('toast-status-updated');
@@ -2283,12 +2269,8 @@ window.deleteTask = function(empId, taskId) {
 
     emp.tasks = emp.tasks.filter(t => String(t.id) !== String(taskId));
 
-    const user = getAuthUser();
-    if (user && user.role === 'leader') {
-        deleteTaskApi(taskId);
-    } else {
-        saveState();
-    }
+    deleteTaskApi(taskId);
+    saveState();
     calculateDashboardStats();
     renderEmployeesList();
     renderEmployeeDetail(empId);
@@ -4110,13 +4092,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 delete task.eurExchangeRate;
             }
 
-            const user = getAuthUser();
-            if (user && user.role === 'leader') {
-                task.employeeId = emp.id;
-                saveTaskApi(task);
-            } else {
-                saveState();
-            }
+            task.employeeId = emp.id;
+            saveTaskApi(task);
+            saveState();
             calculateDashboardStats();
             renderEmployeeDetail(empId);
 
