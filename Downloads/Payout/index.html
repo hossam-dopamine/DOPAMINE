@@ -660,22 +660,18 @@
                 </div>
 
                 <!-- Employee Financial Live Summary Bar -->
-                <div class="employee-financial-summary glass-panel" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; padding: 14px 18px; margin-bottom: 16px; border-radius: 14px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.25);">
+                <div class="employee-financial-summary glass-panel" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; padding: 14px 18px; margin-bottom: 16px; border-radius: 14px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.25);">
                     <div>
-                        <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 3px;">إجمالي الأرباح المستحقة</span>
-                        <strong id="emp-summary-gross" style="font-size: 15.5px; color: #60a5fa; font-family: monospace; font-weight: 800;">0.00</strong>
+                        <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 3px;">إجمالي الأرباح المكتملة</span>
+                        <strong id="emp-summary-gross" style="font-size: 16px; color: #60a5fa; font-family: monospace; font-weight: 800;">0.00</strong>
                     </div>
                     <div>
                         <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 3px;">إجمالي الخصومات والسلف</span>
-                        <strong id="emp-summary-deductions" style="font-size: 15.5px; color: #fb923c; font-family: monospace; font-weight: 800;">0.00</strong>
+                        <strong id="emp-summary-deductions" style="font-size: 16px; color: #fb923c; font-family: monospace; font-weight: 800;">0.00</strong>
                     </div>
-                    <div>
-                        <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 3px;">المسحوبات المنصرفة</span>
-                        <strong id="emp-summary-withdrawals" style="font-size: 15.5px; color: #f87171; font-family: monospace; font-weight: 800;">0.00</strong>
-                    </div>
-                    <div style="background: rgba(16, 185, 129, 0.12); padding: 6px 12px; border-radius: 10px; border: 1px solid rgba(16, 185, 129, 0.3);">
-                        <span style="font-size: 11.5px; color: #34d399; font-weight: 700; display: block; margin-bottom: 3px;">الصافي المتاح للصرف (Net Available)</span>
-                        <strong id="emp-summary-net" style="font-size: 16.5px; color: #10b981; font-family: monospace; font-weight: 900;">0.00</strong>
+                    <div style="background: rgba(16, 185, 129, 0.12); padding: 6px 14px; border-radius: 10px; border: 1px solid rgba(16, 185, 129, 0.3);">
+                        <span style="font-size: 11.5px; color: #34d399; font-weight: 700; display: block; margin-bottom: 3px;">الصافي المستحق (Net Available)</span>
+                        <strong id="emp-summary-net" style="font-size: 17px; color: #10b981; font-family: monospace; font-weight: 900;">0.00</strong>
                     </div>
                 </div>
 
@@ -1398,21 +1394,17 @@
             </div>
 
             <!-- Financial Summary Cards -->
-            <div class="payout-summary-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin: 16px 0;">
+            <div class="payout-summary-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 16px 0;">
                 <div class="payout-summary-card">
-                    <span class="summary-label">إجمالي الأرباح</span>
+                    <span class="summary-label">إجمالي الأرباح المكتملة</span>
                     <strong class="summary-val" id="payout-calc-gross" style="color: #60a5fa;">0.00</strong>
                 </div>
                 <div class="payout-summary-card">
-                    <span class="summary-label">إجمالي الخصومات</span>
+                    <span class="summary-label">إجمالي الخصومات والسلف</span>
                     <strong class="summary-val" id="payout-calc-deductions" style="color: #fb923c;">0.00</strong>
                 </div>
-                <div class="payout-summary-card">
-                    <span class="summary-label">المسحوبات السابقة</span>
-                    <strong class="summary-val" id="payout-calc-withdrawals" style="color: #f87171;">0.00</strong>
-                </div>
                 <div class="payout-summary-card highlight" style="background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.35);">
-                    <span class="summary-label" style="color: #34d399;">المتاح للصرف</span>
+                    <span class="summary-label" style="color: #34d399;">الصافي المستحق للصرف</span>
                     <strong class="summary-val" id="payout-calc-net" style="color: #10b981; font-size: 16px;">0.00</strong>
                 </div>
             </div>

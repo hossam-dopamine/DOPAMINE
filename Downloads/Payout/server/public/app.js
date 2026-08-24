@@ -1214,88 +1214,51 @@ function calculateDashboardStats() {
         emp.tasks.forEach(task => {
             if (selectedMonth !== 'all' && task.month !== selectedMonth) return;
 
-            const isWithdrawal = task.type === 'withdrawal';
+            // Skip withdrawal and payout tasks completely
+            if (task.type === 'withdrawal' || task.isPayout) return;
+
             const currency = task.currency || 'USD';
             const taskUsdRate = task.exchangeRate || usdRate;
             const taskEurRate = eurRate;
 
-            let egpVal = 0, usdVal = 0, eurVal = 0;
+            if (task.status === 'completed') {
+                completedTasksCount++;
 
-            if (currency === 'EGP') {
-                egpVal = task.gross;
-                usdVal = task.gross / taskUsdRate;
-                eurVal = task.gross / taskEurRate;
-            } else if (currency === 'EUR') {
-                eurVal = task.gross;
-                egpVal = task.gross * taskEurRate;
-                usdVal = (task.gross * taskEurRate) / taskUsdRate;
-            } else { // USD
-                usdVal = task.gross;
-                egpVal = task.gross * taskUsdRate;
-                eurVal = (task.gross * taskUsdRate) / taskEurRate;
-            }
+                const delay = task.delayDeduction || 0;
+                const adv = task.advance || 0;
+                const fixed = task.fixedDeduction || 0;
+                const taskNet = calculateTaskNet(task.gross, task.deductionRate, delay, adv, fixed);
+                const grossMinusFixed = task.gross - fixed;
+                const taskDeduction = grossMinusFixed * (task.deductionRate / 100);
 
-            if (isWithdrawal) {
-                if (task.status === 'completed') {
-                    withdrawals_completed_egp += egpVal;
-                    withdrawals_completed_usd += usdVal;
-                    withdrawals_completed_eur += eurVal;
-                } else if (task.status === 'paid') {
-                    withdrawals_paid_egp += egpVal;
-                    withdrawals_paid_usd += usdVal;
-                    withdrawals_paid_eur += eurVal;
+                let netEgp = 0, netUsd = 0, netEur = 0;
+                let grossEgp = 0, grossUsd = 0, grossEur = 0;
+                let dedEgp = 0, dedUsd = 0, dedEur = 0;
+
+                if (currency === 'EGP') {
+                    grossEgp = grossMinusFixed; grossUsd = grossMinusFixed / taskUsdRate; grossEur = grossMinusFixed / taskEurRate;
+                    dedEgp = taskDeduction; dedUsd = taskDeduction / taskUsdRate; dedEur = taskDeduction / taskEurRate;
+                    netEgp = taskNet; netUsd = taskNet / taskUsdRate; netEur = taskNet / taskEurRate;
+                } else if (currency === 'EUR') {
+                    grossEur = grossMinusFixed; grossEgp = grossMinusFixed * taskEurRate; grossUsd = (grossMinusFixed * taskEurRate) / taskUsdRate;
+                    dedEur = taskDeduction; dedEgp = taskDeduction * taskEurRate; dedUsd = (taskDeduction * taskEurRate) / taskUsdRate;
+                    netEur = taskNet; netEgp = taskNet * taskEurRate; netUsd = (taskNet * taskEurRate) / taskUsdRate;
+                } else { // USD
+                    grossUsd = grossMinusFixed; grossEgp = grossMinusFixed * taskUsdRate; grossEur = (grossMinusFixed * taskUsdRate) / taskEurRate;
+                    dedUsd = taskDeduction; dedEgp = taskDeduction * taskUsdRate; dedEur = (taskDeduction * taskUsdRate) / taskEurRate;
+                    netUsd = taskNet; netEgp = taskNet * taskUsdRate; netEur = (taskNet * taskUsdRate) / taskEurRate;
                 }
-            } else { // Regular task
-                if (task.status === 'completed') {
-                    completedTasksCount++;
 
-                    const delay = task.delayDeduction || 0;
-                    const adv = task.advance || 0;
-                    const fixed = task.fixedDeduction || 0;
-                    const taskNet = calculateTaskNet(task.gross, task.deductionRate, delay, adv, fixed);
-                    const grossMinusFixed = task.gross - fixed;
-                    const taskDeduction = grossMinusFixed * (task.deductionRate / 100);
+                totalGrossEGP += grossEgp; totalGrossUSD += grossUsd; totalGrossEUR += grossEur;
+                totalDeductionsEGP += dedEgp; totalDeductionsUSD += dedUsd; totalDeductionsEUR += dedEur;
 
-                    let netEgp = 0, netUsd = 0, netEur = 0;
-                    let grossEgp = 0, grossUsd = 0, grossEur = 0;
-                    let dedEgp = 0, dedUsd = 0, dedEur = 0;
-
-                    if (currency === 'EGP') {
-                        grossEgp = grossMinusFixed; grossUsd = grossMinusFixed / taskUsdRate; grossEur = grossMinusFixed / taskEurRate;
-                        dedEgp = taskDeduction; dedUsd = taskDeduction / taskUsdRate; dedEur = taskDeduction / taskEurRate;
-                        netEgp = taskNet; netUsd = taskNet / taskUsdRate; netEur = taskNet / taskEurRate;
-                    } else if (currency === 'EUR') {
-                        grossEur = grossMinusFixed; grossEgp = grossMinusFixed * taskEurRate; grossUsd = (grossMinusFixed * taskEurRate) / taskUsdRate;
-                        dedEur = taskDeduction; dedEgp = taskDeduction * taskEurRate; dedUsd = (taskDeduction * taskEurRate) / taskUsdRate;
-                        netEur = taskNet; netEgp = taskNet * taskEurRate; netUsd = (taskNet * taskEurRate) / taskUsdRate;
-                    } else { // USD
-                        grossUsd = grossMinusFixed; grossEgp = grossMinusFixed * taskUsdRate; grossEur = (grossMinusFixed * taskUsdRate) / taskEurRate;
-                        dedUsd = taskDeduction; dedEgp = taskDeduction * taskUsdRate; dedEur = (taskDeduction * taskUsdRate) / taskEurRate;
-                        netUsd = taskNet; netEgp = taskNet * taskUsdRate; netEur = (taskNet * taskUsdRate) / taskEurRate;
-                    }
-
-                    totalGrossEGP += grossEgp; totalGrossUSD += grossUsd; totalGrossEUR += grossEur;
-                    totalDeductionsEGP += dedEgp; totalDeductionsUSD += dedUsd; totalDeductionsEUR += dedEur;
-
-                    earnings_completed_egp += netEgp; earnings_completed_usd += netUsd; earnings_completed_eur += netEur;
-                }
+                earnings_completed_egp += netEgp; earnings_completed_usd += netUsd; earnings_completed_eur += netEur;
             }
         });
 
-        // Apply EGP balance formula
-        const activeWithdrawalsEGP = withdrawals_completed_egp + withdrawals_paid_egp;
-        const empDueEGP = Math.max(0, earnings_completed_egp - activeWithdrawalsEGP);
-        const empPaidEGP = earnings_paid_egp + activeWithdrawalsEGP;
-
-        // Apply USD balance formula
-        const activeWithdrawalsUSD = withdrawals_completed_usd + withdrawals_paid_usd;
-        const empDueUSD = Math.max(0, earnings_completed_usd - activeWithdrawalsUSD);
-        const empPaidUSD = earnings_paid_usd + activeWithdrawalsUSD;
-
-        // Apply EUR balance formula
-        const activeWithdrawalsEUR = withdrawals_completed_eur + withdrawals_paid_eur;
-        const empDueEUR = Math.max(0, earnings_completed_eur - activeWithdrawalsEUR);
-        const empPaidEUR = earnings_paid_eur + activeWithdrawalsEUR;
+        const empDueEGP = earnings_completed_egp;
+        const empDueUSD = earnings_completed_usd;
+        const empDueEUR = earnings_completed_eur;
 
         totalDueEGP += empDueEGP; totalDueUSD += empDueUSD; totalDueEUR += empDueEUR;
         totalPaidEGP += empPaidEGP; totalPaidUSD += empPaidUSD; totalPaidEUR += empPaidEUR;
@@ -1524,54 +1487,34 @@ function renderManagerPanel() {
             const currency = task.currency || 'EGP';
             const rate = task.exchangeRate || state.exchangeRate;
 
-            if (isWithdrawal) {
-                if (task.status === 'completed') {
-                    if (currency === 'EGP') {
-                        withdrawals_completed_egp += task.gross;
-                        withdrawals_completed_usd += task.gross / rate;
-                    } else {
-                        withdrawals_completed_usd += task.gross;
-                        withdrawals_completed_egp += task.gross * rate;
-                    }
-                } else if (task.status === 'paid') {
-                    if (currency === 'EGP') {
-                        withdrawals_paid_egp += task.gross;
-                        withdrawals_paid_usd += task.gross / rate;
-                    } else {
-                        withdrawals_paid_usd += task.gross;
-                        withdrawals_paid_egp += task.gross * rate;
-                    }
-                }
-            } else { // Regular task
-                if (task.status === 'completed') {
-                    empCompletedCount++;
-                    const delay = task.delayDeduction || 0;
-                    const adv = task.advance || 0;
-                    const fixed = task.fixedDeduction || 0;
-                    const netVal = calculateTaskNet(task.gross, task.deductionRate, delay, adv, fixed);
-                    const grossMinusFixed = task.gross - fixed;
-                    
-                    if (currency === 'EGP') {
-                        empGrossEGP += grossMinusFixed;
-                        empGrossUSD += grossMinusFixed / rate;
-                        earnings_completed_egp += netVal;
-                        earnings_completed_usd += netVal / rate;
-                    } else {
-                        empGrossUSD += grossMinusFixed;
-                        empGrossEGP += grossMinusFixed * rate;
-                        earnings_completed_usd += netVal;
-                        earnings_completed_egp += netVal * rate;
-                    }
+            // Skip withdrawal and payout tasks completely
+            if (task.type === 'withdrawal' || task.isPayout) return;
+
+            // Regular task
+            if (task.status === 'completed') {
+                empCompletedCount++;
+                const delay = task.delayDeduction || 0;
+                const adv = task.advance || 0;
+                const fixed = task.fixedDeduction || 0;
+                const netVal = calculateTaskNet(task.gross, task.deductionRate, delay, adv, fixed);
+                const grossMinusFixed = task.gross - fixed;
+                
+                if (currency === 'EGP') {
+                    empGrossEGP += grossMinusFixed;
+                    empGrossUSD += grossMinusFixed / rate;
+                    earnings_completed_egp += netVal;
+                    earnings_completed_usd += netVal / rate;
+                } else {
+                    empGrossUSD += grossMinusFixed;
+                    empGrossEGP += grossMinusFixed * rate;
+                    earnings_completed_usd += netVal;
+                    earnings_completed_egp += netVal * rate;
                 }
             }
         });
 
-        // The remaining Net Due for this employee:
-        const activeWithdrawalsEGP = withdrawals_completed_egp + withdrawals_paid_egp;
-        const empDueEGP = Math.max(0, earnings_completed_egp - activeWithdrawalsEGP);
-
-        const activeWithdrawalsUSD = withdrawals_completed_usd + withdrawals_paid_usd;
-        const empDueUSD = Math.max(0, earnings_completed_usd - activeWithdrawalsUSD);
+        const empDueEGP = earnings_completed_egp;
+        const empDueUSD = earnings_completed_usd;
 
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -2401,9 +2344,6 @@ function calculateEmployeeFinancials(emp, targetMonth = 'all', preferredCurrency
     let totalGross = 0;
     let totalDeductions = 0;
     let totalNet = 0;
-    let earningsCompletedNet = 0;
-    let earningsPaidNet = 0;
-    let totalWithdrawals = 0;
 
     const tasks = (emp.tasks || []).filter(t => targetMonth === 'all' || t.month === targetMonth);
     let targetCurr = preferredCurrency;
@@ -2416,6 +2356,11 @@ function calculateEmployeeFinancials(emp, targetMonth = 'all', preferredCurrency
     const eurRate = state.eurExchangeRate || 55;
 
     tasks.forEach(t => {
+        // Withdrawal and Payout tasks are informational only - do not affect any financial total
+        if (t.type === 'withdrawal' || t.isPayout) {
+            return;
+        }
+
         const curr = t.currency || 'USD';
         let conversionFactor = 1;
 
@@ -2430,36 +2375,28 @@ function calculateEmployeeFinancials(emp, targetMonth = 'all', preferredCurrency
 
         const taskGross = Number(t.gross || 0) * conversionFactor;
 
-        if (t.type === 'withdrawal') {
-            // Only count active unsettled withdrawals (exclude settled payouts)
-            if (!t.settled && t.status !== 'paid') {
-                totalWithdrawals += taskGross;
-            }
-        } else {
-            // Calculate ONLY completed tasks (ignore pending and paid)
-            if (t.status === 'completed') {
-                const defaultRate = typeof emp.defaultDeductionRate === 'number' ? emp.defaultDeductionRate : 10;
-                const rate = typeof t.deductionRate === 'number' ? t.deductionRate : defaultRate;
-                const delay = (Number(t.delayDeduction || 0)) * conversionFactor;
-                const adv = (Number(t.advance || 0)) * conversionFactor;
-                const fixed = (Number(t.fixedDeduction || 0)) * conversionFactor;
-                
-                const taskNet = calculateTaskNet(taskGross, rate, delay, adv, fixed);
-                const taskDeduction = taskGross - taskNet;
+        // Calculate ONLY completed tasks (ignore pending and paid)
+        if (t.status === 'completed') {
+            const defaultRate = typeof emp.defaultDeductionRate === 'number' ? emp.defaultDeductionRate : 10;
+            const rate = typeof t.deductionRate === 'number' ? t.deductionRate : defaultRate;
+            const delay = (Number(t.delayDeduction || 0)) * conversionFactor;
+            const adv = (Number(t.advance || 0)) * conversionFactor;
+            const fixed = (Number(t.fixedDeduction || 0)) * conversionFactor;
+            
+            const taskNet = calculateTaskNet(taskGross, rate, delay, adv, fixed);
+            const taskDeduction = taskGross - taskNet;
 
-                totalGross += taskGross;
-                totalDeductions += taskDeduction;
-                totalNet += taskNet;
-            }
+            totalGross += taskGross;
+            totalDeductions += taskDeduction;
+            totalNet += taskNet;
         }
     });
 
-    const netAvailable = Math.max(0, totalNet - totalWithdrawals);
     return {
         gross: totalGross,
         deductions: totalDeductions,
-        withdrawals: totalWithdrawals,
-        netAvailable,
+        withdrawals: 0,
+        netAvailable: totalNet,
         currency: targetCurr
     };
 }
@@ -2477,10 +2414,13 @@ function syncPayoutModalFinancials() {
 
     const fin = calculateEmployeeFinancials(emp, targetMonth, targetCurrency);
 
-    document.getElementById('payout-calc-gross').textContent = formatCurrency(fin.gross, fin.currency);
-    document.getElementById('payout-calc-deductions').textContent = formatCurrency(fin.deductions, fin.currency);
-    document.getElementById('payout-calc-withdrawals').textContent = formatCurrency(fin.withdrawals, fin.currency);
-    document.getElementById('payout-calc-net').textContent = formatCurrency(fin.netAvailable, fin.currency);
+    const grossEl = document.getElementById('payout-calc-gross');
+    const deductEl = document.getElementById('payout-calc-deductions');
+    const netEl = document.getElementById('payout-calc-net');
+
+    if (grossEl) grossEl.textContent = formatCurrency(fin.gross, fin.currency);
+    if (deductEl) deductEl.textContent = formatCurrency(fin.deductions, fin.currency);
+    if (netEl) netEl.textContent = formatCurrency(fin.netAvailable, fin.currency);
 
     const amountInput = document.getElementById('payout-amount');
     if (amountInput) {
