@@ -39,7 +39,7 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['new_task', 'task_updated', 'system', 'general'],
+    enum: ['new_task', 'task_updated', 'payout', 'system', 'general'],
     default: 'new_task'
   },
   taskId: {

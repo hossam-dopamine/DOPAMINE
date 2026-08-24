@@ -151,7 +151,11 @@ const i18n = {
         "mark-all-read": "تحديد الكل كمقروء",
         "no-notifications": "لا توجد إشعارات حالياً",
         "notify-employee-label": "إرسال إشعار للموظف (بالبريد والتطبيق)",
-        "toast-all-read": "تم تحديد جميع الإشعارات كمقروءة"
+        "toast-all-read": "تم تحديد جميع الإشعارات كمقروءة",
+        "record-payout": "تسجيل Payout",
+        "payout-modal-title": "تسجيل Payout / صرف مستحقات",
+        "payout-amount-label": "المبلغ المراد صرفه",
+        "toast-payout-success": "تم تسجيل وصرف الـ Payout وإشعار الموظف بنجاح!"
     },
     en: {
         "app-title": "DOPAMINE-SERVICE",
@@ -310,7 +314,11 @@ const i18n = {
         "mark-all-read": "Mark all as read",
         "no-notifications": "No notifications yet",
         "notify-employee-label": "Notify employee (Email & App)",
-        "toast-all-read": "All notifications marked as read"
+        "toast-all-read": "All notifications marked as read",
+        "record-payout": "Record Payout",
+        "payout-modal-title": "Record Employee Payout",
+        "payout-amount-label": "Disbursement Amount",
+        "toast-payout-success": "Payout recorded and employee notified successfully!"
     }
 };
 
@@ -2093,6 +2101,19 @@ function renderEmployeeDetail(id) {
     }
 
     const currentUser = getAuthUser();
+    const recordPayoutBtn = document.getElementById('record-payout-btn');
+    if (recordPayoutBtn) {
+        if (currentUser && currentUser.role === 'admin') {
+            recordPayoutBtn.style.display = '';
+        } else if (currentUser && currentUser.role === 'leader') {
+            const allowed = new Set((currentUser.allowedEmployeeIds || []).map(String));
+            if (currentUser.employeeId) allowed.add(String(currentUser.employeeId));
+            recordPayoutBtn.style.display = allowed.has(String(emp.id)) ? '' : 'none';
+        } else {
+            recordPayoutBtn.style.display = 'none';
+        }
+    }
+
     const editEmpBtn = document.getElementById('edit-employee-btn');
     if (editEmpBtn) {
         if (currentUser && currentUser.role === 'admin') {
@@ -2371,6 +2392,109 @@ window.editTask = function(empId, taskId) {
 
     const modal = document.getElementById('edit-task-modal');
     modal.classList.add('active');
+    if (window.lucide) window.lucide.createIcons();
+};
+
+function calculateEmployeeFinancials(emp, targetMonth = 'all') {
+    if (!emp) return { gross: 0, deductions: 0, withdrawals: 0, netAvailable: 0, currency: 'USD' };
+
+    let totalGross = 0;
+    let totalDeductions = 0;
+    let totalWithdrawals = 0;
+    let mainCurrency = 'USD';
+
+    const tasks = (emp.tasks || []).filter(t => targetMonth === 'all' || t.month === targetMonth);
+    tasks.forEach(t => {
+        const currency = t.currency || 'USD';
+        mainCurrency = currency;
+        if (t.type === 'withdrawal') {
+            totalWithdrawals += Number(t.gross || 0);
+        } else {
+            const gross = Number(t.gross || 0);
+            const rate = typeof t.deductionRate === 'number' ? t.deductionRate : (emp.defaultDeductionRate || 10);
+            const delay = Number(t.delayDeduction || 0);
+            const adv = Number(t.advance || 0);
+            const fixed = Number(t.fixedDeduction || 0);
+            const effectiveGross = Math.max(0, gross - fixed);
+            const siteDeduction = effectiveGross * (rate / 100);
+            const totalTaskDeductions = siteDeduction + delay + adv + fixed;
+            
+            totalGross += gross;
+            totalDeductions += totalTaskDeductions;
+        }
+    });
+
+    const netAvailable = Math.max(0, (totalGross - totalDeductions) - totalWithdrawals);
+    return {
+        gross: totalGross,
+        deductions: totalDeductions,
+        withdrawals: totalWithdrawals,
+        netAvailable,
+        currency: mainCurrency
+    };
+}
+
+window.openPayoutModal = function(employeeId) {
+    const empId = employeeId || state.selectedEmployeeId;
+    const emp = state.employees.find(e => String(e.id) === String(empId));
+    if (!emp) return;
+
+    const modal = document.getElementById('payout-modal');
+    if (!modal) return;
+
+    const empMonthFilter = document.getElementById('task-filter-month');
+    const targetMonth = empMonthFilter ? empMonthFilter.value : 'all';
+
+    const fin = calculateEmployeeFinancials(emp, targetMonth);
+
+    document.getElementById('payout-employee-id').value = emp.id;
+    const subEl = document.getElementById('payout-employee-subtitle');
+    if (subEl) {
+        subEl.textContent = `${state.currentLanguage === 'ar' ? 'للموظف' : 'For Employee'}: ${emp.name}`;
+    }
+
+    document.getElementById('payout-calc-gross').textContent = formatCurrency(fin.gross, fin.currency);
+    document.getElementById('payout-calc-deductions').textContent = formatCurrency(fin.deductions, fin.currency);
+    document.getElementById('payout-calc-withdrawals').textContent = formatCurrency(fin.withdrawals, fin.currency);
+    document.getElementById('payout-calc-net').textContent = formatCurrency(fin.netAvailable, fin.currency);
+
+    const amountInput = document.getElementById('payout-amount');
+    if (amountInput) {
+        amountInput.value = fin.netAvailable > 0 ? fin.netAvailable.toFixed(2) : '';
+    }
+
+    const currencySelect = document.getElementById('payout-currency');
+    if (currencySelect) {
+        currencySelect.value = fin.currency || 'USD';
+    }
+
+    const payMethodSelect = document.getElementById('payout-payment-method');
+    if (payMethodSelect && emp.paymentMethod) {
+        payMethodSelect.value = emp.paymentMethod;
+    }
+
+    const payDetailsInput = document.getElementById('payout-payment-details');
+    if (payDetailsInput) {
+        payDetailsInput.value = emp.paymentDetails || '';
+    }
+
+    const monthSelect = document.getElementById('payout-month');
+    if (monthSelect) {
+        monthSelect.value = targetMonth !== 'all' ? targetMonth : (state.selectedMonth || 'all');
+    }
+
+    const refInput = document.getElementById('payout-ref-number');
+    if (refInput) {
+        refInput.value = 'PAYOUT-' + Date.now().toString().slice(-6);
+    }
+
+    const notesInput = document.getElementById('payout-notes');
+    if (notesInput) {
+        notesInput.value = '';
+    }
+
+    modal.classList.add('active');
+    if (amountInput) amountInput.focus();
     if (window.lucide) window.lucide.createIcons();
 };
 
@@ -4019,6 +4143,87 @@ document.addEventListener('DOMContentLoaded', async () => {
             editModal.classList.remove('active');
             showToast('toast-employee-updated');
             if (window.lucide) window.lucide.createIcons();
+        });
+    }
+
+    // Payout Modal Events
+    const payoutModal = document.getElementById('payout-modal');
+    const payoutForm = document.getElementById('payout-form');
+    const recordPayoutBtn = document.getElementById('record-payout-btn');
+
+    if (recordPayoutBtn) {
+        recordPayoutBtn.addEventListener('click', () => {
+            if (state.selectedEmployeeId) {
+                openPayoutModal(state.selectedEmployeeId);
+            }
+        });
+    }
+
+    if (payoutModal && payoutForm) {
+        const closeBtn = document.getElementById('close-payout-modal');
+        if (closeBtn) closeBtn.addEventListener('click', () => payoutModal.classList.remove('active'));
+
+        const cancelBtn = document.getElementById('cancel-payout-modal');
+        if (cancelBtn) cancelBtn.addEventListener('click', () => payoutModal.classList.remove('active'));
+
+        payoutForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const employeeId = document.getElementById('payout-employee-id').value;
+            const amount = parseFloat(document.getElementById('payout-amount').value) || 0;
+            const currency = document.getElementById('payout-currency').value || 'USD';
+            const paymentMethod = document.getElementById('payout-payment-method').value || 'instapay';
+            const paymentDetails = document.getElementById('payout-payment-details').value.trim();
+            const refNumber = document.getElementById('payout-ref-number').value.trim();
+            const month = document.getElementById('payout-month').value || 'august';
+            const notes = document.getElementById('payout-notes').value.trim();
+            const notifyInApp = document.getElementById('payout-notify-inapp') ? document.getElementById('payout-notify-inapp').checked : true;
+            const notifyEmail = document.getElementById('payout-notify-email') ? document.getElementById('payout-notify-email').checked : true;
+
+            if (!employeeId || amount <= 0) return;
+
+            const emp = state.employees.find(e => String(e.id) === String(employeeId));
+            if (!emp) return;
+
+            const isAr = state.currentLanguage === 'ar';
+            const payoutTitle = isAr ? `صرف مستحقات (Payout)` : `Payout Disbursement`;
+
+            const payoutTask = {
+                id: 'task_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+                employeeId,
+                type: 'withdrawal',
+                isPayout: true,
+                taskNumber: refNumber || ('PAYOUT-' + Date.now().toString().slice(-6)),
+                title: payoutTitle,
+                gross: amount,
+                currency,
+                exchangeRate: state.exchangeRate,
+                month: month === 'all' ? (state.selectedMonth || 'august') : month,
+                status: 'completed',
+                paymentMethod,
+                paymentDetails,
+                notes,
+                notify: notifyInApp,
+                notifyEmail: notifyEmail,
+                date: new Date().toLocaleDateString(isAr ? 'ar-EG' : 'en-US'),
+                createdAt: new Date().toISOString()
+            };
+
+            if (!emp.tasks) emp.tasks = [];
+            emp.tasks.push(payoutTask);
+
+            payoutModal.classList.remove('active');
+            showToastDirectMsg(i18n[state.currentLanguage]['toast-payout-success'] || '✅ تم تسجيل وصرف الـ Payout وإشعار الموظف بنجاح!');
+
+            await saveTaskApi(payoutTask);
+            await saveData();
+            calculateDashboardStats();
+            renderDashboard();
+            if (state.selectedEmployeeId) {
+                renderEmployeeDetail(state.selectedEmployeeId);
+            }
+            if (typeof fetchNotifications === 'function') {
+                fetchNotifications();
+            }
         });
     }
 

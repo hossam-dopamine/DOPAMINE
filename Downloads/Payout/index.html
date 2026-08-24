@@ -640,6 +640,10 @@
                         </div>
                     </div>
                     <div class="employee-actions">
+                        <button id="record-payout-btn" class="btn btn-primary btn-sm btn-payout" title="تسجيل وصرف مستحقات الموظف">
+                            <i data-lucide="wallet"></i>
+                            <span data-i18n="record-payout">تسجيل Payout</span>
+                        </button>
                         <button id="export-csv-btn" class="btn btn-secondary btn-sm" title="تصدير كشف الحساب لـ CSV">
                             <i data-lucide="download"></i>
                             <span data-i18n="export-csv">تصدير CSV</span>
@@ -1352,6 +1356,131 @@
                 <div class="modal-actions" style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px;">
                     <button type="button" class="btn btn-secondary" id="cancel-edit-employee-email-modal" data-i18n="cancel">إلغاء</button>
                     <button type="submit" class="btn btn-primary"><i data-lucide="check"></i> <span data-i18n="save">حفظ</span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Payout / Salary Disbursement Modal -->
+    <div id="payout-modal" class="modal-overlay">
+        <div class="modal-content glass-panel" style="width: 580px; max-width: 95%; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(16, 185, 129, 0.15); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(16, 185, 129, 0.35);">
+                        <i data-lucide="wallet" style="width: 20px; height: 20px; color: #10b981;"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 16.5px; color: #fff;" data-i18n="payout-modal-title">تسجيل Payout / صرف مستحقات</h3>
+                        <span id="payout-employee-subtitle" style="font-size: 12px; color: var(--text-dim);">للموظف: -</span>
+                    </div>
+                </div>
+                <button class="btn btn-secondary btn-icon-only close-modal-btn" id="close-payout-modal" aria-label="إغلاق"><i data-lucide="x"></i></button>
+            </div>
+
+            <!-- Financial Summary Cards -->
+            <div class="payout-summary-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin: 16px 0;">
+                <div class="payout-summary-card">
+                    <span class="summary-label">إجمالي الأرباح</span>
+                    <strong class="summary-val" id="payout-calc-gross" style="color: #60a5fa;">0.00</strong>
+                </div>
+                <div class="payout-summary-card">
+                    <span class="summary-label">إجمالي الخصومات</span>
+                    <strong class="summary-val" id="payout-calc-deductions" style="color: #fb923c;">0.00</strong>
+                </div>
+                <div class="payout-summary-card">
+                    <span class="summary-label">المسحوبات السابقة</span>
+                    <strong class="summary-val" id="payout-calc-withdrawals" style="color: #f87171;">0.00</strong>
+                </div>
+                <div class="payout-summary-card highlight" style="background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.35);">
+                    <span class="summary-label" style="color: #34d399;">المتاح للصرف</span>
+                    <strong class="summary-val" id="payout-calc-net" style="color: #10b981; font-size: 16px;">0.00</strong>
+                </div>
+            </div>
+
+            <form id="payout-form">
+                <input type="hidden" id="payout-employee-id">
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="payout-amount" data-i18n="payout-amount-label">المبلغ المراد صرفه (Amount) *</label>
+                        <input type="number" id="payout-amount" step="0.01" min="0.01" required placeholder="0.00" style="font-size: 15px; font-weight: 700; color: #10b981;">
+                    </div>
+                    <div class="form-group">
+                        <label for="payout-currency" data-i18n="currency">العملة</label>
+                        <select id="payout-currency" required>
+                            <option value="USD">USD ($)</option>
+                            <option value="EGP" selected>EGP (ج.م)</option>
+                            <option value="SAR">SAR (ر.س)</option>
+                            <option value="AED">AED (د.إ)</option>
+                            <option value="EUR">EUR (€)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="payout-payment-method" data-i18n="payment-method-text">طريقة التحويل / الدفع</label>
+                        <select id="payout-payment-method">
+                            <option value="instapay">InstaPay (إنستاباي)</option>
+                            <option value="vodafone_cash">Vodafone Cash (فودافون كاش)</option>
+                            <option value="bank_transfer">Bank Transfer (تحويل بنكي)</option>
+                            <option value="paypal">PayPal (باي بال)</option>
+                            <option value="cash">Cash (نقداً)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="payout-payment-details">بيانات الحساب / المحفظة</label>
+                        <input type="text" id="payout-payment-details" placeholder="مثال: user@instapay أو 01012345678">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="payout-ref-number">رقم المرجع / الحوالة (اختياري)</label>
+                        <input type="text" id="payout-ref-number" placeholder="مثال: TXN-8942">
+                    </div>
+                    <div class="form-group">
+                        <label for="payout-month" data-i18n="month">الشهر المستهدف</label>
+                        <select id="payout-month">
+                            <option value="all">كل الشهور</option>
+                            <option value="january" data-i18n="month-jan">يناير</option>
+                            <option value="february" data-i18n="month-feb">فبراير</option>
+                            <option value="march" data-i18n="month-mar">مارس</option>
+                            <option value="april" data-i18n="month-apr">أبريل</option>
+                            <option value="may" data-i18n="month-may">مايو</option>
+                            <option value="june" data-i18n="month-jun">يونيو</option>
+                            <option value="july" data-i18n="month-jul">يوليو</option>
+                            <option value="august" data-i18n="month-aug">أغسطس</option>
+                            <option value="september" data-i18n="month-sep">سبتمبر</option>
+                            <option value="october" data-i18n="month-oct">أكتوبر</option>
+                            <option value="november" data-i18n="month-nov">نوفمبر</option>
+                            <option value="december" data-i18n="month-dec">ديسمبر</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="payout-notes">ملاحظات أو رسالة شكر للموظف (تظهر بالإشعار والإيميل)</label>
+                    <input type="text" id="payout-notes" placeholder="مثال: تم تحويل مستحقات شهر أغسطس بنجاح، شكراً لجهودك!">
+                </div>
+
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12.5px; color: #cbd5e1; user-select: none;">
+                        <input type="checkbox" id="payout-notify-inapp" checked style="width: 16px; height: 16px; accent-color: var(--color-primary);">
+                        <span>🔔 إرسال إشعار فوري داخل المنصة والمتصفح للموظف</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12.5px; color: #cbd5e1; user-select: none;">
+                        <input type="checkbox" id="payout-notify-email" checked style="width: 16px; height: 16px; accent-color: var(--color-primary);">
+                        <span>📧 إرسال إيصال صرف رسمي (Payout Voucher) إلى بريد الموظف</span>
+                    </label>
+                </div>
+
+                <div class="form-row" style="margin-top: 10px;">
+                    <button type="button" class="btn btn-secondary" id="cancel-payout-modal" data-i18n="cancel">إلغاء</button>
+                    <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-color: #10b981;">
+                        <i data-lucide="check-circle"></i>
+                        <span>تأكيد وتسجيل الصرف</span>
+                    </button>
                 </div>
             </form>
         </div>

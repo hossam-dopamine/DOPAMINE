@@ -439,13 +439,104 @@ const sendNewTaskNotificationEmail = async (userEmail, username, task) => {
   return await sendEmail({ to: userEmail, subject, text, html });
 };
 
+const sendPayoutReceiptEmail = async (userEmail, username, payoutData) => {
+  const appUrl = process.env.APP_URL || 'https://dopamine-c06w.onrender.com';
+  const safeUsername = escapeHTML(username || 'عضو فريق DOPAMINE');
+  const safeCurrency = escapeHTML(payoutData.currency || 'USD');
+  const amount = Number(payoutData.amount || payoutData.gross || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const safePaymentMethod = escapeHTML(payoutData.paymentMethod || 'InstaPay');
+  const safePaymentDetails = escapeHTML(payoutData.paymentDetails || '-');
+  const safeRefNumber = escapeHTML(payoutData.refNumber || payoutData.taskNumber || '-');
+  const safeMonth = escapeHTML(payoutData.month || '');
+  const safeDate = payoutData.date ? escapeHTML(payoutData.date) : new Date().toLocaleDateString('ar-EG');
+  const safeNotes = escapeHTML(payoutData.notes || '');
+
+  const subject = `💵 إيصال صرف مستحقات (Payout Receipt): ${amount} ${safeCurrency} - DOPAMINE`;
+  const text = `مرحباً ${username}،\n\nتم تسجيل وصرف مستحقات مالية (Payout) لك في منصة DOPAMINE:\n` +
+    `- المبلغ المنصرف: ${amount} ${safeCurrency}\n` +
+    `- طريقة التحويل: ${safePaymentMethod}\n` +
+    `- بيانات التحويل: ${safePaymentDetails}\n` +
+    `- رقم المرجع / الحوالة: ${safeRefNumber}\n` +
+    (safeMonth ? `- الشهر المستهدف: ${safeMonth}\n` : '') +
+    `- تاريخ الصرف: ${safeDate}\n` +
+    (safeNotes ? `- ملاحظات الإدارة: ${safeNotes}\n` : '') +
+    `\nيمكنك مراجعة كافة التفاصيل وكشف الحساب عبر الرابط التالي:\n${appUrl}\n\nشكراً لجهودك وعطائك المستمر مع فريق DOPAMINE.`;
+
+  const html = `
+    <div style="direction: rtl; text-align: right; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 32px 24px; border: 1px solid rgba(16,185,129,0.3); border-radius: 18px; max-width: 580px; margin: 20px auto; background: #0b1118; color: #e2e8f0; box-shadow: 0 12px 35px rgba(0,0,0,0.6);">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="display: inline-block; padding: 14px; background: rgba(16, 185, 129, 0.15); border-radius: 16px; border: 1px solid rgba(16, 185, 129, 0.35); margin-bottom: 12px;">
+          <span style="font-size: 32px;">💵</span>
+        </div>
+        <h2 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 0.5px;">DOPAMINE-SERVICE</h2>
+        <p style="color: #34d399; font-size: 14px; font-weight: 700; margin-top: 6px;">إيصال صرف مستحقات رسمي (Payout Voucher)</p>
+      </div>
+
+      <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 14px; padding: 20px; text-align: center; margin-bottom: 22px;">
+        <span style="font-size: 13px; color: #94a3b8; display: block; margin-bottom: 4px;">إجمالي المبلغ المحول</span>
+        <strong style="font-size: 30px; color: #10b981; font-weight: 900;">${amount} <span style="font-size: 18px;">${safeCurrency}</span></strong>
+      </div>
+
+      <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 22px; margin-bottom: 22px;">
+        <p style="font-size: 14.5px; color: #cbd5e1; margin-top: 0; margin-bottom: 16px;">
+          مرحباً <strong>${safeUsername}</strong>، نود إعلامك بأنه تم تحويل وصرف مستحقاتك المالية بنجاح بالبيانات التالية:
+        </p>
+
+        <div style="background: #111722; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 16px; margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed rgba(255,255,255,0.07); padding-bottom: 8px;">
+            <span style="color: #94a3b8; font-size: 13px;">طريقة الدفع / التحويل:</span>
+            <strong style="color: #ffffff; font-size: 13.5px;">${safePaymentMethod}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed rgba(255,255,255,0.07); padding-bottom: 8px;">
+            <span style="color: #94a3b8; font-size: 13px;">بيانات المحفظة / الحساب:</span>
+            <span style="color: #60a5fa; font-weight: 600; font-family: monospace; font-size: 13.5px;">${safePaymentDetails}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed rgba(255,255,255,0.07); padding-bottom: 8px;">
+            <span style="color: #94a3b8; font-size: 13px;">رقم الحوالة / المرجع:</span>
+            <span style="color: #fb923c; font-weight: 700; font-family: monospace; font-size: 13.5px;">${safeRefNumber}</span>
+          </div>
+          ${safeMonth ? `
+          <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed rgba(255,255,255,0.07); padding-bottom: 8px;">
+            <span style="color: #94a3b8; font-size: 13px;">عن شهر:</span>
+            <span style="color: #c084fc; font-weight: 600; font-size: 13.5px;">${safeMonth}</span>
+          </div>` : ''}
+          <div style="display: flex; justify-content: space-between; ${safeNotes ? 'margin-bottom: 10px; border-bottom: 1px dashed rgba(255,255,255,0.07); padding-bottom: 8px;' : ''}">
+            <span style="color: #94a3b8; font-size: 13px;">تاريخ الصرف:</span>
+            <span style="color: #cbd5e1; font-size: 13px;">${safeDate}</span>
+          </div>
+          ${safeNotes ? `
+          <div style="margin-top: 8px;">
+            <span style="color: #94a3b8; font-size: 12.5px; display: block; margin-bottom: 4px;">ملاحظات الإدارة:</span>
+            <p style="margin: 0; color: #f1f5f9; font-size: 13px; background: rgba(255,255,255,0.04); padding: 8px 12px; border-radius: 6px;">${safeNotes}</p>
+          </div>` : ''}
+        </div>
+
+        <div style="text-align: center; margin: 24px 0 8px 0;">
+          <a href="${appUrl}" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; padding: 13px 32px; text-decoration: none; border-radius: 10px; font-weight: 700; display: inline-block; font-size: 14.5px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35);">
+            عرض كشف الحساب وتأكيد الاستلام
+          </a>
+        </div>
+      </div>
+
+      <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 20px 0;">
+      <p style="font-size: 11px; color: #64748b; text-align: center; margin: 0;">
+        هذا الإيصال صادر رسمياً وموثق إلكترونياً من منصة DOPAMINE-SERVICE &copy; 2026
+      </p>
+    </div>
+  `;
+
+  return await sendEmail({ to: userEmail, subject, text, html });
+};
+
 module.exports = {
   sendApprovalEmail,
   sendRejectionEmail,
   sendSuspensionEmail,
   sendReactivationEmail,
   sendOtpEmail,
-  sendNewTaskNotificationEmail
+  sendNewTaskNotificationEmail,
+  sendPayoutReceiptEmail
 };
+
 
 

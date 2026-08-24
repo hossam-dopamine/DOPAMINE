@@ -9,7 +9,7 @@ const Notification = require('../models/Notification');
 const { verifyToken, requireAdmin, requireAdminOrLeader } = require('../middleware/auth');
 const { dataMutationLimiter } = require('../middleware/security');
 const { encryptTaskFields, decryptTaskFields } = require('../utils/encryption');
-const { sendNewTaskNotificationEmail } = require('../utils/mailer');
+const { sendNewTaskNotificationEmail, sendPayoutReceiptEmail } = require('../utils/mailer');
 
 const router = express.Router();
 
@@ -518,11 +518,26 @@ router.post('/tasks', dataMutationLimiter, verifyToken, requireAdminOrLeader, as
           ]);
 
           const empName = emp ? emp.name : (userAccount ? userAccount.username : 'عضو فريق DOPAMINE');
-          const isWithdrawal = taskData.type === 'withdrawal';
-          const notifTitle = isWithdrawal ? 'عملية سحب جديدة' : `مهمة جديدة: ${taskData.title}`;
-          const notifMessage = isWithdrawal
-            ? `تم تسجيل عملية سحب بقيمة ${taskData.gross || 0} ${taskData.currency || 'USD'}`
-            : `تم إسناد مهمة جديدة (#${taskData.taskNumber || '-'}) بقيمة ${taskData.gross || 0} ${taskData.currency || 'USD'}`;
+          const isPayout = taskData.isPayout || taskData.type === 'payout' || (taskData.title && taskData.title.toLowerCase().includes('payout'));
+          const isWithdrawal = taskData.type === 'withdrawal' && !isPayout;
+
+          let notifTitle = '';
+          let notifMessage = '';
+          let notifType = 'new_task';
+
+          if (isPayout) {
+            notifType = 'payout';
+            notifTitle = `💵 صرف مستحقات (Payout) بقيمة ${taskData.gross || 0} ${taskData.currency || 'USD'}`;
+            notifMessage = `تم تحويل وصرف مستحقاتك المالية بنجاح` + (taskData.month ? ` عن شهر ${taskData.month}` : '') + ` بقيمة ${taskData.gross || 0} ${taskData.currency || 'USD'}.` + (taskData.notes ? ` ملاحظات: ${taskData.notes}` : '');
+          } else if (isWithdrawal) {
+            notifType = 'general';
+            notifTitle = 'عملية سحب جديدة';
+            notifMessage = `تم تسجيل عملية سحب بقيمة ${taskData.gross || 0} ${taskData.currency || 'USD'}`;
+          } else {
+            notifType = 'new_task';
+            notifTitle = `مهمة جديدة: ${taskData.title}`;
+            notifMessage = `تم إسناد مهمة جديدة (#${taskData.taskNumber || '-'}) بقيمة ${taskData.gross || 0} ${taskData.currency || 'USD'}`;
+          }
 
           // Create in-app notification record in MongoDB
           await Notification.create({
@@ -533,7 +548,7 @@ router.post('/tasks', dataMutationLimiter, verifyToken, requireAdminOrLeader, as
             recipientUserId: userAccount ? userAccount._id : null,
             title: notifTitle,
             message: notifMessage,
-            type: isWithdrawal ? 'general' : 'new_task',
+            type: notifType,
             taskId: taskId,
             taskNumber: taskData.taskNumber || '',
             taskTitle: taskData.title,
@@ -546,14 +561,27 @@ router.post('/tasks', dataMutationLimiter, verifyToken, requireAdminOrLeader, as
 
           // Send Email if user has an email registered
           if (userAccount && userAccount.email) {
-            await sendNewTaskNotificationEmail(userAccount.email, empName, {
-              title: taskData.title,
-              taskNumber: taskData.taskNumber,
-              gross: taskData.gross,
-              currency: taskData.currency,
-              month: taskData.month,
-              type: taskData.type
-            });
+            if (isPayout) {
+              await sendPayoutReceiptEmail(userAccount.email, empName, {
+                amount: taskData.gross,
+                currency: taskData.currency,
+                paymentMethod: taskData.paymentMethod || (emp ? emp.paymentMethod : 'InstaPay'),
+                paymentDetails: taskData.paymentDetails || (emp ? emp.paymentDetails : '-'),
+                refNumber: taskData.taskNumber,
+                month: taskData.month,
+                date: taskData.date,
+                notes: taskData.notes
+              });
+            } else {
+              await sendNewTaskNotificationEmail(userAccount.email, empName, {
+                title: taskData.title,
+                taskNumber: taskData.taskNumber,
+                gross: taskData.gross,
+                currency: taskData.currency,
+                month: taskData.month,
+                type: taskData.type
+              });
+            }
           }
         } catch (notifErr) {
           console.error('⚠️ Error processing task notification/email:', notifErr.message);
