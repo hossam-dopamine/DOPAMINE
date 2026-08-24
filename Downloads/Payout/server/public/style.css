@@ -443,20 +443,24 @@ html[dir="ltr"] .employee-item:hover {
 
 /* Stats Cards Grid - Balanced & Responsive */
 .stats-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 16px;
     width: 100%;
 }
+@media (min-width: 1360px) {
+    .stats-grid {
+        grid-template-columns: repeat(5, 1fr);
+    }
+}
 .stat-card {
-    flex: 1 1 calc(33.333% - 14px);
-    min-width: 220px;
     display: flex;
     align-items: center;
-    padding: 22px 24px;
-    gap: 18px;
+    padding: 20px 22px;
+    gap: 16px;
     transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
     box-sizing: border-box;
+    width: 100%;
 }
 .stat-card:hover {
     transform: translateY(-4px);
