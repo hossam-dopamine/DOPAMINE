@@ -1344,6 +1344,32 @@
         </div>
     </div>
 
+    <!-- Edit Employee Email Modal -->
+    <div id="edit-employee-email-modal" class="modal-overlay">
+        <div class="modal-content glass-panel" style="width: 420px; max-width: 95%;">
+            <div class="modal-header">
+                <h3 style="margin: 0; font-size: 16px; color: #fff; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="mail" style="color: var(--color-primary); width: 18px; height: 18px;"></i>
+                    <span>تعديل البريد الإلكتروني للموظف</span>
+                </h3>
+                <button class="btn btn-secondary btn-icon-only close-modal-btn" id="close-edit-employee-email-modal" aria-label="إغلاق"><i data-lucide="x"></i></button>
+            </div>
+            <form id="edit-employee-email-form">
+                <input type="hidden" id="edit-email-username">
+                <div class="form-group" style="margin-top: 12px;">
+                    <label for="edit-account-email-input" style="font-size: 13px; color: var(--text-color); margin-bottom: 6px; display: block;">البريد الإلكتروني (للإشعارات والتواصل)</label>
+                    <input type="email" id="edit-account-email-input" placeholder="example@mail.com" style="width: 100%; height: 42px;">
+                    <small class="form-help-text" style="display: block; margin-top: 6px; font-size: 11.5px; color: var(--text-muted);">يستخدم هذا البريد لإرسال إشعارات المهام والتواصل المباشر مع الموظف.</small>
+                </div>
+                <div id="edit-email-msg" style="display: none; margin-bottom: 12px; font-size: 12.5px; font-weight: 600;"></div>
+                <div class="modal-actions" style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px;">
+                    <button type="button" class="btn btn-secondary" id="cancel-edit-employee-email-modal" data-i18n="cancel">إلغاء</button>
+                    <button type="submit" class="btn btn-primary"><i data-lucide="check"></i> <span data-i18n="save">حفظ</span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Leader Allowed Employees Modal -->
     <div id="leader-permissions-modal" class="modal-overlay">
         <div class="modal-content glass-panel" style="max-width: 650px; width: 95%;">

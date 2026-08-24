@@ -1613,10 +1613,10 @@ async function fetchAndRenderEmployeeAccounts() {
                     <td style="font-size: 12px; color: var(--text-muted);">${dateStr}</td>
                     <td>
                         ${manageBtn}
-                        <button class="btn btn-secondary btn-icon-only btn-sm" onclick="editEmployeeEmail('${escapeHTML(acc.username)}', '${escapeHTML(acc.email || '')}')" title="تعديل البريد الإلكتروني" style="margin-inline-end: 4px;">
+                        <button type="button" class="btn btn-secondary btn-icon-only btn-sm btn-edit-account-email" data-username="${escapeHTML(acc.username)}" data-email="${escapeHTML(acc.email || '')}" title="تعديل البريد الإلكتروني" style="margin-inline-end: 4px;">
                             <i data-lucide="edit-3" style="width: 14px; height: 14px; pointer-events: none;"></i>
                         </button>
-                        <button class="btn btn-danger btn-icon-only btn-sm btn-delete-account" data-username="${escapeHTML(acc.username)}" onclick="deleteEmployeeAccount('${escapeHTML(acc.username)}')" title="حذف الحساب">
+                        <button type="button" class="btn btn-danger btn-icon-only btn-sm btn-delete-account" data-username="${escapeHTML(acc.username)}" onclick="deleteEmployeeAccount('${escapeHTML(acc.username)}')" title="حذف الحساب">
                             <i data-lucide="trash-2" style="width: 14px; height: 14px; pointer-events: none;"></i>
                         </button>
                     </td>
@@ -4275,7 +4275,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Event Delegation for Employee Accounts Table (Manage Leader Employees & Delete Account)
+    // Event Delegation for Employee Accounts Table (Manage Leader Employees, Edit Email & Delete Account)
     const accountsTableBody = document.getElementById('employee-accounts-table-body');
     if (accountsTableBody) {
         accountsTableBody.addEventListener('click', (e) => {
@@ -4288,10 +4288,73 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
+            const editEmailBtn = e.target.closest('.btn-edit-account-email');
+            if (editEmailBtn) {
+                const username = editEmailBtn.getAttribute('data-username');
+                const email = editEmailBtn.getAttribute('data-email') || '';
+                if (username && typeof window.openEditEmployeeEmailModal === 'function') {
+                    window.openEditEmployeeEmailModal(username, email);
+                }
+                return;
+            }
+
             const delBtn = e.target.closest('.btn-delete-account');
             if (delBtn) {
                 const username = delBtn.getAttribute('data-username');
                 if (username) window.deleteEmployeeAccount(username);
+            }
+        });
+    }
+
+    // Edit Employee Email Modal Events
+    const editEmailModal = document.getElementById('edit-employee-email-modal');
+    const editEmailForm = document.getElementById('edit-employee-email-form');
+    if (editEmailModal && editEmailForm) {
+        const closeBtn = document.getElementById('close-edit-employee-email-modal');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                editEmailModal.classList.remove('active');
+            });
+        }
+        const cancelBtn = document.getElementById('cancel-edit-employee-email-modal');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                editEmailModal.classList.remove('active');
+            });
+        }
+
+        editEmailForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('edit-email-username').value.trim();
+            const email = document.getElementById('edit-account-email-input').value.trim();
+            const msgEl = document.getElementById('edit-email-msg');
+
+            if (!username) return;
+
+            try {
+                const res = await fetch('/api/auth/update-employee-account', {
+                    method: 'PUT',
+                    headers: authHeaders(),
+                    body: JSON.stringify({ username, email })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    editEmailModal.classList.remove('active');
+                    showToastDirectMsg(state.currentLanguage === 'ar' ? 'تم تحديث البريد الإلكتروني بنجاح' : 'Email updated successfully');
+                    fetchAndRenderEmployeeAccounts();
+                } else {
+                    if (msgEl) {
+                        msgEl.style.color = 'var(--color-rose)';
+                        msgEl.textContent = '❌ ' + (data.error || 'فشل تحديث البريد الإلكتروني');
+                        msgEl.style.display = 'block';
+                    }
+                }
+            } catch (err) {
+                if (msgEl) {
+                    msgEl.style.color = 'var(--color-rose)';
+                    msgEl.textContent = '❌ حدث خطأ في الخادم';
+                    msgEl.style.display = 'block';
+                }
             }
         });
     }
@@ -4924,31 +4987,27 @@ window.playSplitCardIntro = function() {
     }, 2000);
 };
 
-window.editEmployeeEmail = async function(username, currentEmail) {
-    const isAr = state.currentLanguage === 'ar';
-    const newEmail = prompt(
-        isAr ? `تعديل البريد الإلكتروني للمستخدم (${username}) الخاص بالإشعارات والتواصل:` : `Edit email for user (${username}) used for notifications:`,
-        currentEmail || ''
-    );
-    if (newEmail === null) return;
+window.openEditEmployeeEmailModal = function(username, currentEmail) {
+    const modal = document.getElementById('edit-employee-email-modal');
+    if (!modal) return;
 
-    try {
-        const res = await fetch('/api/auth/update-employee-account', {
-            method: 'PUT',
-            headers: authHeaders(),
-            body: JSON.stringify({ username, email: newEmail.trim() })
-        });
-        const data = await res.json();
-        if (data.success) {
-            showToastDirectMsg(isAr ? 'تم تحديث البريد الإلكتروني بنجاح' : 'Email updated successfully');
-            fetchAndRenderEmployeeAccounts();
-        } else {
-            alert(data.error || 'Failed to update email');
-        }
-    } catch (e) {
-        console.error('Error updating employee email:', e);
+    const usernameInput = document.getElementById('edit-email-username');
+    if (usernameInput) usernameInput.value = username || '';
+
+    const input = document.getElementById('edit-account-email-input');
+    if (input) input.value = currentEmail || '';
+
+    const msgEl = document.getElementById('edit-email-msg');
+    if (msgEl) {
+        msgEl.style.display = 'none';
+        msgEl.textContent = '';
     }
+
+    modal.classList.add('active');
+    if (input) input.focus();
+    if (window.lucide) window.lucide.createIcons();
 };
+window.editEmployeeEmail = window.openEditEmployeeEmailModal;
 
 document.addEventListener('DOMContentLoaded', () => {
     if (window.initSmokeEffect) window.initSmokeEffect();
