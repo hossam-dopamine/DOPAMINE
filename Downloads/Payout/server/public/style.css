@@ -646,6 +646,17 @@ html[dir="ltr"] .employee-item:hover {
     gap: 12px;
 }
 
+.task-search-field {
+    width: 180px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: #fff;
+    font-size: 12px;
+    box-sizing: border-box;
+}
+
 /* Table Design - Desktop Default */
 .table-container {
     overflow-x: auto;
