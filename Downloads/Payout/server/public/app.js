@@ -489,13 +489,13 @@ function formatRelativeTime(dateString) {
     return lang === 'ar' ? `منذ ${diffDays} يوم` : `${diffDays}d ago`;
 }
 
-function renderNotificationDropdown(notifications, unreadCount) {
+let cachedNotifications = [];
+let cachedUnreadCount = 0;
+
+function updateNotificationBadges(unreadCount) {
     const badgeEl = document.getElementById('notification-badge');
     const mobileBadgeEl = document.getElementById('mobile-notification-badge');
     const countTextEl = document.getElementById('notification-count-text');
-    const subtitleEl = document.getElementById('notification-scope-subtitle');
-    const listEl = document.getElementById('notification-items-list');
-
     const displayCount = unreadCount > 99 ? '99+' : unreadCount;
     if (badgeEl) {
         badgeEl.textContent = displayCount;
@@ -508,6 +508,20 @@ function renderNotificationDropdown(notifications, unreadCount) {
     if (countTextEl) {
         countTextEl.textContent = unreadCount;
     }
+}
+
+function renderNotificationDropdown(notifications, unreadCount) {
+    cachedNotifications = notifications || [];
+    cachedUnreadCount = unreadCount || 0;
+    updateNotificationBadges(unreadCount);
+
+    const dropdown = document.getElementById('notification-dropdown');
+    // If dropdown is hidden, skip expensive DOM construction
+    if (!dropdown || dropdown.style.display === 'none') return;
+
+    const subtitleEl = document.getElementById('notification-scope-subtitle');
+    const listEl = document.getElementById('notification-items-list');
+
     if (subtitleEl) {
         const isAr = state.currentLanguage === 'ar';
         const role = state.user ? state.user.role : '';
@@ -532,7 +546,7 @@ function renderNotificationDropdown(notifications, unreadCount) {
                 <span style="font-size: 12px; color: var(--text-dim);">${escapeHTML(emptySub)}</span>
             </div>
         `;
-        if (window.lucide) window.lucide.createIcons();
+        scheduleLucideIcons(listEl);
         return;
     }
 
@@ -568,7 +582,7 @@ function renderNotificationDropdown(notifications, unreadCount) {
     });
 
     listEl.innerHTML = html;
-    if (window.lucide) window.lucide.createIcons();
+    scheduleLucideIcons(listEl);
 
     listEl.querySelectorAll('.notification-item').forEach(el => {
         el.addEventListener('click', async () => {
@@ -661,8 +675,9 @@ function openNotificationDropdown() {
     const backdrop = document.getElementById('notification-backdrop');
     if (dropdown) dropdown.style.display = 'flex';
     if (backdrop) backdrop.style.display = 'block';
+    renderNotificationDropdown(cachedNotifications, cachedUnreadCount);
     fetchNotifications();
-    if (window.lucide) window.lucide.createIcons();
+    scheduleLucideIcons(dropdown);
 }
 
 function closeNotificationDropdown() {
@@ -688,7 +703,7 @@ function initNotificationSystem() {
     fetchNotifications();
 
     if (notificationPollingTimer) clearInterval(notificationPollingTimer);
-    notificationPollingTimer = setInterval(fetchNotifications, 20000);
+    notificationPollingTimer = setInterval(fetchNotifications, 25000);
 }
 
 // --- Performance Utilities (Debounce & RAF Lucide Scheduler) ---
@@ -703,12 +718,23 @@ function debounce(fn, delay = 150) {
 }
 
 let lucideSchedulePending = false;
-function scheduleLucideIcons() {
+let lucidePendingRoots = new Set();
+function scheduleLucideIcons(root = null) {
+    if (root) lucidePendingRoots.add(root);
     if (lucideSchedulePending) return;
     lucideSchedulePending = true;
     requestAnimationFrame(() => {
         if (window.lucide && typeof window.lucide.createIcons === 'function') {
-            window.lucide.createIcons();
+            if (lucidePendingRoots.size > 0) {
+                lucidePendingRoots.forEach(r => {
+                    if (r && document.body.contains(r)) {
+                        window.lucide.createIcons({ root: r });
+                    }
+                });
+                lucidePendingRoots.clear();
+            } else {
+                window.lucide.createIcons();
+            }
         }
         lucideSchedulePending = false;
     });
@@ -1279,9 +1305,10 @@ function calculateDashboardStats() {
 function renderEmployeesList() {
     const searchInput = document.getElementById('employee-search').value.toLowerCase();
     const container = document.getElementById('employees-list-container');
-    container.innerHTML = '';
+    if (!container) return;
 
     const filtered = state.employees.filter(emp => emp.name.toLowerCase().includes(searchInput));
+    const fragment = document.createDocumentFragment();
 
     filtered.forEach(emp => {
         const item = document.createElement('div');
@@ -1295,7 +1322,7 @@ function renderEmployeesList() {
             ? escapeHTML(emp.avatarUrl)
             : '';
         const avatarHTML = safeAvatarUrl 
-            ? `<img src="${safeAvatarUrl}" class="avatar-img">`
+            ? `<img src="${safeAvatarUrl}" class="avatar-img" loading="lazy">`
             : `<div class="avatar">${avatarLetter}</div>`;
         
         item.innerHTML = `
@@ -1336,12 +1363,12 @@ function renderEmployeesList() {
             selectEmployee(emp.id);
         });
 
-        container.appendChild(item);
+        fragment.appendChild(item);
     });
 
-    if (window.lucide) {
-        window.lucide.createIcons();
-    }
+    container.innerHTML = '';
+    container.appendChild(fragment);
+    scheduleLucideIcons(container);
 }
 
 // --- Mobile Navigation Drawer Controller ---
@@ -1450,10 +1477,11 @@ function enterManagerDashboard() {
 
 function renderManagerPanel() {
     const tableBody = document.getElementById('manager-table-body');
-    tableBody.innerHTML = '';
+    if (!tableBody) return;
 
     const dbMonthFilter = document.getElementById('dashboard-filter-month');
     const selectedMonth = dbMonthFilter ? dbMonthFilter.value : 'all';
+    const fragment = document.createDocumentFragment();
 
     state.employees.forEach(emp => {
         let empCompletedCount = 0;
@@ -1462,17 +1490,12 @@ function renderManagerPanel() {
 
         let earnings_completed_egp = 0;
         let earnings_completed_usd = 0;
-        let withdrawals_completed_egp = 0;
-        let withdrawals_completed_usd = 0;
-        let withdrawals_paid_egp = 0;
-        let withdrawals_paid_usd = 0;
 
         emp.tasks.forEach(task => {
             if (selectedMonth !== 'all' && task.month !== selectedMonth) {
                 return;
             }
 
-            const isWithdrawal = task.type === 'withdrawal';
             const currency = task.currency || 'EGP';
             const rate = task.exchangeRate || state.exchangeRate;
 
@@ -1515,8 +1538,11 @@ function renderManagerPanel() {
             <td style="font-weight: 700; color: var(--color-emerald);">${formatCurrency(empDueEGP, 'EGP')}</td>
             <td style="font-weight: 700; color: var(--color-emerald);">${formatCurrency(empDueUSD, 'USD')}</td>
         `;
-        tableBody.appendChild(row);
+        fragment.appendChild(row);
     });
+
+    tableBody.innerHTML = '';
+    tableBody.appendChild(fragment);
 
     // Populate account creation employee select dropdown & allowed checkboxes
     const accountEmpSelect = document.getElementById('account-employee-select');
@@ -2075,7 +2101,7 @@ function renderEmployeeDetail(id) {
 
     const tableBody = document.getElementById('tasks-table-body');
     const fallback = document.getElementById('no-tasks-fallback');
-    tableBody.innerHTML = '';
+    if (!tableBody) return;
 
     const searchInput = document.getElementById('task-search-input');
     const searchQuery = searchInput ? searchInput.value.trim().toLowerCase() : '';
@@ -2090,9 +2116,11 @@ function renderEmployeeDetail(id) {
     });
 
     if (filteredTasks.length === 0) {
-        fallback.style.display = 'flex';
+        tableBody.innerHTML = '';
+        if (fallback) fallback.style.display = 'flex';
     } else {
-        fallback.style.display = 'none';
+        if (fallback) fallback.style.display = 'none';
+        const fragment = document.createDocumentFragment();
         
         filteredTasks.forEach(task => {
             const row = document.createElement('tr');
@@ -2113,7 +2141,6 @@ function renderEmployeeDetail(id) {
                 const adv = task.advance || 0;
                 const fixed = task.fixedDeduction || 0;
                 const netAmount = calculateTaskNet(task.gross, task.deductionRate, delay, adv, fixed);
-                // statusText is declared below (L957) for both withdrawal and task types
                 
                 grossDisplay = `<div>${formatCurrency(task.gross, currency)}</div>`;
                 netDisplay = `<div style="font-weight: 700; color: var(--color-emerald);">${formatCurrency(netAmount, currency)}</div>`;
@@ -2221,8 +2248,11 @@ function renderEmployeeDetail(id) {
                     </div>
                 </td>
             `;
-            tableBody.appendChild(row);
+            fragment.appendChild(row);
         });
+        tableBody.innerHTML = '';
+        tableBody.appendChild(fragment);
+        scheduleLucideIcons(tableBody);
     }
 
     // Reset default placeholders in task form fields
@@ -2697,14 +2727,20 @@ function importData(event) {
 // --- Auth UI & Role Restrictions ---
 function showLoginOverlay() {
     const overlay = document.getElementById('login-overlay');
-    if (overlay) overlay.classList.add('active');
+    if (overlay) {
+        overlay.classList.add('active');
+        if (typeof overlay._startSmoke === 'function') overlay._startSmoke();
+    }
     const appContainer = document.querySelector('.app-container');
     if (appContainer) appContainer.style.display = 'none';
 }
 
 function hideLoginOverlay() {
     const overlay = document.getElementById('login-overlay');
-    if (overlay) overlay.classList.remove('active');
+    if (overlay) {
+        overlay.classList.remove('active');
+        if (typeof overlay._stopSmoke === 'function') overlay._stopSmoke();
+    }
     const appContainer = document.querySelector('.app-container');
     if (appContainer) appContainer.style.display = '';
 }
@@ -3032,9 +3068,14 @@ function handleLogout() {
 // --- Inactivity Auto-Logout Controller (10 Minutes) ---
 const INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 let inactivityTimer = null;
+let lastInactivityReset = 0;
 
-function resetInactivityTimer() {
+function resetInactivityTimer(force = false) {
     if (!isAuthenticated()) return;
+    const now = Date.now();
+    // Throttle timer reset to once every 30 seconds unless explicitly forced
+    if (!force && (now - lastInactivityReset < 30000)) return;
+    lastInactivityReset = now;
     
     if (inactivityTimer) {
         clearTimeout(inactivityTimer);
@@ -3056,11 +3097,11 @@ function resetInactivityTimer() {
 }
 
 function initInactivityTracker() {
-    const events = ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'];
+    const events = ['keydown', 'click', 'touchstart', 'scroll'];
     events.forEach(evt => {
-        window.addEventListener(evt, resetInactivityTimer, { passive: true });
+        window.addEventListener(evt, () => resetInactivityTimer(false), { passive: true });
     });
-    resetInactivityTimer();
+    resetInactivityTimer(true);
 }
 
 function applyRoleRestrictions() {
@@ -4340,12 +4381,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Task search listener
     const searchTaskInput = document.getElementById('task-search-input');
     if (searchTaskInput) {
-        searchTaskInput.addEventListener('input', () => {
+        searchTaskInput.addEventListener('input', debounce(() => {
             if (state.selectedEmployeeId) {
                 renderEmployeeDetail(state.selectedEmployeeId);
-                if (window.lucide) window.lucide.createIcons();
             }
-        });
+        }, 150));
     }
 
     // Export CSV listener
@@ -4814,18 +4854,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // Ensure Lucide icons render reliably
-    function ensureLucideIcons() {
-        if (window.lucide && typeof window.lucide.createIcons === 'function') {
-            window.lucide.createIcons();
-        }
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+    } else {
+        let lucideAttempts = 0;
+        const lucideTimer = setInterval(() => {
+            lucideAttempts++;
+            if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                window.lucide.createIcons();
+                clearInterval(lucideTimer);
+            } else if (lucideAttempts > 20) {
+                clearInterval(lucideTimer);
+            }
+        }, 150);
     }
-    ensureLucideIcons();
-    let lucideAttempts = 0;
-    const lucideTimer = setInterval(() => {
-        lucideAttempts++;
-        ensureLucideIcons();
-        if (window.lucide || lucideAttempts > 30) clearInterval(lucideTimer);
-    }, 150);
 });
 
 // --- Sorting actions global handlers ---
@@ -4984,73 +5026,86 @@ window.initSmokeEffect = function() {
         let ambientStars = [];
         let shootingStars = [];
         let mouseTrail = [];
+        let animFrameId = null;
+        let starIntervalId = null;
+        let isMobile = ('ontouchstart' in window) || (window.innerWidth <= 768);
 
         function resize() {
+            if (!overlay.classList.contains('active')) return;
             width = canvas.width = overlay.clientWidth || window.innerWidth;
             height = canvas.height = overlay.clientHeight || window.innerHeight;
             initAmbientStars();
         }
 
-        // 1. Initialize Ambient Twinkling Cosmic Stars & Stardust
+        // 1. Initialize Ambient Twinkling Cosmic Stars & Stardust (Optimized count for mobile)
         function initAmbientStars() {
             ambientStars = [];
-            const starCount = Math.floor((width * height) / 5000) + 110;
+            isMobile = ('ontouchstart' in window) || (window.innerWidth <= 768);
+            const starCount = isMobile 
+                ? Math.min(30, Math.floor((width * height) / 20000) + 12)
+                : Math.min(90, Math.floor((width * height) / 8000) + 35);
+                
             for (let i = 0; i < starCount; i++) {
                 ambientStars.push({
                     x: Math.random() * width,
                     y: Math.random() * height,
-                    size: Math.random() * 2.2 + 0.6,
-                    baseAlpha: Math.random() * 0.65 + 0.25,
-                    twinkleSpeed: Math.random() * 0.035 + 0.01,
+                    size: Math.random() * 1.8 + 0.5,
+                    baseAlpha: Math.random() * 0.6 + 0.2,
+                    twinkleSpeed: Math.random() * 0.03 + 0.01,
                     twinklePhase: Math.random() * Math.PI * 2,
-                    isBig: Math.random() > 0.88,
+                    isBig: !isMobile && Math.random() > 0.9,
                     color: Math.random() > 0.7 ? '255, 220, 240' : (Math.random() > 0.4 ? '200, 230, 255' : '255, 255, 255')
                 });
             }
         }
 
-        resize();
-        window.addEventListener('resize', resize);
-
         // 2. Spawn Falling Shooting Star / Meteor
         function spawnShootingStar() {
+            if (!overlay.classList.contains('active')) return;
             const startX = Math.random() * (width * 0.8) + (width * 0.1);
             const startY = Math.random() * (height * 0.4);
-            const speed = Math.random() * 7 + 7;
-            const angle = (Math.PI / 180) * (Math.random() * 15 + 25); // 25-40 deg diagonal
+            const speed = Math.random() * 6 + 6;
+            const angle = (Math.PI / 180) * (Math.random() * 15 + 25);
             shootingStars.push({
                 x: startX,
                 y: startY,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
-                length: Math.random() * 80 + 70,
+                length: Math.random() * 60 + 50,
                 alpha: 1.0,
-                decay: Math.random() * 0.015 + 0.01,
-                thickness: Math.random() * 1.5 + 1.2
+                decay: Math.random() * 0.02 + 0.015,
+                thickness: Math.random() * 1.2 + 1.0
             });
         }
 
-        // Spawn shooting star every 2.2 seconds
-        setInterval(() => {
-            if (overlay.classList.contains('active')) {
-                spawnShootingStar();
-                if (Math.random() > 0.6) {
-                    setTimeout(spawnShootingStar, 400);
+        function startStarInterval() {
+            if (starIntervalId) clearInterval(starIntervalId);
+            starIntervalId = setInterval(() => {
+                if (overlay.classList.contains('active')) {
+                    spawnShootingStar();
                 }
-            }
-        }, 2200);
+            }, 3000);
+        }
 
-        // 3. Interactive Mouse Stardust Trail
+        function stopStarInterval() {
+            if (starIntervalId) {
+                clearInterval(starIntervalId);
+                starIntervalId = null;
+            }
+        }
+
+        // 3. Interactive Mouse Stardust Trail (Desktop only)
         function addMouseStardust(x, y) {
-            for (let i = 0; i < 3; i++) {
+            if (isMobile) return;
+            for (let i = 0; i < 2; i++) {
                 mouseTrail.push({
-                    x: x + (Math.random() - 0.5) * 12,
-                    y: y + (Math.random() - 0.5) * 12,
-                    size: Math.random() * 2 + 1,
-                    vx: (Math.random() - 0.5) * 1.2,
-                    vy: (Math.random() - 0.5) * 1.2 - 0.4,
-                    alpha: Math.random() * 0.8 + 0.2,
-                    decay: Math.random() * 0.02 + 0.015,
+                    x: x + (Math.random() - 0.5) * 10,
+                    y: y + (Math.random() - 0.5) * 10,
+                    size: Math.random() * 1.8 + 0.8,
+                    vx: (Math.random() - 0.5) * 1.0,
+                    vy: (Math.random() - 0.5) * 1.0 - 0.3,
+                    alpha: Math.random() * 0.7 + 0.2,
+                    decay: Math.random() * 0.03 + 0.02,
                     color: Math.random() > 0.4 ? '255, 255, 255' : '200, 225, 255'
                 });
             }
@@ -5058,19 +5113,25 @@ window.initSmokeEffect = function() {
 
         let lastX = 0, lastY = 0;
         overlay.addEventListener('mousemove', (e) => {
+            if (!overlay.classList.contains('active') || isMobile) return;
             const rect = overlay.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             const dist = Math.hypot(x - lastX, y - lastY);
-            if (dist > 5) {
+            if (dist > 8) {
                 addMouseStardust(x, y);
                 lastX = x;
                 lastY = y;
             }
-        });
+        }, { passive: true });
 
         // 4. Render Loop
         function render() {
+            if (!overlay.classList.contains('active')) {
+                animFrameId = null;
+                return;
+            }
+
             ctx.clearRect(0, 0, width, height);
 
             // A. Draw Ambient Twinkling Stars
@@ -5085,16 +5146,15 @@ window.initSmokeEffect = function() {
                 ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Lens flare for big stars
                 if (s.isBig && alpha > 0.5) {
                     ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.4})`;
                     ctx.lineWidth = 0.8;
-                    const flareLen = s.size * 3.5;
+                    const flareLen = s.size * 3;
                     ctx.beginPath();
                     ctx.moveTo(s.x - flareLen, s.y);
                     ctx.lineTo(s.x + flareLen, s.y);
                     ctx.moveTo(s.x, s.y - flareLen);
-                    ctx.lineTo(s.x, s.y + flareLen);
+                    ctx.lineTo(s.x + flareLen, s.y);
                     ctx.stroke();
                 }
                 ctx.restore();
@@ -5133,39 +5193,63 @@ window.initSmokeEffect = function() {
                 ctx.stroke();
 
                 ctx.fillStyle = `rgba(255, 255, 255, ${m.alpha})`;
-                ctx.shadowColor = 'rgba(255, 255, 255, 0.9)';
-                ctx.shadowBlur = 8;
                 ctx.beginPath();
                 ctx.arc(headX, headY, m.thickness * 1.2, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.restore();
             }
 
-            // C. Draw Interactive Mouse Stardust
-            for (let i = mouseTrail.length - 1; i >= 0; i--) {
-                const p = mouseTrail[i];
-                p.x += p.vx;
-                p.y += p.vy;
-                p.alpha -= p.decay;
+            // C. Draw Interactive Mouse Stardust (desktop only)
+            if (!isMobile) {
+                for (let i = mouseTrail.length - 1; i >= 0; i--) {
+                    const p = mouseTrail[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.alpha -= p.decay;
 
-                if (p.alpha <= 0) {
-                    mouseTrail.splice(i, 1);
-                    continue;
+                    if (p.alpha <= 0) {
+                        mouseTrail.splice(i, 1);
+                        continue;
+                    }
+
+                    ctx.save();
+                    ctx.fillStyle = `rgba(${p.color}, ${p.alpha})`;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
                 }
-
-                ctx.save();
-                ctx.fillStyle = `rgba(${p.color}, ${p.alpha})`;
-                ctx.shadowColor = `rgba(${p.color}, ${p.alpha * 0.8})`;
-                ctx.shadowBlur = 6;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
             }
 
-            requestAnimationFrame(render);
+            animFrameId = requestAnimationFrame(render);
         }
-        render();
+
+        function startLoop() {
+            if (!animFrameId && overlay.classList.contains('active')) {
+                resize();
+                startStarInterval();
+                animFrameId = requestAnimationFrame(render);
+            }
+        }
+
+        function stopLoop() {
+            if (animFrameId) {
+                cancelAnimationFrame(animFrameId);
+                animFrameId = null;
+            }
+            stopStarInterval();
+        }
+
+        overlay._startSmoke = startLoop;
+        overlay._stopSmoke = stopLoop;
+
+        window.addEventListener('resize', debounce(() => {
+            if (overlay.classList.contains('active')) resize();
+        }, 200), { passive: true });
+
+        if (overlay.classList.contains('active')) {
+            startLoop();
+        }
     });
 };
 
@@ -5176,10 +5260,12 @@ window.initReviewsSlider = function() {
         if (slides.length <= 1) return;
         let current = 0;
         setInterval(() => {
+            const overlay = slider.closest('.login-overlay');
+            if (overlay && !overlay.classList.contains('active')) return;
             slides[current].classList.remove('active');
             current = (current + 1) % slides.length;
             slides[current].classList.add('active');
-        }, 4500);
+        }, 5000);
     });
 };
 

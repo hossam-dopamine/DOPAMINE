@@ -65,13 +65,15 @@ html[dir="ltr"] {
     box-sizing: border-box;
 }
 
-/* Custom Flame Logo Cursor */
-*, html, body, a, button, input, select, textarea, label, div, span, i, svg, .btn, .employee-item {
-    cursor: url('cursor-logo.svg?v=1.2.0') 4 4, auto !important;
-}
+/* Custom Flame Logo Cursor - Desktop / Fine Pointer only */
+@media (hover: hover) and (pointer: fine) {
+    *, html, body, a, button, input, select, textarea, label, div, span, i, svg, .btn, .employee-item {
+        cursor: url('cursor-logo.svg?v=1.2.0') 4 4, auto !important;
+    }
 
-a, button, select, input[type="submit"], .btn, .employee-item, [role="button"] {
-    cursor: url('cursor-logo.svg?v=1.2.0') 4 4, pointer !important;
+    a, button, select, input[type="submit"], .btn, .employee-item, [role="button"] {
+        cursor: url('cursor-logo.svg?v=1.2.0') 4 4, pointer !important;
+    }
 }
 
 html, body {
@@ -1963,6 +1965,23 @@ html[dir="rtl"] .toast {
    ========================================================================== */
 
 @media (max-width: 1023px) {
+    /* --- GPU & Mobile Rendering Optimizations --- */
+    .bg-glow {
+        display: none !important;
+    }
+    .glass-panel {
+        background: rgba(18, 18, 22, 0.96) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+    .main-content, .sidebar, .notification-dropdown-list, .table-responsive {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: contain;
+    }
+    * {
+        -webkit-tap-highlight-color: transparent;
+    }
+
     /* --- Top Navigation Bar (Dynamic Fluid Sizing) --- */
     .mobile-topbar {
         display: flex !important;
@@ -1974,8 +1993,8 @@ html[dir="rtl"] .toast {
         top: 0;
         z-index: 50;
         background: rgba(14, 14, 18, 0.96);
-        backdrop-filter: var(--glass-blur);
-        -webkit-backdrop-filter: var(--glass-blur);
+        backdrop-filter: blur(8px) !important;
+        -webkit-backdrop-filter: blur(8px) !important;
         border-bottom: 1px solid var(--border-color);
         width: 100% !important;
         box-sizing: border-box !important;
@@ -2507,7 +2526,7 @@ html[dir="rtl"] .toast {
     }
 
     /* --- Login & Registration Overlays on Mobile (Neatly Stacked & Scrollable) --- */
-    .login-overlay {
+    .login-overlay.active {
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
@@ -2517,6 +2536,11 @@ html[dir="rtl"] .toast {
         -webkit-overflow-scrolling: touch !important;
         gap: 10px !important;
         box-sizing: border-box !important;
+    }
+    .login-overlay:not(.active) {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
     }
     .login-container {
         width: 100% !important;
